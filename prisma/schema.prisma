@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Rating {
+  id        String   @id @default(uuid())
+  value     Int      // 1 for thumps up, -1 for thumps down
+  itemId    String
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([itemId, userId]) // Én stemme pr. bruger pr. ønske
+}
+
+model User {
+  id          String   @id @default(uuid())
+  username    String   @unique
+  displayName String?
+  items       Item[]
+  ratings     Rating[]
+}
+
+model Category {
+  id    Int    @id @default(autoincrement())
+  name  String
+  icon  String?
+  items Item[]
+}
+
+model Item {
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  title       String
+  url         String?
+  price       Float
+  categoryId  Int
+  category    Category    @relation(fields: [categoryId], references: [id])
+  expenseType ExpenseType
+  status      ItemStatus  @default(WISH)
+  createdAt   DateTime    @default(now())
+  purchasedAt DateTime?
+  ratings     Rating[]
+}
+
+enum ExpenseType {
+  PERSONAL
+  SHARED
+}
+
+enum ItemStatus {
+  WISH
+  PURCHASED
+}
