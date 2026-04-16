@@ -1,37 +1,34 @@
 import { prisma } from '$lib/server/prisma';
-import type { Handle } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import type { Handle } from '@sveltejs/kit';
 
 export const handle: Handle = async ({ event, resolve }) => {
-	// I SvelteKit bruger vi 'env' fra $env/dynamic/private til at læse variabler ved runtime
-	const authHeaderName = env.AUTH_HEADER?.toLowerCase() || 'remote-user';
-	
-	// Til lokal udvikling bruger vi bare et 'ronni_dev' fallback
-	const username = event.request.headers.get(authHeaderName) || 'ronni_dev';
+	// SvelteKit laver altid HTTP headers om til små bogstaver for at følge HTTP/2 standarden
+	const authHeaderName = (env.AUTH_HEADER || 'remote-user').toLowerCase();
+	const username = event.request.headers.get(authHeaderName);
+
+	// --- DEBUGGING: Dette udskrives i din Docker log ---
+	console.log(`[AUTH] Kigger efter header: '${authHeaderName}'`);
+	console.log(`[AUTH] Værdi modtaget fra Nginx:`, username);
+	// ---------------------------------------------------
 
 	if (username) {
-		// Find brugeren i databasen
-		let user = await prisma.user.findUnique({
-			where: { username }
+		// Hvis Authelia sender et brugernavn, slår vi det op (eller opretter det automatisk første gang)
+		const user = await prisma.user.upsert({
+			where: { username: username },
+			update: {}, // Gør intet hvis brugeren allerede findes
+			create: { username: username } // Opret Mathilde/Ronni hvis det er første login
 		});
-
-		// Hvis det er første gang du logger ind, opretter vi dig automatisk
-		if (!user) {
-			user = await prisma.user.create({
-				data: { 
-					username: username,
-					displayName: username 
-				}
-			});
-		}
-
-		// Gem brugeren globalt for dette request
-		event.locals.user = {
-			id: user.id,
-			username: user.username
-		};
+		event.locals.user = user;
 	} else {
-		event.locals.user = null;
+		// Hvis ingen header findes (fx ved lokal udvikling uden NPM), falder vi tilbage til dev-brugeren
+		console.log('[AUTH] ADVARSEL: Ingen header fundet. Bruger fallback (ronni_dev)');
+		const fallbackUser = await prisma.user.upsert({
+			where: { username: 'ronni_dev' },
+			update: {},
+			create: { username: 'ronni_dev' }
+		});
+		event.locals.user = fallbackUser;
 	}
 
 	return resolve(event);

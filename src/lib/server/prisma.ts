@@ -1,10 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
-import { DATABASE_URL } from '$env/static/private';
+import { env } from '$env/dynamic/private'; // <-- Ændret fra static til dynamic!
 
 const { Pool } = pg;
-const pool = new Pool({ connectionString: DATABASE_URL });
+// Nu læser den altid variablen "live" fra Docker Compose miljøet
+const pool = new Pool({ connectionString: env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
