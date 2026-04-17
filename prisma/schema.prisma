@@ -22,6 +22,7 @@ model User {
   id          String   @id @default(uuid())
   username    String   @unique
   displayName String?
+  emoji       String?  @default("👤")
   items       Item[]
   ratings     Rating[]
 }

@@ -47,14 +47,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// 3. Extremer (Hvem drømmer og forbruger mest?)
 	const wishCounts: Record<string, {name: string, amount: number}> = {};
 	wishes.forEach(i => {
-		if (!wishCounts[i.userId]) wishCounts[i.userId] = { name: i.user.username, amount: 0 };
+		if (!wishCounts[i.userId]) {
+			const nameToDisplay = i.user.displayName || i.user.username;
+			wishCounts[i.userId] = { name: `${i.user.emoji || '👤'} ${nameToDisplay}`, amount: 0 };
+		}
 		wishCounts[i.userId].amount += i.price;
 	});
 	const topDreamer = Object.values(wishCounts).sort((a, b) => b.amount - a.amount)[0] || { name: 'Ingen', amount: 0 };
 
 	const buyCounts: Record<string, {name: string, amount: number}> = {};
 	purchases.forEach(i => {
-		if (!buyCounts[i.userId]) buyCounts[i.userId] = { name: i.user.username, amount: 0 };
+		if (!buyCounts[i.userId]) {
+			const nameToDisplay = i.user.displayName || i.user.username;
+			buyCounts[i.userId] = { name: `${i.user.emoji || '👤'} ${nameToDisplay}`, amount: 0 };
+		}
 		buyCounts[i.userId].amount += i.price;
 	});
 	const topSpender = Object.values(buyCounts).sort((a, b) => b.amount - a.amount)[0] || { name: 'Ingen', amount: 0 };
@@ -72,6 +78,24 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
+	updateProfile: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Ikke autoriseret' });
+
+		const data = await request.formData();
+		const displayName = data.get('displayName')?.toString();
+		const emoji = data.get('emoji')?.toString() || '👤';
+
+		try {
+			await prisma.user.update({
+				where: { id: locals.user.id },
+				data: { displayName, emoji }
+			});
+			return { success: true };
+		} catch (error) {
+			return fail(500, { error: 'Kunne ikke opdatere profilen.' });
+		}
+	},
+
 	createItem: async ({ request, locals }) => {
 		if (!locals.user) return fail(401, { error: 'Ikke autoriseret' });
 
@@ -82,7 +106,6 @@ export const actions: Actions = {
 		const categoryIdStr = data.get('categoryId')?.toString();
 		const expenseType = data.get('expenseType')?.toString() as 'PERSONAL' | 'SHARED';
 		
-		// Magien fra de to knapper (Hvilken knap blev trykket på?)
 		const targetStatus = data.get('targetStatus')?.toString() === 'PURCHASED' ? 'PURCHASED' : 'WISH';
 
 		if (!title || !priceStr || !categoryIdStr || !expenseType) {

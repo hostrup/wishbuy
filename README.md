@@ -1,59 +1,63 @@
-# WishBuy Tracker
+# Ønskebrønden (WishBuy Tracker)
 
-A modern, shared household wishlist and budget tracking application. Built to keep track of personal and shared expenses, monitor household budgets, and collaboratively rate wishes before purchasing.
+En psyko-økonomisk ønskeseddel og budget-tracker til husstanden. Bygget til at synliggøre "penge sparet" ved at udskyde behov, holde styr på fælles og personlige ønsker, og give et lækkert overblik over realiseret forbrug.
 
 ## ✨ Features
 
-* **Household Dashboard**: Real-time KPIs showing active wishes, total spent, and budget distribution (Shared vs. Personal).
-* **Collaborative Voting**: Rate wishes (👍/👎) to agree on shared household purchases.
-* **Categorization**: Organize items by custom categories (e.g., Tech, HIFI, Cars, Personal Care).
-* **Seamless Authentication**: Built to run behind an Nginx Proxy Manager / Authelia setup via Header-based authentication.
-* **Modern Tech Stack**: Blazing fast UI with Svelte 5 Runes and Tailwind CSS v4.
+* **Psyko-Økonomisk Dashboard**: Real-time KPI'er der viser værdien af udsatte drømme, totalt forbrug, og fordelingen mellem fælles og personlige ("Ego") udgifter.
+* **Ønsker vs. Realiseret**: Et "Swipe-venligt" (Mobile First) interface til at kaste ting i brønden, og senere markere dem som købt.
+* **Personlige Profiler**: Brugere kan selv tilpasse deres viste navn og vælge en personlig emoji via profil-modulen.
+* **Collaborative Voting**: Vurder hinandens ønsker (👍/👎) for at skabe enighed om fælles investeringer.
+* **PWA Ready**: Kan gemmes direkte på iOS og Android hjemmeskærme som en fuldskærms-app med eget ikon.
+* **Seamless Authentication**: Designet til at køre usynligt bag Nginx Proxy Manager og Authelia (Header-based `Remote-User` auth).
 
 ## 🛠️ Tech Stack
 
-* **Frontend**: [SvelteKit](https://kit.svelte.dev/) (Svelte 5) + [Tailwind CSS v4](https://tailwindcss.com/)
-* **Backend**: Node.js via SvelteKit Server Routes
+* **Frontend**: [SvelteKit](https://kit.svelte.dev/) (Svelte 5 Runes) + [Tailwind CSS v4](https://tailwindcss.com/)
+* **Backend**: Node.js (via SvelteKit Server Routes)
 * **Database**: PostgreSQL
-* **ORM**: [Prisma v7](https://www.prisma.io/) (with `@prisma/adapter-pg`)
-* **Language**: TypeScript
+* **ORM**: [Prisma v7](https://www.prisma.io/) (med `@prisma/adapter-pg`)
+* **Deployment**: Docker & Docker Compose
 
-## 🚀 Getting Started
+---
 
-### Prerequisites
-* Node.js (v20+ recommended)
-* A running PostgreSQL database
+## 🚀 Deployment (Docker)
 
-### Installation
+Applikationen er bygget til at køre i et Linux/Docker miljø. 
 
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/hostrup/wishbuy.git](https://github.com/hostrup/wishbuy.git)
-   cd wishbuy
-Install dependencies:
+### 1. Byg og start containeren
+Når du har klonet kildekoden, bygger du og starter containeren i baggrunden:
+```bash
+docker compose up -d --build wishbuy
+2. Synkroniser Databasen (VIGTIGT)
+Første gang applikationen startes, eller når der laves ændringer i schema.prisma (fx tilføjelse af nye kolonner), skal databasen opdateres. Kør dette mens containeren er tændt:
+
+Bash
+docker compose exec wishbuy npx prisma db push
+3. Visuel Database Administration (Prisma Studio)
+Prisma kommer med et indbygget, genialt web-interface til at se, rette og slette data direkte i databasen (uden at skrive SQL). Du kan starte det inde i containeren med:
+
+Bash
+docker compose exec wishbuy npx prisma studio
+(Bemærk: For at tilgå Prisma Studio udefra, kræver det at port 5555 er mappet ud i din docker-compose.yml). Alternativt kan du køre npx prisma studio på din lokale maskine, hvis den har adgang til databasen.
+
+💻 Lokal Udvikling
+Hvis du vil udvikle på applikationen lokalt uden for Docker:
+
+Installer afhængigheder:
 
 Bash
 npm install
-Environment Setup:
-Create a .env file in the root directory and add your PostgreSQL connection string:
+Sørg for at du har en .env fil med din database-streng:
 
 Kodestykke
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public"
-Initialize the Database:
-Push the Prisma schema to your database to create the necessary tables, and generate the Prisma Client:
+Opdater databasen og generer klienten:
 
 Bash
 npx prisma db push
 npx prisma generate
-Start the Development Server:
+Start udviklingsserveren:
 
 Bash
 npm run dev
-The app will be available at http://localhost:5173.
-
-🔐 Authentication Note
-For local development, the app uses a fallback user (ronni_dev). In production, it expects an authentication header (e.g., remote-user) provided by a reverse proxy like Authelia.
-
-📝 License
-This project is for personal use.
-

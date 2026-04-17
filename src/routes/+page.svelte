@@ -2,6 +2,9 @@
 	import { enhance } from '$app/forms';
 	let { data, form } = $props();
 
+	// Svelte 5 state til at styre profil-popup
+	let showProfileModal = $state(false);
+
 	const formatCur = (val: number) => new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', maximumFractionDigits: 0 }).format(val);
 
 	let sharedPct = $derived(data.kpis?.wishTotal ? (data.kpis.wishShared / data.kpis.wishTotal) * 100 : 0);
@@ -10,6 +13,36 @@
 	let wishVsBuyPct = $derived(grandTotal ? ((data.kpis?.wishTotal || 0) / grandTotal) * 100 : 0);
 </script>
 
+{#if showProfileModal}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+		<div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 overflow-hidden relative">
+			<button onclick={() => showProfileModal = false} class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+			<h3 class="text-xl font-bold text-slate-800 mb-6">Rediger Din Profil</h3>
+			
+			<form method="POST" action="?/updateProfile" use:enhance={() => {
+				return async ({ update }) => {
+					await update();
+					showProfileModal = false;
+				};
+			}} class="space-y-5">
+				<div>
+					<label for="emoji" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Din Personlige Emoji</label>
+					<input type="text" id="emoji" name="emoji" value={data.user?.emoji || '👤'} class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-2xl text-center transition-all" maxlength="2" placeholder="👤">
+				</div>
+				<div>
+					<label for="displayName" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Dit Viste Navn</label>
+					<input type="text" id="displayName" name="displayName" value={data.user?.displayName || data.user?.username || ''} required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium transition-all" placeholder="Fx Ronni Hostrup">
+				</div>
+				<div class="pt-2">
+					<button type="submit" class="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md">
+						Gem Profil
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
+
 <div class="min-h-screen bg-slate-50 text-slate-900 p-4 md:p-12 font-sans">
 	<div class="max-w-7xl mx-auto space-y-6 md:space-y-8">
 		
@@ -17,7 +50,12 @@
 			<div>
 				<h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-sky-500">Ønskebrønden</h1>
 				{#if data.user}
-					<p class="text-slate-500 mt-1 text-sm md:text-base">Psyko-økonomisk radar for <span class="font-semibold">{data.user.username}</span></p>
+					<div class="mt-2 flex items-center gap-2 text-sm md:text-base text-slate-500">
+						<span>Radar logget ind som</span>
+						<button onclick={() => showProfileModal = true} class="font-bold text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded-lg flex items-center gap-1.5 active:scale-95">
+							{data.user.emoji || '👤'} {data.user.displayName || data.user.username} <span class="text-[10px] opacity-60">✎</span>
+						</button>
+					</div>
 				{/if}
 			</div>
 		</header>
@@ -172,7 +210,11 @@
 								</div>
 								
 								<h3 class="text-lg md:text-xl font-bold text-slate-800 leading-tight pr-4">{item.title}</h3>
-								<p class="text-[11px] font-medium text-slate-400 mb-2 mt-1">Af {item.user.username}</p>
+								
+								<p class="text-[11px] font-medium text-slate-500 mb-2 mt-1">
+									Af <span class="bg-slate-100 px-1.5 py-0.5 rounded ml-0.5">{item.user.emoji || '👤'} {item.user.displayName || item.user.username}</span>
+								</p>
+								
 								<p class="text-2xl font-black text-indigo-900 mt-auto mb-4">{formatCur(item.price)}</p>
 
 								<div class="flex gap-2 pt-4 border-t border-slate-100 mt-auto">
@@ -198,7 +240,7 @@
 						{#each data.purchases as item}
 							<div class="bg-slate-100/70 p-4 md:p-5 rounded-2xl border border-slate-200 flex flex-col relative group">
 								
-								<div class="absolute -top-2 -right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+								<div class="absolute -top-2 -right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10">
 									<form method="POST" action="?/deleteItem" use:enhance onsubmit={(e) => { if (!confirm('Slet denne post fra historikken?')) e.preventDefault(); }}>
 										<input type="hidden" name="itemId" value={item.id} />
 										<button class="bg-white border border-slate-200 hover:bg-red-500 text-slate-400 hover:text-white w-7 h-7 rounded-full flex items-center justify-center shadow-sm transition-colors text-[10px]" title="Slet">✕</button>
@@ -212,6 +254,10 @@
 								
 								<h3 class="text-base font-semibold text-slate-500 line-through decoration-slate-400/50 pr-4">{item.title}</h3>
 								
+								<p class="text-[10px] font-medium text-slate-400 mt-1 mb-2">
+									Af <span class="px-1 py-0.5 rounded">{item.user.emoji || '👤'} {item.user.displayName || item.user.username}</span>
+								</p>
+
 								<form method="POST" action="?/toggleStatus" use:enhance class="mt-4">
 									<input type="hidden" name="itemId" value={item.id} />
 									<button class="text-[11px] font-bold text-indigo-500 hover:text-indigo-700 underline decoration-indigo-200 underline-offset-2 py-1 transition-colors active:opacity-70">
