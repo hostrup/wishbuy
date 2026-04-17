@@ -24,10 +24,8 @@ RUN npx prisma generate
 RUN npm run build
 
 # --- SIKRING AF CONTAINER TIL RUNTIME ---
-# Ændr ejerskabet af hele mappen til den sikre 'node' bruger
-RUN chown -R node:node /usr/src/app
-
-# Skift til 'node' brugeren, så selve appen IKKE kører som root, når den startes
+# Vi sletter den langsomme chown! Node-brugeren kan læse filerne automatisk.
+# Skift direkte til 'node' brugeren, så selve appen IKKE kører som root, når den startes
 USER node
 
 EXPOSE 3000

@@ -3,12 +3,10 @@ import { fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	// 1. Sikkerhed: Hent kun data, hvis brugeren er logget ind
 	if (!locals.user) {
-		return { items: [], categories: [], kpis: null };
+		return { wishes: [], purchases: [], categories: [], kpis: null };
 	}
 
-	// 2. Auto-opret standardkategorier
 	let categories = await prisma.category.findMany();
 	if (categories.length === 0) {
 		await prisma.category.createMany({
@@ -17,55 +15,58 @@ export const load: PageServerLoad = async ({ locals }) => {
 				{ name: 'HIFI & Lyd', icon: '🎧' },
 				{ name: 'Teknik & IT', icon: '💻' },
 				{ name: 'Biler & Tilbehør', icon: '🚗' },
-				{ name: 'Have', icon: '🏡' },
-				{ name: 'Tøj og Sko', icon: '👔' },
-				{ name: 'Gadgets', icon: '🕹️' },
+				{ name: 'Hus & Have', icon: '🏡' },
+				{ name: 'Tøj & Sko', icon: '👔' },
+				{ name: 'Oplevelser', icon: '🥂' },
 				{ name: 'Diverse', icon: '📦' }
 			]
 		});
 		categories = await prisma.category.findMany();
 	}
 
-	// 3. Hent alle ønsker inkl. kategori, ejer og ratings
-	const items = await prisma.item.findMany({
-		include: { 
-			category: true,
-			user: true,
-			ratings: true
-		},
+	const allItems = await prisma.item.findMany({
+		include: { category: true, user: true, ratings: true },
 		orderBy: { createdAt: 'desc' }
 	});
 
-	// --- KPI Beregninger ---
-	const totalWishes = items.length;
-	const spentItems = items.filter(i => i.status === 'PURCHASED');
-	const totalSpent = spentItems.reduce((acc, i) => acc + i.price, 0);
-	
-	const sharedWishes = items.filter(i => i.expenseType === 'SHARED' && i.status === 'WISH');
-	const personalWishes = items.filter(i => i.expenseType === 'PERSONAL' && i.status === 'WISH');
-	
-	const totalSharedAmount = sharedWishes.reduce((acc, i) => acc + i.price, 0);
-	const totalPersonalAmount = personalWishes.reduce((acc, i) => acc + i.price, 0);
+	// Split data til listerne
+	const wishes = allItems.filter(i => i.status === 'WISH');
+	const purchases = allItems.filter(i => i.status === 'PURCHASED');
 
-	// Find hvem der har flest ønsker (WISH status)
-	const counts: Record<string, {name: string, count: number}> = {};
-	items.filter(i => i.status === 'WISH').forEach(i => {
-		if (!counts[i.userId]) counts[i.userId] = { name: i.user.username, count: 0 };
-		counts[i.userId].count++;
+	// --- KPI Beregninger ---
+	// 1. Ønsker (Drømme)
+	const wishTotal = wishes.reduce((acc, i) => acc + i.price, 0);
+	const wishShared = wishes.filter(i => i.expenseType === 'SHARED').reduce((acc, i) => acc + i.price, 0);
+	const wishPersonal = wishes.filter(i => i.expenseType === 'PERSONAL').reduce((acc, i) => acc + i.price, 0);
+
+	// 2. Køb (Realiseret forbrug)
+	const buyTotal = purchases.reduce((acc, i) => acc + i.price, 0);
+	const buyShared = purchases.filter(i => i.expenseType === 'SHARED').reduce((acc, i) => acc + i.price, 0);
+	const buyPersonal = purchases.filter(i => i.expenseType === 'PERSONAL').reduce((acc, i) => acc + i.price, 0);
+
+	// 3. Extremer (Hvem drømmer og forbruger mest?)
+	const wishCounts: Record<string, {name: string, amount: number}> = {};
+	wishes.forEach(i => {
+		if (!wishCounts[i.userId]) wishCounts[i.userId] = { name: i.user.username, amount: 0 };
+		wishCounts[i.userId].amount += i.price;
 	});
-	
-	const topUser = Object.values(counts).sort((a, b) => b.count - a.count)[0] || { name: 'Ingen', count: 0 };
+	const topDreamer = Object.values(wishCounts).sort((a, b) => b.amount - a.amount)[0] || { name: 'Ingen', amount: 0 };
+
+	const buyCounts: Record<string, {name: string, amount: number}> = {};
+	purchases.forEach(i => {
+		if (!buyCounts[i.userId]) buyCounts[i.userId] = { name: i.user.username, amount: 0 };
+		buyCounts[i.userId].amount += i.price;
+	});
+	const topSpender = Object.values(buyCounts).sort((a, b) => b.amount - a.amount)[0] || { name: 'Ingen', amount: 0 };
 
 	return {
-		items,
+		wishes,
+		purchases,
 		categories,
 		kpis: {
-			totalWishes,
-			totalSpent,
-			totalSharedAmount,
-			totalPersonalAmount,
-			topUser,
-			activeWishes: items.filter(i => i.status === 'WISH').length
+			wishTotal, wishShared, wishPersonal, wishCount: wishes.length,
+			buyTotal, buyShared, buyPersonal, buyCount: purchases.length,
+			topDreamer, topSpender
 		}
 	};
 };
@@ -80,6 +81,9 @@ export const actions: Actions = {
 		const priceStr = data.get('price')?.toString();
 		const categoryIdStr = data.get('categoryId')?.toString();
 		const expenseType = data.get('expenseType')?.toString() as 'PERSONAL' | 'SHARED';
+		
+		// Magien fra de to knapper (Hvilken knap blev trykket på?)
+		const targetStatus = data.get('targetStatus')?.toString() === 'PURCHASED' ? 'PURCHASED' : 'WISH';
 
 		if (!title || !priceStr || !categoryIdStr || !expenseType) {
 			return fail(400, { error: 'Udfyld venligst alle påkrævede felter.' });
@@ -88,31 +92,20 @@ export const actions: Actions = {
 		const price = parseFloat(priceStr);
 		const categoryId = parseInt(categoryIdStr, 10);
 
-		if (isNaN(price) || isNaN(categoryId)) {
-			return fail(400, { error: 'Ugyldigt beløb eller kategori.' });
-		}
+		if (isNaN(price) || isNaN(categoryId)) return fail(400, { error: 'Ugyldigt beløb eller kategori.' });
 
 		try {
 			await prisma.item.create({
-				data: {
-					title,
-					url,
-					price,
-					categoryId,
-					expenseType,
-					userId: locals.user.id
-				}
+				data: { title, url, price, categoryId, expenseType, status: targetStatus, userId: locals.user.id }
 			});
 			return { success: true };
 		} catch (error) {
-			console.error('Fejl ved oprettelse:', error);
 			return fail(500, { error: 'Intern serverfejl.' });
 		}
 	},
 
 	rateItem: async ({ request, locals }) => {
 		if (!locals.user) return fail(401);
-		
 		const data = await request.formData();
 		const itemId = data.get('itemId')?.toString();
 		const value = parseInt(data.get('value')?.toString() || '0');
@@ -126,9 +119,38 @@ export const actions: Actions = {
 				create: { itemId, userId: locals.user.id, value }
 			});
 			return { success: true };
-		} catch (error) {
-			console.error('Fejl ved rating:', error);
-			return fail(500);
-		}
+		} catch (error) { return fail(500); }
+	},
+
+	toggleStatus: async ({ request, locals }) => {
+		if (!locals.user) return fail(401);
+		const data = await request.formData();
+		const itemId = data.get('itemId')?.toString();
+
+		if (!itemId) return fail(400);
+
+		try {
+			const item = await prisma.item.findUnique({ where: { id: itemId }});
+			if (!item) return fail(404);
+
+			await prisma.item.update({
+				where: { id: itemId },
+				data: { status: item.status === 'WISH' ? 'PURCHASED' : 'WISH' }
+			});
+			return { success: true };
+		} catch (error) { return fail(500); }
+	},
+
+	deleteItem: async ({ request, locals }) => {
+		if (!locals.user) return fail(401);
+		const data = await request.formData();
+		const itemId = data.get('itemId')?.toString();
+
+		if (!itemId) return fail(400);
+
+		try {
+			await prisma.item.delete({ where: { id: itemId } });
+			return { success: true };
+		} catch (error) { return fail(500); }
 	}
 };
