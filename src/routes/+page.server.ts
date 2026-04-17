@@ -4,10 +4,13 @@ import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
-		return { wishes: [], purchases: [], categories: [], kpis: null };
+		return { wishes: [], purchases: [], categories: [], kpis: null, user: null };
 	}
 
-	let categories = await prisma.category.findMany();
+	let categories = await prisma.category.findMany({
+		orderBy: { name: 'asc' }
+	});
+	
 	if (categories.length === 0) {
 		await prisma.category.createMany({
 			data: [
@@ -21,7 +24,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				{ name: 'Diverse', icon: '📦' }
 			]
 		});
-		categories = await prisma.category.findMany();
+		categories = await prisma.category.findMany({ orderBy: { name: 'asc' } });
 	}
 
 	const allItems = await prisma.item.findMany({
@@ -29,22 +32,17 @@ export const load: PageServerLoad = async ({ locals }) => {
 		orderBy: { createdAt: 'desc' }
 	});
 
-	// Split data til listerne
 	const wishes = allItems.filter(i => i.status === 'WISH');
 	const purchases = allItems.filter(i => i.status === 'PURCHASED');
 
-	// --- KPI Beregninger ---
-	// 1. Ønsker (Drømme)
 	const wishTotal = wishes.reduce((acc, i) => acc + i.price, 0);
 	const wishShared = wishes.filter(i => i.expenseType === 'SHARED').reduce((acc, i) => acc + i.price, 0);
 	const wishPersonal = wishes.filter(i => i.expenseType === 'PERSONAL').reduce((acc, i) => acc + i.price, 0);
 
-	// 2. Køb (Realiseret forbrug)
 	const buyTotal = purchases.reduce((acc, i) => acc + i.price, 0);
 	const buyShared = purchases.filter(i => i.expenseType === 'SHARED').reduce((acc, i) => acc + i.price, 0);
 	const buyPersonal = purchases.filter(i => i.expenseType === 'PERSONAL').reduce((acc, i) => acc + i.price, 0);
 
-	// 3. Extremer (Hvem drømmer og forbruger mest?)
 	const wishCounts: Record<string, {name: string, amount: number}> = {};
 	wishes.forEach(i => {
 		if (!wishCounts[i.userId]) {
@@ -73,7 +71,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			wishTotal, wishShared, wishPersonal, wishCount: wishes.length,
 			buyTotal, buyShared, buyPersonal, buyCount: purchases.length,
 			topDreamer, topSpender
-		}
+		},
+		user: locals.user
 	};
 };
 
@@ -96,6 +95,70 @@ export const actions: Actions = {
 		}
 	},
 
+	createCategory: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Ikke autoriseret' });
+
+		const data = await request.formData();
+		const name = data.get('name')?.toString();
+		const icon = data.get('icon')?.toString() || '📦';
+
+		if (!name) return fail(400, { error: 'Kategorinavn er påkrævet.' });
+
+		try {
+			await prisma.category.create({
+				data: { name, icon }
+			});
+			return { success: true };
+		} catch (error) {
+			return fail(500, { error: 'Kunne ikke oprette kategorien.' });
+		}
+	},
+
+	updateCategory: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Ikke autoriseret' });
+
+		const data = await request.formData();
+		const categoryId = parseInt(data.get('categoryId')?.toString() || '0', 10);
+		const name = data.get('name')?.toString();
+		const icon = data.get('icon')?.toString() || '📦';
+
+		if (!categoryId || !name) return fail(400, { error: 'Manglende data til kategoriopdatering.' });
+
+		try {
+			await prisma.category.update({
+				where: { id: categoryId },
+				data: { name, icon }
+			});
+			return { success: true };
+		} catch (error) {
+			return fail(500, { error: 'Kunne ikke opdatere kategorien.' });
+		}
+	},
+
+	deleteCategory: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Ikke autoriseret' });
+
+		const data = await request.formData();
+		const categoryId = parseInt(data.get('categoryId')?.toString() || '0', 10);
+
+		if (!categoryId) return fail(400, { error: 'Kategori-ID mangler.' });
+
+		// Sikkerhedsnet: Tjek om kategorien er i brug
+		const itemsCount = await prisma.item.count({ where: { categoryId } });
+		if (itemsCount > 0) {
+			return fail(400, { error: 'Kategorien kan ikke slettes, da der er ønsker knyttet til den.' });
+		}
+
+		try {
+			await prisma.category.delete({
+				where: { id: categoryId }
+			});
+			return { success: true };
+		} catch (error) {
+			return fail(500, { error: 'Kunne ikke slette kategorien.' });
+		}
+	},
+
 	createItem: async ({ request, locals }) => {
 		if (!locals.user) return fail(401, { error: 'Ikke autoriseret' });
 
@@ -107,6 +170,7 @@ export const actions: Actions = {
 		const expenseType = data.get('expenseType')?.toString() as 'PERSONAL' | 'SHARED';
 		
 		const targetStatus = data.get('targetStatus')?.toString() === 'PURCHASED' ? 'PURCHASED' : 'WISH';
+		const purchasedDate = targetStatus === 'PURCHASED' ? new Date() : null;
 
 		if (!title || !priceStr || !categoryIdStr || !expenseType) {
 			return fail(400, { error: 'Udfyld venligst alle påkrævede felter.' });
@@ -119,7 +183,16 @@ export const actions: Actions = {
 
 		try {
 			await prisma.item.create({
-				data: { title, url, price, categoryId, expenseType, status: targetStatus, userId: locals.user.id }
+				data: { 
+					title, 
+					url, 
+					price, 
+					categoryId, 
+					expenseType, 
+					status: targetStatus, 
+					purchasedAt: purchasedDate,
+					userId: locals.user.id 
+				}
 			});
 			return { success: true };
 		} catch (error) {
@@ -156,9 +229,29 @@ export const actions: Actions = {
 			const item = await prisma.item.findUnique({ where: { id: itemId }});
 			if (!item) return fail(404);
 
+			const newStatus = item.status === 'WISH' ? 'PURCHASED' : 'WISH';
+			const newPurchasedAt = newStatus === 'PURCHASED' ? new Date() : null;
+
 			await prisma.item.update({
 				where: { id: itemId },
-				data: { status: item.status === 'WISH' ? 'PURCHASED' : 'WISH' }
+				data: { status: newStatus, purchasedAt: newPurchasedAt }
+			});
+			return { success: true };
+		} catch (error) { return fail(500); }
+	},
+
+	changeItemCategory: async ({ request, locals }) => {
+		if (!locals.user) return fail(401);
+		const data = await request.formData();
+		const itemId = data.get('itemId')?.toString();
+		const categoryId = parseInt(data.get('categoryId')?.toString() || '0', 10);
+
+		if (!itemId || !categoryId) return fail(400);
+
+		try {
+			await prisma.item.update({
+				where: { id: itemId },
+				data: { categoryId }
 			});
 			return { success: true };
 		} catch (error) { return fail(500); }

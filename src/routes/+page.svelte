@@ -2,19 +2,141 @@
 	import { enhance } from '$app/forms';
 	let { data, form } = $props();
 
-	// Svelte 5 state til at styre profil-popup
 	let showProfileModal = $state(false);
+	let profileEmoji = $state(data.user?.emoji || '👤');
+
+	let showCategoryModal = $state(false);
+	let isCreatingCat = $state(false);
+	let editCatId = $state<number | null>(null);
+	let editCatName = $state('');
+	let editCatIcon = $state('📦');
+
+	const commonEmojis = ['👤','👶','👩','👨','👧','👦','🐶','🐱','📱','💻','🎧','⌚','🚗','🏡','🪑','👕','👗','👟','💍','💄','⚽','🎮','📚','🎁','🛠️','✈️','🥂','🍔','🍕','💡','🔥','💰','💳','🛒','🛍️','🎀','🎈','🎉','❤️','⭐'];
 
 	const formatCur = (val: number) => new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', maximumFractionDigits: 0 }).format(val);
+	const formatDate = (date: Date) => new Intl.DateTimeFormat('da-DK', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(date));
 
 	let sharedPct = $derived(data.kpis?.wishTotal ? (data.kpis.wishShared / data.kpis.wishTotal) * 100 : 0);
 	let buySharedPct = $derived(data.kpis?.buyTotal ? (data.kpis.buyShared / data.kpis.buyTotal) * 100 : 0);
 	let grandTotal = $derived((data.kpis?.wishTotal || 0) + (data.kpis?.buyTotal || 0));
 	let wishVsBuyPct = $derived(grandTotal ? ((data.kpis?.wishTotal || 0) / grandTotal) * 100 : 0);
+
+	function openCategoryEdit(cat: any) {
+		editCatId = cat.id;
+		editCatName = cat.name;
+		editCatIcon = cat.icon || '📦';
+		isCreatingCat = false;
+	}
+
+	function openCategoryCreate() {
+		editCatId = null;
+		editCatName = '';
+		editCatIcon = '📦';
+		isCreatingCat = true;
+	}
 </script>
 
+{#if showCategoryModal}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+		<div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 overflow-hidden relative max-h-[90vh] flex flex-col">
+			<button onclick={() => {showCategoryModal = false; editCatId = null; isCreatingCat = false;}} class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold z-10">✕</button>
+			<h3 class="text-xl font-bold text-slate-800 mb-6">
+				{#if isCreatingCat}Opret Ny Kategori{:else if editCatId}Rediger Kategori{:else}Kategorier{/if}
+			</h3>
+			
+			{#if form?.error && showCategoryModal}
+				<div class="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{form.error}</div>
+			{/if}
+
+			{#if editCatId === null && !isCreatingCat}
+				<div class="flex-1 overflow-y-auto space-y-2 pr-2 mb-4">
+					{#each data.categories as cat}
+						<button onclick={() => openCategoryEdit(cat)} class="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-indigo-50 border border-slate-200 rounded-xl transition-colors text-left group">
+							<span class="font-medium text-slate-700">{cat.icon} {cat.name}</span>
+							<span class="text-xs font-bold text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity">Rediger</span>
+						</button>
+					{/each}
+				</div>
+				<button onclick={openCategoryCreate} class="w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors border border-slate-200">
+					+ Opret Ny Kategori
+				</button>
+			{:else if isCreatingCat}
+				<form id="createCatForm" method="POST" action="?/createCategory" use:enhance={() => {
+					return async ({ update, result }) => {
+						await update();
+						if (result.type === 'success' || result.type === 'redirect') isCreatingCat = false;
+					};
+				}} class="space-y-5">
+					<input type="hidden" name="icon" value={editCatIcon} />
+					
+					<div>
+						<label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Vælg Kategori Ikon</label>
+						<div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-3 bg-slate-50 border border-slate-200 rounded-xl">
+							{#each commonEmojis as emoji}
+								<button type="button" onclick={() => editCatIcon = emoji} class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-200 text-lg transition-all {editCatIcon === emoji ? 'bg-indigo-200 ring-2 ring-indigo-500 shadow-sm' : ''}">
+									{emoji}
+								</button>
+							{/each}
+						</div>
+					</div>
+
+					<div>
+						<label for="name" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Kategorinavn</label>
+						<input type="text" id="name" name="name" bind:value={editCatName} required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium transition-all">
+					</div>
+				</form>
+				<div class="pt-2 flex gap-3 mt-5">
+					<button type="button" onclick={() => isCreatingCat = false} class="flex-1 py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all">Annuller</button>
+					<button type="submit" form="createCatForm" class="flex-1 py-3.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-md">Opret</button>
+				</div>
+			{:else}
+				<form id="updateCatForm" method="POST" action="?/updateCategory" use:enhance={() => {
+					return async ({ update, result }) => {
+						await update();
+						if (result.type === 'success' || result.type === 'redirect') editCatId = null;
+					};
+				}} class="space-y-5">
+					<input type="hidden" name="categoryId" value={editCatId} />
+					<input type="hidden" name="icon" value={editCatIcon} />
+					
+					<div>
+						<label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Vælg Kategori Ikon</label>
+						<div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-3 bg-slate-50 border border-slate-200 rounded-xl">
+							{#each commonEmojis as emoji}
+								<button type="button" onclick={() => editCatIcon = emoji} class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-200 text-lg transition-all {editCatIcon === emoji ? 'bg-indigo-200 ring-2 ring-indigo-500 shadow-sm' : ''}">
+									{emoji}
+								</button>
+							{/each}
+						</div>
+					</div>
+
+					<div>
+						<label for="name" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Kategorinavn</label>
+						<input type="text" id="name" name="name" bind:value={editCatName} required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium transition-all">
+					</div>
+				</form>
+
+				<form id="deleteCatForm" method="POST" action="?/deleteCategory" use:enhance={() => {
+					return async ({ update, result }) => {
+						await update();
+						if (result.type === 'success' || result.type === 'redirect') editCatId = null;
+					};
+				}} onsubmit={(e) => { if (!confirm('Er du sikker på, at du vil slette denne kategori?')) e.preventDefault(); }}>
+					<input type="hidden" name="categoryId" value={editCatId} />
+				</form>
+
+				<div class="pt-2 flex gap-2 mt-5">
+					<button type="button" onclick={() => editCatId = null} class="flex-1 py-3.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all">Annuller</button>
+					<button type="submit" form="deleteCatForm" class="flex-none px-4 py-3.5 bg-red-100 text-red-600 rounded-xl font-bold hover:bg-red-200 transition-all">Slet</button>
+					<button type="submit" form="updateCatForm" class="flex-1 py-3.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-md">Gem</button>
+				</div>
+			{/if}
+		</div>
+	</div>
+{/if}
+
 {#if showProfileModal}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
 		<div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 overflow-hidden relative">
 			<button onclick={() => showProfileModal = false} class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
 			<h3 class="text-xl font-bold text-slate-800 mb-6">Rediger Din Profil</h3>
@@ -25,14 +147,24 @@
 					showProfileModal = false;
 				};
 			}} class="space-y-5">
+				<input type="hidden" name="emoji" value={profileEmoji} />
+				
 				<div>
-					<label for="emoji" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Din Personlige Emoji</label>
-					<input type="text" id="emoji" name="emoji" value={data.user?.emoji || '👤'} class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-2xl text-center transition-all" maxlength="2" placeholder="👤">
+					<label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Din Personlige Emoji</label>
+					<div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-3 bg-slate-50 border border-slate-200 rounded-xl">
+						{#each commonEmojis as emoji}
+							<button type="button" onclick={() => profileEmoji = emoji} class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-200 text-lg transition-all {profileEmoji === emoji ? 'bg-indigo-200 ring-2 ring-indigo-500 shadow-sm' : ''}">
+								{emoji}
+							</button>
+						{/each}
+					</div>
 				</div>
+
 				<div>
 					<label for="displayName" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Dit Viste Navn</label>
 					<input type="text" id="displayName" name="displayName" value={data.user?.displayName || data.user?.username || ''} required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium transition-all" placeholder="Fx Ronni Hostrup">
 				</div>
+
 				<div class="pt-2">
 					<button type="submit" class="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md">
 						Gem Profil
@@ -50,10 +182,9 @@
 			<div>
 				<h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-sky-500">Ønskebrønden</h1>
 				{#if data.user}
-					<div class="mt-2 flex items-center gap-2 text-sm md:text-base text-slate-500">
-						<span>Radar logget ind som</span>
-						<button onclick={() => showProfileModal = true} class="font-bold text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded-lg flex items-center gap-1.5 active:scale-95">
-							{data.user.emoji || '👤'} {data.user.displayName || data.user.username} <span class="text-[10px] opacity-60">✎</span>
+					<div class="mt-2 flex items-center text-sm md:text-base">
+						<button onclick={() => { profileEmoji = data.user?.emoji || '👤'; showProfileModal = true; }} class="font-bold text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg flex items-center gap-2 active:scale-95 shadow-sm border border-indigo-100/50">
+							<span class="text-lg">{data.user.emoji || '👤'}</span> {data.user.displayName || data.user.username} <span class="text-[10px] opacity-60 ml-1">✎</span>
 						</button>
 					</div>
 				{/if}
@@ -64,7 +195,7 @@
 		<section class="flex overflow-x-auto pb-4 pt-1 snap-x snap-mandatory gap-4 md:grid md:grid-cols-3 lg:grid-cols-5 md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 			
 			<div class="w-[85vw] md:w-auto flex-shrink-0 snap-center bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-indigo-100 flex flex-col justify-center bg-gradient-to-br from-white to-indigo-50/50">
-				<p class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Penge Sparet Lige Nu</p>
+				<p class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Værdi af Drømme</p>
 				<p class="text-3xl font-black text-indigo-900">{formatCur(data.kpis.wishTotal)}</p>
 				<p class="text-xs text-indigo-600/70 mt-1 font-medium">Udsat behov i {data.kpis.wishCount} ønsker</p>
 			</div>
@@ -115,7 +246,7 @@
 				<div class="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 sticky top-4 md:top-6 z-10">
 					<h2 class="text-lg font-bold mb-4 border-b border-slate-100 pb-2">Kast i Brønden</h2>
 					
-					{#if form?.error}
+					{#if form?.error && !showCategoryModal}
 						<div class="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">{form.error}</div>
 					{/if}
 
@@ -137,7 +268,10 @@
 
 						<div class="grid grid-cols-2 gap-3">
 							<div>
-								<label for="categoryId" class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Kategori</label>
+								<div class="flex justify-between items-center mb-1">
+									<label for="categoryId" class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Kategori</label>
+									<button type="button" onclick={() => { showCategoryModal = true; editCatId = null; isCreatingCat = false; }} class="text-[10px] text-indigo-500 hover:text-indigo-700 font-bold px-1 rounded hover:bg-indigo-50 transition-colors">✎ Ret</button>
+								</div>
 								<select id="categoryId" name="categoryId" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium">
 									{#each data.categories as category}
 										<option value={category.id}>{category.icon} {category.name}</option>
@@ -187,7 +321,21 @@
 
 								<div class="flex justify-between items-start mb-3">
 									<div class="flex flex-col">
-										<span class="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1">{item.category.icon} {item.category.name}</span>
+										
+										<form method="POST" action="?/changeItemCategory" use:enhance class="mb-1">
+											<input type="hidden" name="itemId" value={item.id} />
+											<div class="relative inline-flex items-center group/cat">
+												<select name="categoryId" onchange={(e) => e.currentTarget.form?.requestSubmit()} class="appearance-none text-[10px] uppercase font-bold tracking-widest text-slate-400 group-hover/cat:text-indigo-500 bg-transparent border-none p-0 pr-3.5 cursor-pointer focus:ring-0 outline-none transition-colors">
+													{#each data.categories as cat}
+														<option value={cat.id} selected={cat.id === item.categoryId}>
+															{cat.icon} {cat.name}
+														</option>
+													{/each}
+												</select>
+												<span class="pointer-events-none absolute right-0 text-[8px] text-slate-300 group-hover/cat:text-indigo-400 transition-colors">▼</span>
+											</div>
+										</form>
+
 										<span class="text-[10px] font-bold px-2 py-0.5 rounded-md self-start {item.expenseType === 'SHARED' ? 'bg-violet-100 text-violet-700' : 'bg-rose-100 text-rose-700'}">
 											{item.expenseType === 'SHARED' ? 'FÆLLES' : 'EGO'}
 										</span>
@@ -211,9 +359,12 @@
 								
 								<h3 class="text-lg md:text-xl font-bold text-slate-800 leading-tight pr-4">{item.title}</h3>
 								
-								<p class="text-[11px] font-medium text-slate-500 mb-2 mt-1">
-									Af <span class="bg-slate-100 px-1.5 py-0.5 rounded ml-0.5">{item.user.emoji || '👤'} {item.user.displayName || item.user.username}</span>
-								</p>
+								<div class="flex justify-between items-center mt-1 mb-2">
+									<p class="text-[11px] font-medium text-slate-500">
+										Af <span class="bg-slate-100 px-1.5 py-0.5 rounded ml-0.5">{item.user.emoji || '👤'} {item.user.displayName || item.user.username}</span>
+									</p>
+									<p class="text-[10px] font-medium text-slate-400">Oprettet: {formatDate(item.createdAt)}</p>
+								</div>
 								
 								<p class="text-2xl font-black text-indigo-900 mt-auto mb-4">{formatCur(item.price)}</p>
 
@@ -248,15 +399,35 @@
 								</div>
 
 								<div class="flex justify-between items-start mb-1.5">
-									<span class="text-[9px] font-bold px-1.5 py-0.5 rounded text-slate-500 bg-white border border-slate-200">{item.expenseType === 'SHARED' ? 'FÆLLES' : 'EGO'}</span>
+									<div class="flex items-center gap-2">
+										<span class="text-[9px] font-bold px-1.5 py-0.5 rounded text-slate-500 bg-white border border-slate-200">{item.expenseType === 'SHARED' ? 'FÆLLES' : 'EGO'}</span>
+										
+										<form method="POST" action="?/changeItemCategory" use:enhance>
+											<input type="hidden" name="itemId" value={item.id} />
+											<div class="relative inline-flex items-center group/cat">
+												<select name="categoryId" onchange={(e) => e.currentTarget.form?.requestSubmit()} class="appearance-none text-[9px] uppercase font-bold tracking-widest text-slate-400 group-hover/cat:text-indigo-500 bg-transparent border-none p-0 pr-3.5 cursor-pointer focus:ring-0 outline-none transition-colors">
+													{#each data.categories as cat}
+														<option value={cat.id} selected={cat.id === item.categoryId}>
+															{cat.icon} {cat.name}
+														</option>
+													{/each}
+												</select>
+												<span class="pointer-events-none absolute right-0 text-[8px] text-slate-300 group-hover/cat:text-indigo-400 transition-colors">▼</span>
+											</div>
+										</form>
+									</div>
+
 									<p class="text-sm font-bold text-slate-400">{formatCur(item.price)}</p>
 								</div>
 								
 								<h3 class="text-base font-semibold text-slate-500 line-through decoration-slate-400/50 pr-4">{item.title}</h3>
 								
-								<p class="text-[10px] font-medium text-slate-400 mt-1 mb-2">
-									Af <span class="px-1 py-0.5 rounded">{item.user.emoji || '👤'} {item.user.displayName || item.user.username}</span>
-								</p>
+								<div class="flex justify-between items-center mt-1 mb-2">
+									<p class="text-[10px] font-medium text-slate-400">
+										Af <span class="px-1 py-0.5 rounded">{item.user.emoji || '👤'} {item.user.displayName || item.user.username}</span>
+									</p>
+									<p class="text-[10px] font-medium text-slate-400">Købt: {item.purchasedAt ? formatDate(item.purchasedAt) : formatDate(item.createdAt)}</p>
+								</div>
 
 								<form method="POST" action="?/toggleStatus" use:enhance class="mt-4">
 									<input type="hidden" name="itemId" value={item.id} />
