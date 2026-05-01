@@ -21,6 +21,23 @@
 	let grandTotal = $derived((data.kpis?.wishTotal || 0) + (data.kpis?.buyTotal || 0));
 	let wishVsBuyPct = $derived(grandTotal ? ((data.kpis?.wishTotal || 0) / grandTotal) * 100 : 0);
 
+	let newDesireLevel = $state(3);
+	const desireLabels = [
+		'⭐ Kunne være meget sjovt (Impuls)', 
+		'⭐⭐ Lidt spændende', 
+		'⭐⭐⭐ Ret lækkert at have (Vil forbedre hverdagen)', 
+		'⭐⭐⭐⭐ Rigtig meget (Tænker tit på det)', 
+		'⭐⭐⭐⭐⭐ Kan ikke sove om natten (Livsnødvendigt)'
+	];
+
+	let highestSharedPrice = $derived(data.wishes.filter(w => w.expenseType === 'SHARED').reduce((max, w) => Math.max(max, w.price), 0));
+	let now = $state(Date.now());
+
+	$effect(() => {
+		const interval = setInterval(() => { now = Date.now(); }, 60000); // update every minute
+		return () => clearInterval(interval);
+	});
+
 	function openCategoryEdit(cat: any) {
 		editCatId = cat.id;
 		editCatName = cat.name;
@@ -238,6 +255,15 @@
 				</div>
 			</div>
 
+			{#if data.kpis.cooldownGain !== undefined}
+			<div class="w-[85vw] md:w-auto flex-shrink-0 snap-center bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-emerald-100 flex flex-col justify-center bg-gradient-to-br from-white to-emerald-50/50 relative overflow-hidden">
+				<div class="absolute -right-4 -bottom-4 text-emerald-500/10 text-7xl rotate-12">🥶</div>
+				<p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Afkølings-gevinst</p>
+				<p class="text-3xl font-black text-emerald-600">{formatCur(data.kpis.cooldownGain)}</p>
+				<p class="text-xs text-emerald-600/70 mt-1 font-medium z-10 relative">Sparet ved at "sove på det"</p>
+			</div>
+			{/if}
+
 		</section>
 		{/if}
 
@@ -287,6 +313,17 @@
 							</div>
 						</div>
 
+						<div class="bg-slate-50 p-3 border border-slate-200 rounded-xl mt-2">
+							<input type="hidden" name="desireLevel" value={newDesireLevel} />
+							<label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Need-Level (Vigtighed)</label>
+							<div class="flex gap-2 justify-center">
+								{#each [1,2,3,4,5] as level}
+									<button type="button" onclick={() => newDesireLevel = level} class="text-2xl transition-all hover:scale-110 active:scale-95 {newDesireLevel >= level ? 'drop-shadow-sm scale-110' : 'opacity-20 hover:opacity-50 grayscale'}" title={desireLabels[level-1].replace(/⭐/g, '').trim()}>⭐</button>
+								{/each}
+							</div>
+							<p class="text-[10px] text-slate-500 font-medium text-center mt-2 h-4">{desireLabels[newDesireLevel-1]}</p>
+						</div>
+
 						<div class="pt-2 flex flex-col gap-2">
 							<button type="submit" name="targetStatus" value="WISH" class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-sm text-base">
 								✨ Gem i Brønden
@@ -310,6 +347,10 @@
 
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						{#each data.wishes as item}
+							{@const itemDaysOld = (now - new Date(item.createdAt).getTime()) / (1000 * 3600 * 24)}
+							{@const isLocked = item.price >= 1000 && itemDaysOld < 7}
+							{@const daysLeft = Math.ceil(7 - itemDaysOld)}
+
 							<div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col hover:border-indigo-300 transition-colors relative group">
 								
 								<div class="absolute -top-3 -right-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10">
@@ -359,6 +400,12 @@
 								
 								<h3 class="text-lg md:text-xl font-bold text-slate-800 leading-tight pr-4">{item.title}</h3>
 								
+								<div class="flex gap-0.5 mt-1.5 mb-1">
+									{#each Array(item.desireLevel || 3) as _}
+										<span class="text-amber-400 text-[10px]">⭐</span>
+									{/each}
+								</div>
+
 								<div class="flex justify-between items-center mt-1 mb-2">
 									<p class="text-[11px] font-medium text-slate-500">
 										Af <span class="bg-slate-100 px-1.5 py-0.5 rounded ml-0.5">{item.user.emoji || '👤'} {item.user.displayName || item.user.username}</span>
@@ -372,10 +419,29 @@
 									{#if item.url}
 										<a href={item.url} target="_blank" rel="noopener noreferrer" class="p-3 md:p-2 bg-slate-50 rounded-xl md:rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 text-center flex-shrink-0 transition-colors">🔗</a>
 									{/if}
-									<form method="POST" action="?/toggleStatus" use:enhance class="flex-1 flex">
+									
+									<form method="POST" action="?/toggleStatus" use:enhance onsubmit={(e) => {
+										if (isLocked) {
+											e.preventDefault();
+											return;
+										}
+										if (item.expenseType === 'PERSONAL' && highestSharedPrice > 0) {
+											const pct = Math.round((item.price / highestSharedPrice) * 100);
+											if (pct >= 5) {
+												const msg = `🛑 Reality Check!\nEr du sikker på dette ego-køb?\n\nFor de samme ${formatCur(item.price)} kunne I betale ${pct}% af jeres dyreste fælles ønske!\n\nVil du fortsætte?`;
+												if (!confirm(msg)) {
+													e.preventDefault();
+												}
+											}
+										}
+									}} class="flex-1 flex">
 										<input type="hidden" name="itemId" value={item.id} />
-										<button class="w-full bg-emerald-50 border border-emerald-100 hover:bg-emerald-500 hover:text-white text-emerald-600 text-sm font-bold py-3 md:py-2 rounded-xl md:rounded-lg active:scale-[0.98] transition-all">
-											✔ Realiser (Køb)
+										<button type={isLocked ? 'button' : 'submit'} class="w-full text-sm font-bold py-3 md:py-2 rounded-xl md:rounded-lg transition-all {isLocked ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200' : 'bg-emerald-50 border border-emerald-100 hover:bg-emerald-500 hover:text-white text-emerald-600 active:scale-[0.98]'}">
+											{#if isLocked}
+												🔒 Låst i {daysLeft} {daysLeft === 1 ? 'dag' : 'dage'}
+											{:else}
+												✔ Realiser (Køb)
+											{/if}
 										</button>
 									</form>
 								</div>

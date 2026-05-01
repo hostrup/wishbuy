@@ -45,6 +45,7 @@ model Item {
   category    Category    @relation(fields: [categoryId], references: [id])
   expenseType ExpenseType
   status      ItemStatus  @default(WISH)
+  desireLevel Int         @default(3)
   createdAt   DateTime    @default(now())
   purchasedAt DateTime?
   ratings     Rating[]
@@ -58,4 +59,5 @@ enum ExpenseType {
 enum ItemStatus {
   WISH
   PURCHASED
+  ABANDONED
 }

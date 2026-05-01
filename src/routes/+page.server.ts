@@ -43,6 +43,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const buyShared = purchases.filter(i => i.expenseType === 'SHARED').reduce((acc, i) => acc + i.price, 0);
 	const buyPersonal = purchases.filter(i => i.expenseType === 'PERSONAL').reduce((acc, i) => acc + i.price, 0);
 
+	const abandoned = allItems.filter(i => i.status === 'ABANDONED');
+	const cooldownGain = abandoned.reduce((acc, i) => acc + i.price, 0);
+
 	const wishCounts: Record<string, {name: string, amount: number}> = {};
 	wishes.forEach(i => {
 		if (!wishCounts[i.userId]) {
@@ -70,7 +73,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		kpis: {
 			wishTotal, wishShared, wishPersonal, wishCount: wishes.length,
 			buyTotal, buyShared, buyPersonal, buyCount: purchases.length,
-			topDreamer, topSpender
+			topDreamer, topSpender, cooldownGain
 		},
 		user: locals.user
 	};
@@ -168,6 +171,8 @@ export const actions: Actions = {
 		const priceStr = data.get('price')?.toString();
 		const categoryIdStr = data.get('categoryId')?.toString();
 		const expenseType = data.get('expenseType')?.toString() as 'PERSONAL' | 'SHARED';
+		const desireLevelStr = data.get('desireLevel')?.toString();
+		const desireLevel = desireLevelStr ? parseInt(desireLevelStr, 10) : 3;
 		
 		const targetStatus = data.get('targetStatus')?.toString() === 'PURCHASED' ? 'PURCHASED' : 'WISH';
 		const purchasedDate = targetStatus === 'PURCHASED' ? new Date() : null;
@@ -190,6 +195,7 @@ export const actions: Actions = {
 					categoryId, 
 					expenseType, 
 					status: targetStatus, 
+					desireLevel,
 					purchasedAt: purchasedDate,
 					userId: locals.user.id 
 				}
@@ -229,6 +235,14 @@ export const actions: Actions = {
 			const item = await prisma.item.findUnique({ where: { id: itemId }});
 			if (!item) return fail(404);
 
+			// Tvungen Cooldown check (kun for ønsker over 1000 DKK)
+			if (item.status === 'WISH' && item.price >= 1000) {
+				const daysOld = (new Date().getTime() - item.createdAt.getTime()) / (1000 * 3600 * 24);
+				if (daysOld < 7) {
+					return fail(400, { error: `Cooldown aktiv: Varen kan tidligst købes om ${Math.ceil(7 - daysOld)} dage.` });
+				}
+			}
+
 			const newStatus = item.status === 'WISH' ? 'PURCHASED' : 'WISH';
 			const newPurchasedAt = newStatus === 'PURCHASED' ? new Date() : null;
 
@@ -265,7 +279,14 @@ export const actions: Actions = {
 		if (!itemId) return fail(400);
 
 		try {
-			await prisma.item.delete({ where: { id: itemId } });
+			const item = await prisma.item.findUnique({ where: { id: itemId }});
+			if (!item) return fail(404);
+
+			if (item.status === 'WISH') {
+				await prisma.item.update({ where: { id: itemId }, data: { status: 'ABANDONED' } });
+			} else {
+				await prisma.item.delete({ where: { id: itemId } });
+			}
 			return { success: true };
 		} catch (error) { return fail(500); }
 	}
