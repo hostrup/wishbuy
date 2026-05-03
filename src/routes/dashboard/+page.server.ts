@@ -16,12 +16,13 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	let toDate: Date;
 
 	if (fromParam && toParam) {
-		fromDate = new Date(fromParam);
-		toDate = new Date(toParam);
-		toDate.setHours(23, 59, 59, 999);
+		const [fy, fm, fd] = fromParam.split('-').map(Number);
+		fromDate = new Date(fy, fm - 1, fd, 0, 0, 0, 0);
+		const [ty, tm, td] = toParam.split('-').map(Number);
+		toDate = new Date(ty, tm - 1, td, 23, 59, 59, 999);
 	} else {
 		// Nuværende måned
-		fromDate = new Date(now.getFullYear(), now.getMonth(), 1);
+		fromDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
 		toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 	}
 
@@ -29,7 +30,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const daysInPeriod = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 
 	// Fetch Data
-	const [transactions, allWishes, transactionCategories, aiInsight] = await Promise.all([
+	const [transactions, expensesAgg, allWishes, transactionCategories, aiInsight] = await Promise.all([
 		prisma.transaction.findMany({
 			where: { 
 				date: { gte: fromDate, lte: toDate },
@@ -37,6 +38,13 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			},
 			include: { category: true },
 			orderBy: { date: 'desc' }
+		}),
+		prisma.transaction.aggregate({
+			where: { 
+				date: { gte: fromDate, lte: toDate },
+				amount: { lt: 0 }
+			},
+			_sum: { amount: true }
 		}),
 		prisma.item.findMany({
 			where: { status: 'WISH' },
@@ -58,7 +66,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	]);
 
 	// Calculate KPIs
-	let periodExpenses = 0;
+	let periodExpenses = Math.abs(expensesAgg._sum.amount || 0);
 	let unmappedTransactionsCount = 0;
 	let largestTransaction = { text: 'Ingen', amount: 0, date: new Date() };
 
@@ -67,7 +75,6 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 
 	transactions.forEach(tx => {
 		const expense = Math.abs(tx.amount);
-		periodExpenses += expense;
 
 		if (!tx.categoryId) unmappedTransactionsCount++;
 
@@ -111,12 +118,12 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	}));
 
 	const donutData = sortedCategories.filter(c => c.amount > 0);
-	const donutSeries = donutData.map(d => d.amount);
+	const donutSeries = donutData.map(d => Math.round(d.amount));
 	const donutLabels = donutData.map(d => d.name);
 	const donutColors = donutData.map(d => d.color || '#94a3b8');
 
 	const sortedTimeKeys = Object.keys(timeSeries).sort();
-	const barSeries = sortedTimeKeys.map(k => timeSeries[k]);
+	const barSeries = sortedTimeKeys.map(k => Math.round(timeSeries[k]));
 	const barLabels = sortedTimeKeys;
 
 	const topWish = allWishes[0] || null;
@@ -163,20 +170,24 @@ export const actions: Actions = {
 		let toDate: Date;
 
 		if (period === 'LAST_MONTH') {
-			fromDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+			fromDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
 			toDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
 		} else if (period === 'CURRENT_YEAR') {
-			fromDate = new Date(now.getFullYear(), 0, 1);
+			fromDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
 			toDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
 		} else {
-			fromDate = new Date(now.getFullYear(), now.getMonth(), 1);
+			fromDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
 			toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 		}
 
 		// 1. Aggregate Financial Data
-		const [incomes, expenses, wishes] = await Promise.all([
+		const [incomes, expensesAgg, expenses, wishes] = await Promise.all([
 			prisma.transaction.aggregate({
 				where: { date: { gte: fromDate, lte: toDate }, amount: { gt: 0 } },
+				_sum: { amount: true }
+			}),
+			prisma.transaction.aggregate({
+				where: { date: { gte: fromDate, lte: toDate }, amount: { lt: 0 } },
 				_sum: { amount: true }
 			}),
 			prisma.transaction.findMany({
@@ -191,12 +202,11 @@ export const actions: Actions = {
 		]);
 
 		const totalIncome = incomes._sum.amount || 0;
-		let totalExpenses = 0;
+		let totalExpenses = Math.abs(expensesAgg._sum.amount || 0);
 		const catMap: Record<string, number> = {};
 
 		expenses.forEach(tx => {
 			const exp = Math.abs(tx.amount);
-			totalExpenses += exp;
 			const catName = tx.category?.name || 'Ukategoriseret';
 			catMap[catName] = (catMap[catName] || 0) + exp;
 		});

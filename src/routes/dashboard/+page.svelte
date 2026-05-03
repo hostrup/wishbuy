@@ -20,11 +20,21 @@
 			pie: {
 				donut: {
 					size: '70%',
-					labels: { show: true, name: { show: true }, value: { show: true } }
+					labels: { 
+						show: true, 
+						name: { show: true }, 
+						value: { 
+							show: true,
+							formatter: function(val) { return Math.round(val); }
+						} 
+					}
 				}
 			}
 		},
 		dataLabels: { enabled: false },
+		tooltip: {
+			y: { formatter: function(val) { return Math.round(val); } }
+		},
 		stroke: { show: false },
 		theme: { mode: 'light' }
 	};
@@ -35,6 +45,9 @@
 		xaxis: { categories: data.charts.bar.labels },
 		colors: ['#6366f1'],
 		dataLabels: { enabled: false },
+		tooltip: {
+			y: { formatter: function(val) { return Math.round(val); } }
+		},
 		grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
 		theme: { mode: 'light' }
 	};
@@ -256,8 +269,8 @@
 					{#key isDarkMode}
 						<div use:chart={{...donutOptions, theme: { mode: isDarkMode ? 'dark' : 'light' }, chart: { ...donutOptions.chart, events: {
 							dataPointSelection: (event, chartContext, config) => {
-								const cat = data.charts.donut.labels[config.dataPointIndex];
-								selectedCategory = selectedCategory === cat ? null : cat;
+								const clickedCategoryName = config.w.globals.labels[config.dataPointIndex];
+								selectedCategory = selectedCategory === clickedCategoryName ? null : clickedCategoryName;
 							}
 						}}}} class="w-full"></div>
 					{/key}
