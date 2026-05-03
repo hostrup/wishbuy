@@ -60,8 +60,9 @@ model Item {
   status      ItemStatus  @default(WISH)
   desireLevel Int         @default(3)
   createdAt   DateTime    @default(now())
-  purchasedAt DateTime?
-  ratings     Rating[]
+  purchasedAt  DateTime?
+  ratings      Rating[]
+  transactions Transaction[]
 }
 
 enum ExpenseType {
@@ -122,7 +123,8 @@ model Transaction {
   account    Account              @relation(fields: [accountId], references: [id])
   categoryId String?
   category   TransactionCategory? @relation(fields: [categoryId], references: [id])
-  wishId     String?
+  itemId     String?
+  item       Item?                @relation(fields: [itemId], references: [id])
   createdAt  DateTime             @default(now())
   updatedAt  DateTime             @updatedAt
 }

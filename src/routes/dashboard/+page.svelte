@@ -64,6 +64,9 @@
 	let toDate = $state(data.currentFilter.to);
 	let isDarkMode = $state(false);
 
+	let selectedTransactions = $state<string[]>([]);
+	let groupName = $state('');
+
 	const formatCur = (val: number) => new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', maximumFractionDigits: 0 }).format(Math.abs(val));
 	const formatDate = (date: string | Date) => new Intl.DateTimeFormat('da-DK', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(date));
 
@@ -345,40 +348,126 @@
 				{/if}
 			</div>
 			
-			<div class="overflow-x-auto">
+			<div class="overflow-x-auto pb-24">
 				<table class="w-full text-left text-sm">
 					<thead class="text-xs text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-800/50 border-y border-slate-200 dark:border-slate-700">
 						<tr>
+							<th class="px-4 py-3 w-10">
+								<input type="checkbox" 
+									checked={selectedTransactions.length === filteredTransactions.length && filteredTransactions.length > 0} 
+									onchange={(e) => {
+										if (e.currentTarget.checked) selectedTransactions = filteredTransactions.map(t => t.id);
+										else selectedTransactions = [];
+									}} 
+									class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+							</th>
 							<th class="px-4 py-3">Dato</th>
 							<th class="px-4 py-3">Tekst</th>
 							<th class="px-4 py-3">Kategori</th>
 							<th class="px-4 py-3 text-right">Beløb</th>
+							<th class="px-4 py-3 text-right">Handlinger</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each filteredTransactions as tx}
-							<tr class="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-								<td class="px-4 py-3 text-slate-600 dark:text-slate-300">{formatDate(tx.date)}</td>
-								<td class="px-4 py-3 font-medium text-slate-800 dark:text-slate-200 truncate max-w-[200px]">{tx.text}</td>
+							<tr class="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors {selectedTransactions.includes(tx.id) ? 'bg-indigo-50/50 dark:bg-indigo-900/20' : ''}">
 								<td class="px-4 py-3">
-									<span class="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-										{tx.category?.name || 'Ukategoriseret'}
-									</span>
+									<input type="checkbox" bind:group={selectedTransactions} value={tx.id} class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+								</td>
+								<td class="px-4 py-3 text-slate-600 dark:text-slate-300">{formatDate(tx.date)}</td>
+								<td class="px-4 py-3 font-medium text-slate-800 dark:text-slate-200 truncate max-w-[200px]" title={tx.text}>{tx.text}</td>
+								<td class="px-4 py-3">
+									<form method="POST" action="?/updateCategory" use:enhance class="relative inline-flex items-center group/cat">
+										<input type="hidden" name="transactionId" value={tx.id} />
+										<select name="categoryId" onchange={(e) => e.currentTarget.form?.requestSubmit()} class="appearance-none px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 group-hover/cat:ring-2 ring-indigo-500 border-none cursor-pointer focus:ring-2 outline-none transition-all pr-5">
+											{#each data.transactionCategories as cat}
+												<option value={cat.id} selected={cat.id === tx.categoryId}>
+													{cat.icon || '📦'} {cat.name}
+												</option>
+											{/each}
+											{#if !tx.categoryId}
+												<option value="" selected disabled>Ukategoriseret</option>
+											{/if}
+										</select>
+										<span class="pointer-events-none absolute right-1 text-[8px] text-slate-400 group-hover/cat:text-indigo-500 transition-colors">▼</span>
+									</form>
 								</td>
 								<td class="px-4 py-3 text-right font-bold {tx.amount < 0 ? 'text-slate-800 dark:text-white' : 'text-emerald-500 dark:text-emerald-400'}">
 									{tx.amount < 0 ? formatCur(tx.amount) : '+' + formatCur(tx.amount)}
+								</td>
+								<td class="px-4 py-3 text-right">
+									{#if tx.itemId}
+										<div class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold shadow-sm">
+											<span>🎁</span> <span class="truncate max-w-[120px]" title={tx.item?.title}>Knyttet: {tx.item?.title}</span>
+										</div>
+									{:else}
+										<div class="flex items-center justify-end gap-2">
+											<div class="relative group/link">
+												<button type="button" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded font-bold transition-colors border border-slate-200">
+													Tilknyt Ønske ▾
+												</button>
+												<div class="absolute right-0 mt-1 w-48 bg-white border border-slate-200 shadow-xl rounded-xl p-1 z-20 hidden group-hover/link:block group-focus-within/link:block">
+													{#if data.activeWishes.length === 0}
+														<div class="text-xs text-slate-500 p-2 text-center">Ingen aktive ønsker</div>
+													{/if}
+													{#each data.activeWishes as wish}
+														<form method="POST" action="?/linkWish" use:enhance>
+															<input type="hidden" name="transactionId" value={tx.id} />
+															<input type="hidden" name="itemId" value={wish.id} />
+															<button type="submit" class="w-full text-left text-xs font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 px-2 py-1.5 rounded-lg truncate" title={wish.title}>
+																{wish.title} ({formatCur(wish.price)})
+															</button>
+														</form>
+													{/each}
+												</div>
+											</div>
+											<form method="POST" action="?/createRealizedWish" use:enhance onsubmit={(e) => { if (!confirm(`Opret nyt realiseret ønske baseret på "${tx.text}"?`)) e.preventDefault(); }}>
+												<input type="hidden" name="transactionId" value={tx.id} />
+												<button type="submit" class="text-xs bg-indigo-50 hover:bg-indigo-500 text-indigo-600 hover:text-white px-2 py-1 rounded font-bold transition-colors border border-indigo-100">
+													Lav til Ønske ✨
+												</button>
+											</form>
+										</div>
+									{/if}
 								</td>
 							</tr>
 						{/each}
 						{#if filteredTransactions.length === 0}
 							<tr>
-								<td colspan="4" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">Ingen transaktioner at vise.</td>
+								<td colspan="6" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">Ingen transaktioner at vise.</td>
 							</tr>
 						{/if}
 					</tbody>
 				</table>
 			</div>
 		</section>
+
+		{#if selectedTransactions.length > 0}
+			<div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 rounded-2xl p-4 flex flex-col md:flex-row items-center gap-4 animate-in slide-in-from-bottom-10 fade-in w-[90vw] md:w-auto max-w-2xl">
+				<div class="flex items-center gap-3 w-full md:w-auto">
+					<div class="bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center font-black text-sm">{selectedTransactions.length}</div>
+					<span class="text-sm font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">valgt ({formatCur(filteredTransactions.filter(t => selectedTransactions.includes(t.id)).reduce((acc, t) => acc + Math.abs(t.amount), 0))})</span>
+				</div>
+				
+				<form method="POST" action="?/bulkGroupToWish" use:enhance={() => {
+					return async ({ update, result }) => {
+						await update();
+						if (result.type === 'success') {
+							selectedTransactions = [];
+							groupName = '';
+						}
+					};
+				}} class="flex items-center gap-2 w-full md:w-auto flex-1">
+					<input type="hidden" name="transactionIds" value={JSON.stringify(selectedTransactions)} />
+					<input type="text" name="groupName" bind:value={groupName} required placeholder="Navn (f.eks. Ferie London)" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500">
+					<button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg text-sm transition-colors shadow-sm whitespace-nowrap">
+						Gruppér og Realisér
+					</button>
+				</form>
+				
+				<button type="button" onclick={() => selectedTransactions = []} class="text-slate-400 hover:text-slate-600 font-bold p-1 absolute top-2 right-2 md:static md:p-0">✕</button>
+			</div>
+		{/if}
 
 	</div>
 </div>

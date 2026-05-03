@@ -36,7 +36,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				date: { gte: fromDate, lte: toDate },
 				amount: { lt: 0 }
 			},
-			include: { category: true },
+			include: { category: true, item: true },
 			orderBy: { date: 'desc' }
 		}),
 		prisma.transaction.aggregate({
@@ -147,6 +147,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		topWish,
 		top3Categories,
 		recentTransactions: transactions.slice(0, 50),
+		activeWishes: allWishes,
 		transactionCategories,
 		aiInsight,
 		aiPeriod,
@@ -290,5 +291,132 @@ ${promptData}`;
 			console.error('AI Generation Error:', error);
 			return fail(500, { error: 'Der opstod en fejl under generering af rådgivning.' });
 		}
+	},
+
+	updateCategory: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Unauthorized' });
+		const data = await request.formData();
+		const transactionId = data.get('transactionId')?.toString();
+		const categoryId = data.get('categoryId')?.toString();
+
+		if (!transactionId || !categoryId) return fail(400, { error: 'Missing data' });
+
+		try {
+			await prisma.transaction.update({
+				where: { id: transactionId },
+				data: { categoryId }
+			});
+			return { success: true };
+		} catch (e) { return fail(500, { error: 'Kunne ikke opdatere kategori' }); }
+	},
+
+	linkWish: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Unauthorized' });
+		const data = await request.formData();
+		const transactionId = data.get('transactionId')?.toString();
+		const itemId = data.get('itemId')?.toString();
+
+		if (!transactionId || !itemId) return fail(400, { error: 'Missing data' });
+
+		try {
+			await prisma.$transaction([
+				prisma.transaction.update({
+					where: { id: transactionId },
+					data: { itemId }
+				}),
+				prisma.item.update({
+					where: { id: itemId },
+					data: { status: 'PURCHASED', purchasedAt: new Date() }
+				})
+			]);
+			return { success: true };
+		} catch (e) { return fail(500, { error: 'Kunne ikke tilknytte ønske' }); }
+	},
+
+	createRealizedWish: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Unauthorized' });
+		const data = await request.formData();
+		const transactionId = data.get('transactionId')?.toString();
+
+		if (!transactionId) return fail(400, { error: 'Missing data' });
+
+		try {
+			const tx = await prisma.transaction.findUnique({ where: { id: transactionId }});
+			if (!tx) return fail(404, { error: 'Transaktion ikke fundet' });
+
+			let itemCategoryId = 8;
+			const category = await prisma.category.findFirst({ where: { name: 'Diverse' } });
+			if (category) itemCategoryId = category.id;
+			else {
+				const anyCategory = await prisma.category.findFirst();
+				if (anyCategory) itemCategoryId = anyCategory.id;
+			}
+
+			const newItem = await prisma.item.create({
+				data: {
+					userId: locals.user.id,
+					title: tx.text,
+					price: Math.abs(tx.amount),
+					categoryId: itemCategoryId,
+					expenseType: 'PERSONAL',
+					status: 'PURCHASED',
+					purchasedAt: new Date()
+				}
+			});
+
+			await prisma.transaction.update({
+				where: { id: transactionId },
+				data: { itemId: newItem.id }
+			});
+
+			return { success: true };
+		} catch (e) { return fail(500, { error: 'Kunne ikke oprette ønske' }); }
+	},
+
+	bulkGroupToWish: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Unauthorized' });
+		const data = await request.formData();
+		const transactionIdsStr = data.get('transactionIds')?.toString();
+		const groupName = data.get('groupName')?.toString();
+
+		if (!transactionIdsStr || !groupName) return fail(400, { error: 'Manglende data' });
+
+		const transactionIds = JSON.parse(transactionIdsStr) as string[];
+		if (!Array.isArray(transactionIds) || transactionIds.length === 0) return fail(400, { error: 'Ingen transaktioner valgt' });
+
+		try {
+			const txs = await prisma.transaction.findMany({
+				where: { id: { in: transactionIds } }
+			});
+
+			const sum = txs.reduce((acc, tx) => acc + Math.abs(tx.amount), 0);
+
+			let itemCategoryId = 8;
+			const category = await prisma.category.findFirst({ where: { name: 'Diverse' } });
+			if (category) itemCategoryId = category.id;
+			else {
+				const anyCategory = await prisma.category.findFirst();
+				if (anyCategory) itemCategoryId = anyCategory.id;
+			}
+
+			const newItem = await prisma.item.create({
+				data: {
+					userId: locals.user.id,
+					title: groupName,
+					price: sum,
+					categoryId: itemCategoryId,
+					expenseType: 'PERSONAL',
+					status: 'PURCHASED',
+					purchasedAt: new Date()
+				}
+			});
+
+			await prisma.transaction.updateMany({
+				where: { id: { in: transactionIds } },
+				data: { itemId: newItem.id }
+			});
+
+			return { success: true };
+		} catch (e) { return fail(500, { error: 'Kunne ikke oprette gruppe-ønske' }); }
 	}
 };
