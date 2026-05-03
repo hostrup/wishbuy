@@ -192,17 +192,20 @@
 	</div>
 {/if}
 
-<div class="min-h-screen bg-slate-50 text-slate-900 p-4 md:p-12 font-sans">
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors duration-300 p-4 md:p-12 font-sans">
 	<div class="max-w-7xl mx-auto space-y-6 md:space-y-8">
 		
 		<header class="flex flex-col md:flex-row md:justify-between md:items-end border-b border-slate-200 pb-4 md:pb-6">
 			<div>
 				<h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-sky-500">Ønskebrønden</h1>
 				{#if data.user}
-					<div class="mt-2 flex items-center text-sm md:text-base">
+					<div class="mt-2 flex items-center gap-3 text-sm md:text-base">
 						<button onclick={() => { profileEmoji = data.user?.emoji || '👤'; showProfileModal = true; }} class="font-bold text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg flex items-center gap-2 active:scale-95 shadow-sm border border-indigo-100/50">
 							<span class="text-lg">{data.user.emoji || '👤'}</span> {data.user.displayName || data.user.username} <span class="text-[10px] opacity-60 ml-1">✎</span>
 						</button>
+						<a href="/dashboard" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-1.5 rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+							📊 Dashboard →
+						</a>
 					</div>
 				{/if}
 			</div>
@@ -216,6 +219,13 @@
 				<p class="text-3xl font-black text-indigo-900">{formatCur(data.kpis.wishTotal)}</p>
 				<p class="text-xs text-indigo-600/70 mt-1 font-medium">Udsat behov i {data.kpis.wishCount} ønsker</p>
 			</div>
+
+			<a href="/dashboard" class="w-[85vw] md:w-auto flex-shrink-0 snap-center bg-white hover:bg-slate-50 transition-colors p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center group cursor-pointer relative overflow-hidden">
+				<div class="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity text-slate-300">↗</div>
+				<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Forbrug denne måned</p>
+				<p class="text-3xl font-black text-slate-800">{formatCur(data.kpis.currentMonthExpenses || 0)}</p>
+				<p class="text-xs text-slate-500 mt-1 font-medium truncate max-w-[150px]">Største post: {data.kpis.topCategoryName || 'Ingen'}</p>
+			</a>
 
 			<div class="w-[85vw] md:w-auto flex-shrink-0 snap-center bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
 				<div class="w-14 h-14 rounded-full shrink-0 shadow-inner" style="background: conic-gradient(#6366f1 0% {wishVsBuyPct}%, #cbd5e1 {wishVsBuyPct}% 100%);"></div>

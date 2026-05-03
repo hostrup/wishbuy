@@ -32,6 +32,32 @@ export const load: PageServerLoad = async ({ locals }) => {
 		orderBy: { createdAt: 'desc' }
 	});
 
+	const transactions = await prisma.transaction.findMany({
+		include: { category: true },
+		where: { amount: { lt: 0 } }
+	});
+
+	let currentMonthExpenses = 0;
+	const categorySpending: Record<string, { name: string; amount: number }> = {};
+	const now = new Date();
+	const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+	transactions.forEach(tx => {
+		const expense = Math.abs(tx.amount);
+		if (tx.date >= firstDayOfMonth) currentMonthExpenses += expense;
+		
+		const catId = tx.categoryId || 'unmapped';
+		if (!categorySpending[catId]) {
+			categorySpending[catId] = { name: tx.category?.name || 'Ukategoriseret', amount: 0 };
+		}
+		categorySpending[catId].amount += expense;
+	});
+
+	const topCategory = Object.values(categorySpending).reduce(
+		(top, cat) => (cat.amount > top.amount && cat.name !== 'Ukategoriseret' ? cat : top),
+		{ name: 'Ingen', amount: 0 }
+	);
+
 	const wishes = allItems.filter(i => i.status === 'WISH');
 	const purchases = allItems.filter(i => i.status === 'PURCHASED');
 
@@ -73,7 +99,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		kpis: {
 			wishTotal, wishShared, wishPersonal, wishCount: wishes.length,
 			buyTotal, buyShared, buyPersonal, buyCount: purchases.length,
-			topDreamer, topSpender, cooldownGain
+			topDreamer, topSpender, cooldownGain,
+			currentMonthExpenses, topCategoryName: topCategory.name
 		},
 		user: locals.user
 	};
