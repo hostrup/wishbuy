@@ -8,7 +8,7 @@ datasource db {
 
 model Rating {
   id        String   @id @default(uuid())
-  value     Int      // 1 for thumps up, -1 for thumps down
+  value     Int // 1 for thumps up, -1 for thumps down
   itemId    String
   item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
   userId    String
@@ -28,7 +28,7 @@ model User {
 }
 
 model Category {
-  id    Int    @id @default(autoincrement())
+  id    Int     @id @default(autoincrement())
   name  String
   icon  String?
   items Item[]
@@ -60,4 +60,56 @@ enum ItemStatus {
   WISH
   PURCHASED
   ABANDONED
+}
+
+enum TransactionStatus {
+  UNPROCESSED
+  AUTO_MAPPED
+  MANUAL_REVIEW
+  PROCESSED
+}
+
+model Account {
+  id            String        @id @default(cuid())
+  name          String        @unique
+  accountNumber String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  transactions  Transaction[]
+}
+
+model TransactionCategory {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  icon         String?
+  color        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+  rules        MappingRule[]
+}
+
+model MappingRule {
+  id         String              @id @default(cuid())
+  keyword    String              @unique
+  categoryId String
+  category   TransactionCategory @relation(fields: [categoryId], references: [id])
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+}
+
+model Transaction {
+  id         String               @id @default(cuid())
+  hash       String               @unique
+  date       DateTime
+  text       String
+  amount     Float
+  status     TransactionStatus    @default(UNPROCESSED)
+  accountId  String
+  account    Account              @relation(fields: [accountId], references: [id])
+  categoryId String?
+  category   TransactionCategory? @relation(fields: [categoryId], references: [id])
+  wishId     String?
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
 }
