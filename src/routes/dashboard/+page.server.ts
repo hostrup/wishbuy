@@ -1,5 +1,7 @@
 import { prisma } from '$lib/server/prisma';
-import type { PageServerLoad } from './$types';
+import { fail } from '@sveltejs/kit';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const now = new Date();
@@ -7,6 +9,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	// 1. Læs URL parametre (eller brug fallback til nuværende måned)
 	const fromParam = url.searchParams.get('from');
 	const toParam = url.searchParams.get('to');
+	// Period tab for AI: 'CURRENT_MONTH' | 'LAST_MONTH' | 'CURRENT_YEAR'
+	const aiPeriod = url.searchParams.get('aiPeriod') || 'CURRENT_MONTH';
 
 	let fromDate: Date;
 	let toDate: Date;
@@ -21,16 +25,15 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 	}
 
-	// Tæl antal dage i perioden til "Dagligt Snit"
 	const diffTime = Math.abs(toDate.getTime() - fromDate.getTime());
 	const daysInPeriod = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 
-	// 2. Fetch data (Filtreret)
-	const [transactions, allWishes, transactionCategories] = await Promise.all([
+	// Fetch Data
+	const [transactions, allWishes, transactionCategories, aiInsight] = await Promise.all([
 		prisma.transaction.findMany({
 			where: { 
 				date: { gte: fromDate, lte: toDate },
-				amount: { lt: 0 } // Kun udgifter
+				amount: { lt: 0 }
 			},
 			include: { category: true },
 			orderBy: { date: 'desc' }
@@ -43,7 +46,15 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				{ price: 'desc' }
 			]
 		}),
-		prisma.transactionCategory.findMany()
+		prisma.transactionCategory.findMany(),
+		locals.user ? prisma.aiInsight.findUnique({
+			where: {
+				userId_period: {
+					userId: locals.user.id,
+					period: aiPeriod
+				}
+			}
+		}) : Promise.resolve(null)
 	]);
 
 	// Calculate KPIs
@@ -64,7 +75,6 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			largestTransaction = { text: tx.text, amount: expense, date: tx.date };
 		}
 
-		// Category distribution
 		const catId = tx.categoryId || 'unmapped';
 		if (!categorySpending[catId]) {
 			categorySpending[catId] = {
@@ -75,29 +85,23 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		}
 		categorySpending[catId].amount += expense;
 
-		// Time-series (Dynamisk grupering afhængig af periode)
 		let timeKey = '';
 		if (daysInPeriod <= 31) {
-			// Daglig
 			timeKey = tx.date.toISOString().split('T')[0];
 		} else if (daysInPeriod <= 90) {
-			// Ugentlig (Approksimation vha ugenummer eller bare start-of-week)
 			const d = new Date(Date.UTC(tx.date.getFullYear(), tx.date.getMonth(), tx.date.getDate()));
 			d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
 			const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
 			const weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
 			timeKey = `Uge ${weekNo}, ${d.getUTCFullYear()}`;
 		} else {
-			// Månedlig
 			timeKey = `${tx.date.getFullYear()}-${String(tx.date.getMonth() + 1).padStart(2, '0')}`;
 		}
-		
 		timeSeries[timeKey] = (timeSeries[timeKey] || 0) + expense;
 	});
 
 	const avgDailySpend = periodExpenses / daysInPeriod;
 
-	// Sort categories
 	const sortedCategories = Object.values(categorySpending).sort((a, b) => b.amount - a.amount);
 	
 	const topCategory = sortedCategories.filter(c => c.name !== 'Ukategoriseret')[0] || { name: 'Ingen', amount: 0, color: '' };
@@ -106,18 +110,15 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		percentage: periodExpenses > 0 ? ((c.amount / periodExpenses) * 100).toFixed(1) : '0'
 	}));
 
-	// Format data for Donut Chart
 	const donutData = sortedCategories.filter(c => c.amount > 0);
 	const donutSeries = donutData.map(d => d.amount);
 	const donutLabels = donutData.map(d => d.name);
 	const donutColors = donutData.map(d => d.color || '#94a3b8');
 
-	// Format data for Bar Chart (sort by date string)
 	const sortedTimeKeys = Object.keys(timeSeries).sort();
 	const barSeries = sortedTimeKeys.map(k => timeSeries[k]);
 	const barLabels = sortedTimeKeys;
 
-	// Cross-over Feature
 	const topWish = allWishes[0] || null;
 	let guiltyPleasureSpending = topCategory.amount;
 	let guiltyPleasureName = topCategory.name !== 'Ingen' ? topCategory.name : 'Diverse';
@@ -140,10 +141,144 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		top3Categories,
 		recentTransactions: transactions.slice(0, 50),
 		transactionCategories,
+		aiInsight,
+		aiPeriod,
 		currentFilter: {
 			from: fromDate.toISOString().split('T')[0],
 			to: toDate.toISOString().split('T')[0],
 			daysInPeriod
 		}
 	};
+};
+
+export const actions: Actions = {
+	generateInsight: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Unauthorized' });
+
+		const data = await request.formData();
+		const period = data.get('period')?.toString() || 'CURRENT_MONTH'; // 'CURRENT_MONTH' | 'LAST_MONTH' | 'CURRENT_YEAR'
+
+		const now = new Date();
+		let fromDate: Date;
+		let toDate: Date;
+
+		if (period === 'LAST_MONTH') {
+			fromDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+			toDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+		} else if (period === 'CURRENT_YEAR') {
+			fromDate = new Date(now.getFullYear(), 0, 1);
+			toDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+		} else {
+			fromDate = new Date(now.getFullYear(), now.getMonth(), 1);
+			toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+		}
+
+		// 1. Aggregate Financial Data
+		const [incomes, expenses, wishes] = await Promise.all([
+			prisma.transaction.aggregate({
+				where: { date: { gte: fromDate, lte: toDate }, amount: { gt: 0 } },
+				_sum: { amount: true }
+			}),
+			prisma.transaction.findMany({
+				where: { date: { gte: fromDate, lte: toDate }, amount: { lt: 0 } },
+				include: { category: true }
+			}),
+			prisma.item.findMany({
+				where: { status: 'WISH', userId: locals.user.id },
+				orderBy: [{ desireLevel: 'desc' }, { price: 'desc' }],
+				take: 5
+			})
+		]);
+
+		const totalIncome = incomes._sum.amount || 0;
+		let totalExpenses = 0;
+		const catMap: Record<string, number> = {};
+
+		expenses.forEach(tx => {
+			const exp = Math.abs(tx.amount);
+			totalExpenses += exp;
+			const catName = tx.category?.name || 'Ukategoriseret';
+			catMap[catName] = (catMap[catName] || 0) + exp;
+		});
+
+		const topCategories = Object.entries(catMap)
+			.filter(([name]) => !name.toLowerCase().includes('ukategoriseret') && !name.toLowerCase().includes('ukendt'))
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 3);
+
+		const formatCur = (val: number) => new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', maximumFractionDigits: 0 }).format(val);
+
+		// 2. Format Data for Prompt
+		const wishesText = wishes.map(w => `- {Name: ${w.title}, Price: ${w.price} DKK, Desire Level: ${w.desireLevel}/5}`).join('\n');
+		const categoriesText = topCategories.map(c => `- {${c[0]}: ${formatCur(c[1])}}`).join('\n');
+
+		const promptData = `Data for perioden:
+- Samlet forbrug: ${formatCur(totalExpenses)}
+- Top udgiftskategorier (Ekskl. ukendte poster): 
+${categoriesText}
+
+Brugerens Ønsker:
+${wishesText || '- Ingen ønsker registreret endnu.'}
+
+VIGTIGE REGLER FOR DIN ANALYSE:
+1. Dette er et udtræk der UDELUKKENDE indeholder udgifter. Du må IKKE kommentere på, at indtægten mangler, eller at økonomien er i fare på grund af dette. Fokusér udelukkende på at analysere forbruget.
+2. Vær direkte og brug konkrete tal i din argumentation.`;
+
+		const systemPrompt = `Du er en skarp, analytisk og direkte økonomisk rådgiver. Din tone er professionel, kontant og data-drevet, men stadig opmuntrende. Du må ALDRIG bruge lommefilosofiske floskler, og du skal undgå at være overdrevet terapeutisk. Hold dine sætninger korte og præcise.
+
+Output Structure requested:
+Svar KUN med dette Markdown-format:
+### 📊 Økonomisk Overblik
+[1-2 korte, skarpe sætninger der opsummerer periodens rå forbrugstal uden at dramatisere].
+
+### 🕵️ Lommetyvene
+[Fokusér på den af top-kategorierne, der er mest 'fleksibel' (f.eks. Fastfood, Fritid, Tøj, Abonnementer, Dagligvarer). Nævn det præcise beløb og stil et kort, kritisk spørgsmål til, om niveauet er nødvendigt].
+
+### 🎯 Forbrug vs. Ønsker
+[Lav et direkte, matematisk eksempel. F.eks.: 'Dit forbrug på X (beløb) svarer til Y% af [Ønske]. Hvis du skar X ned med 30%, ville du kunne købe [Ønske] om Z måneder'].
+
+### 💡 Skarpe Råd
+* **[Action 1]:** [Kort beskrivelse]
+* **[Action 2]:** [Kort beskrivelse]
+
+Data at basere rådgivningen på:
+${promptData}`;
+
+		// 3. Call Gemini
+		const apiKey = process.env.GEMINI_API_KEY;
+		if (!apiKey) {
+			return fail(500, { error: 'GEMINI_API_KEY mangler i miljøvariablerne.' });
+		}
+
+		try {
+			const genAI = new GoogleGenerativeAI(apiKey);
+			const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+			const result = await model.generateContent(systemPrompt);
+			const responseContent = result.response.text();
+
+			// 4. Upsert AiInsight
+			await prisma.aiInsight.upsert({
+				where: {
+					userId_period: {
+						userId: locals.user.id,
+						period
+					}
+				},
+				update: {
+					content: responseContent
+				},
+				create: {
+					userId: locals.user.id,
+					period,
+					content: responseContent
+				}
+			});
+
+			return { success: true };
+		} catch (error) {
+			console.error('AI Generation Error:', error);
+			return fail(500, { error: 'Der opstod en fejl under generering af rådgivning.' });
+		}
+	}
 };

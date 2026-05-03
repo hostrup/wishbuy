@@ -25,6 +25,19 @@ model User {
   emoji       String?  @default("👤")
   items       Item[]
   ratings     Rating[]
+  aiInsights  AiInsight[]
+}
+
+model AiInsight {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  period    String   // 'CURRENT_MONTH', 'LAST_MONTH', 'CURRENT_YEAR'
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, period])
 }
 
 model Category {
