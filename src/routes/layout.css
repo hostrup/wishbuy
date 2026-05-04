@@ -14,3 +14,7 @@
   --color-primary-800: #3730a3;
   --color-primary-900: #312e81;
 }
+
+html.dark {
+  color-scheme: dark;
+}

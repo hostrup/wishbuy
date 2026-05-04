@@ -113,18 +113,29 @@ model MappingRule {
 }
 
 model Transaction {
-  id         String               @id @default(cuid())
-  hash       String               @unique
-  date       DateTime
-  text       String
-  amount     Float
-  status     TransactionStatus    @default(UNPROCESSED)
-  accountId  String
-  account    Account              @relation(fields: [accountId], references: [id])
-  categoryId String?
-  category   TransactionCategory? @relation(fields: [categoryId], references: [id])
-  itemId     String?
-  item       Item?                @relation(fields: [itemId], references: [id])
-  createdAt  DateTime             @default(now())
-  updatedAt  DateTime             @updatedAt
+  id               String               @id @default(cuid())
+  hash             String               @unique
+  date             DateTime
+  text             String
+  amount           Float
+  status           TransactionStatus    @default(UNPROCESSED)
+  accountId        String
+  account          Account              @relation(fields: [accountId], references: [id])
+  categoryId       String?
+  category         TransactionCategory? @relation(fields: [categoryId], references: [id])
+  itemId           String?
+  item             Item?                @relation(fields: [itemId], references: [id])
+  
+  // Enriched CSV fields
+  senderAccount    String?
+  receiverAccount  String?
+  receiverName     String?
+  transferType     String?
+  supplementalText String?
+  balance          Float?
+
+  isIgnored        Boolean              @default(false)
+
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 }

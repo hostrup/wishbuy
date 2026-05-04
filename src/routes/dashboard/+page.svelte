@@ -11,8 +11,21 @@
 	let isGenerating = $state(false);
 
 	// ApexCharts configs
-	const donutOptions = {
-		chart: { type: 'donut', height: 450, background: 'transparent' },
+	// ApexCharts configs
+	let donutOptions = $derived({
+		chart: { 
+			type: 'donut', height: 450, background: 'transparent',
+			events: {
+				dataPointSelection: function(event: any, chartContext: any, config: any) {
+					const categoryName = config.w.config.labels[config.dataPointIndex];
+					if (selectedCategory === categoryName) {
+						selectedCategory = null;
+					} else {
+						selectedCategory = categoryName;
+					}
+				}
+			}
+		},
 		series: data.charts.donut.series,
 		labels: data.charts.donut.labels,
 		colors: data.charts.donut.colors,
@@ -37,12 +50,24 @@
 		tooltip: {
 			y: { formatter: function(val: number) { return Math.round(val) + ' kr'; } }
 		},
-		stroke: { show: true, colors: ['#ffffff'], width: 2 },
-		theme: { mode: 'light' }
-	};
+		stroke: { show: true, colors: [isDarkMode ? '#1e293b' : '#ffffff'], width: 2 },
+		theme: { mode: isDarkMode ? 'dark' : 'light' }
+	});
 
-	const barOptions = {
-		chart: { type: 'bar', height: 350, toolbar: { show: false }, background: 'transparent' },
+	let barOptions = $derived({
+		chart: { 
+			type: 'bar', height: 350, toolbar: { show: false }, background: 'transparent',
+			events: {
+				dataPointSelection: function(event: any, chartContext: any, config: any) {
+					const category = config.w.config.xaxis.categories[config.dataPointIndex];
+					if (selectedChartDate === category) {
+						selectedChartDate = null;
+					} else {
+						selectedChartDate = category;
+					}
+				}
+			}
+		},
 		series: data.charts.bar.series,
 		xaxis: { categories: data.charts.bar.labels },
 		colors: ['#6366f1'],
@@ -50,12 +75,24 @@
 		tooltip: {
 			y: { formatter: function(val: number) { return Math.round(val) + ' kr'; } }
 		},
-		grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
-		theme: { mode: 'light' }
-	};
+		grid: { borderColor: isDarkMode ? '#334155' : '#e2e8f0', strokeDashArray: 4 },
+		theme: { mode: isDarkMode ? 'dark' : 'light' }
+	});
 
-	const cumulativeOptions = {
-		chart: { type: 'area', height: 350, toolbar: { show: false }, background: 'transparent' },
+	let cumulativeOptions = $derived({
+		chart: { 
+			type: 'area', height: 350, toolbar: { show: false }, background: 'transparent',
+			events: {
+				dataPointSelection: function(event: any, chartContext: any, config: any) {
+					const category = config.w.config.xaxis.categories[config.dataPointIndex];
+					if (selectedChartDate === category) {
+						selectedChartDate = null;
+					} else {
+						selectedChartDate = category;
+					}
+				}
+			}
+		},
 		series: data.charts.cumulative.series,
 		xaxis: { categories: data.charts.cumulative.labels, type: 'datetime' },
 		colors: ['#10b981'],
@@ -66,11 +103,11 @@
 			x: { format: 'dd MMM yyyy' },
 			y: { formatter: function(val: number) { return Math.round(val) + ' kr'; } }
 		},
-		grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
-		theme: { mode: 'light' }
-	};
+		grid: { borderColor: isDarkMode ? '#334155' : '#e2e8f0', strokeDashArray: 4 },
+		theme: { mode: isDarkMode ? 'dark' : 'light' }
+	});
 
-	const dayOfWeekOptions = {
+	let dayOfWeekOptions = $derived({
 		chart: { type: 'radar', height: 350, toolbar: { show: false }, background: 'transparent' },
 		series: data.charts.dayOfWeek.series,
 		labels: data.charts.dayOfWeek.labels,
@@ -81,11 +118,12 @@
 		tooltip: {
 			y: { formatter: function(val: number) { return Math.round(val) + ' kr'; } }
 		},
-		theme: { mode: 'light' }
-	};
+		theme: { mode: isDarkMode ? 'dark' : 'light' }
+	});
 
 	// State
 	let selectedCategory = $state<string | null>(null);
+	let selectedChartDate = $state<string | null>(null);
 	let searchQuery = $state('');
 	let showOnlyUncategorized = $state(false);
 	
@@ -105,6 +143,9 @@
 		let result = data.recentTransactions;
 		if (selectedCategory) {
 			result = result.filter(t => (t.category?.name || 'Ukategoriseret') === selectedCategory);
+		}
+		if (selectedChartDate) {
+			result = result.filter(t => t.timeKey === selectedChartDate);
 		}
 		if (showOnlyUncategorized) {
 			result = result.filter(t => {
@@ -171,6 +212,9 @@
 
 	// Date Shortcuts
 	const monthNames = ["Jan", "Feb", "Mar", "Apr", "Maj", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"];
+	const currentYear = new Date().getFullYear();
+	const availableYears = Array.from({length: currentYear - 2023 + 1}, (_, i) => currentYear - i);
+	let activeYear = $state(currentYear);
 	const currentMonthIndex = new Date().getMonth();
 
 	let activeShortcut = $derived.by(() => {
@@ -186,45 +230,52 @@
 		const pmTo = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
 		if (fromStr === pmFrom && toStr === pmTo) return 'prev_month';
 
-		const tyFrom = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
-		const tyTo = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
+		const tyFrom = new Date(activeYear, 0, 1).toISOString().split('T')[0];
+		const tyTo = new Date(activeYear, 11, 31).toISOString().split('T')[0];
 		if (fromStr === tyFrom && toStr === tyTo) return 'this_year';
 
 		const allFrom = new Date(2000, 0, 1).toISOString().split('T')[0];
 		if (fromStr === allFrom) return 'all';
 
-		for (let i = 0; i <= now.getMonth(); i++) {
-			const mFrom = new Date(now.getFullYear(), i, 1).toISOString().split('T')[0];
-			const mTo = new Date(now.getFullYear(), i + 1, 0).toISOString().split('T')[0];
+		const maxMonth = activeYear === currentYear ? currentMonthIndex : 11;
+		for (let i = 0; i <= maxMonth; i++) {
+			const mFrom = new Date(activeYear, i, 1).toISOString().split('T')[0];
+			const mTo = new Date(activeYear, i + 1, 0).toISOString().split('T')[0];
 			if (fromStr === mFrom && toStr === mTo) return i;
 		}
 		return 'custom';
 	});
 
-	function setShortcut(type: 'this_month' | 'prev_month' | 'this_year' | 'all' | number) {
+	function setShortcut(type: 'this_month' | 'prev_month' | 'this_year' | 'all' | number, year?: number) {
 		const now = new Date();
 		let from, to;
+		
+		if (year) activeYear = year;
 
 		if (type === 'this_month') {
+			activeYear = now.getFullYear();
 			from = new Date(now.getFullYear(), now.getMonth(), 1);
 			to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 		} else if (type === 'prev_month') {
+			activeYear = now.getFullYear();
 			from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 			to = new Date(now.getFullYear(), now.getMonth(), 0);
 		} else if (type === 'this_year') {
-			from = new Date(now.getFullYear(), 0, 1);
-			to = new Date(now.getFullYear(), 11, 31);
+			from = new Date(activeYear, 0, 1);
+			to = new Date(activeYear, 11, 31);
 		} else if (type === 'all') {
+			activeYear = now.getFullYear();
 			from = new Date(2000, 0, 1);
 			to = new Date(now.getFullYear() + 1, 0, 1);
 		} else if (typeof type === 'number') {
-			from = new Date(now.getFullYear(), type, 1);
-			to = new Date(now.getFullYear(), type + 1, 0);
+			from = new Date(activeYear, type, 1);
+			to = new Date(activeYear, type + 1, 0);
 		}
 
 		if (from && to) {
-			fromDate = from.toISOString().split('T')[0];
-			toDate = to.toISOString().split('T')[0];
+			const format = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+			fromDate = format(from);
+			toDate = format(to);
 			applyFilter();
 		}
 	}
@@ -284,10 +335,18 @@
 				</div>
 			</div>
 
+			<!-- Årsknapper -->
+			<div class="flex flex-wrap items-center gap-2 pt-4 border-t border-slate-100 dark:border-white/5">
+				<span class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase mr-2 tracking-widest">År</span>
+				{#each availableYears as y}
+					<button onclick={() => setShortcut('this_year', y)} class="px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border {activeYear === y ? 'bg-indigo-500 text-white shadow-md border-indigo-600' : 'bg-white text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border-slate-200 dark:border-white/10'}">{y}</button>
+				{/each}
+			</div>
+
 			<!-- Månedsknapper -->
 			<div class="flex flex-wrap items-center gap-2 pt-4 border-t border-slate-100 dark:border-white/5">
-				<span class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase mr-2 tracking-widest">År {new Date().getFullYear()}</span>
-				{#each Array(currentMonthIndex + 1).fill(0).map((_, i) => i) as m}
+				<span class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase mr-2 tracking-widest">Måneder ({activeYear})</span>
+				{#each Array(activeYear === currentYear ? currentMonthIndex + 1 : 12).fill(0).map((_, i) => i) as m}
 					<button onclick={() => setShortcut(m)} class="px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border {activeShortcut === m ? 'bg-indigo-500 text-white shadow-md border-indigo-600' : 'bg-white text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border-slate-200 dark:border-white/10'}">{monthNames[m]}</button>
 				{/each}
 			</div>
@@ -508,10 +567,20 @@
 
 		<!-- DRILL DOWN TABLE -->
 		<section id="transactions-table" class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-2xl p-6 md:p-8 rounded-3xl shadow-xl border border-slate-200/50 dark:border-white/10">
-			<div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
-				<div>
+			<div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
+				<div class="flex flex-wrap items-center gap-3">
 					<h3 class="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">🔍 Alle Transaktioner</h3>
-					<p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Viser og søger i hele den valgte periode ({data.recentTransactions.length} poster).</p>
+					{#if selectedCategory || selectedChartDate || showOnlyUncategorized || searchQuery}
+						<button onclick={() => { selectedCategory = null; selectedChartDate = null; showOnlyUncategorized = false; searchQuery = ''; }} class="px-3 py-1 bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400 text-xs font-bold rounded-lg hover:bg-red-200 dark:hover:bg-red-500/20 transition-colors">
+							✕ Ryd filtre
+						</button>
+					{/if}
+					{#if selectedChartDate}
+						<span class="px-3 py-1 bg-indigo-100 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 text-xs font-bold rounded-lg">
+							Dato: {selectedChartDate}
+						</span>
+					{/if}
+					<p class="text-xs text-slate-500 dark:text-slate-400">Viser og søger i hele den valgte periode ({data.recentTransactions.length} poster).</p>
 				</div>
 				
 				<div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -527,7 +596,7 @@
 					</label>
 
 					<div class="relative flex-1 lg:w-72">
-						<input type="text" bind:value={searchQuery} placeholder="Søg i alle transaktioner..." class="w-full text-sm font-medium bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-inner">
+						<input type="text" bind:value={searchQuery} placeholder="Søg i alle transaktioner..." class="w-full text-sm font-medium bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-inner text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500">
 						<span class="absolute left-3.5 top-2.5 text-slate-400">🔍</span>
 					</div>
 				</div>
@@ -600,10 +669,10 @@
 													Tilknyt Ønske ▾
 												</button>
 												<div class="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 shadow-2xl rounded-xl p-1.5 z-20 hidden group-hover/link:block group-focus-within/link:block">
-													{#if data.activeWishes.length === 0}
-														<div class="text-xs text-slate-500 dark:text-slate-400 p-3 text-center">Ingen aktive ønsker</div>
+													{#if data.realizedWishes.length === 0}
+														<div class="text-xs text-slate-500 dark:text-slate-400 p-3 text-center">Ingen realiserede ønsker</div>
 													{/if}
-													{#each data.activeWishes as wish}
+													{#each data.realizedWishes as wish}
 														<form method="POST" action="?/linkWish" use:enhance>
 															<input type="hidden" name="transactionId" value={tx.id} />
 															<input type="hidden" name="itemId" value={wish.id} />
@@ -618,6 +687,12 @@
 												<input type="hidden" name="transactionId" value={tx.id} />
 												<button type="submit" class="text-xs bg-indigo-50 dark:bg-indigo-500/20 hover:bg-indigo-500 text-indigo-600 dark:text-indigo-400 hover:text-white px-3 py-1.5 rounded-lg font-bold transition-colors border border-indigo-100 dark:border-indigo-500/30 shadow-sm">
 													Opret Ønske ✨
+												</button>
+											</form>
+											<form method="POST" action="?/ignoreTransaction" use:enhance onsubmit={(e) => { if (!confirm(`Er du sikker på, at du vil ignorere "${tx.text}"? Den vil blive fjernet fra alle udregninger.`)) e.preventDefault(); }}>
+												<input type="hidden" name="transactionId" value={tx.id} />
+												<button type="submit" class="text-xs bg-red-50 dark:bg-red-500/20 hover:bg-red-500 text-red-600 dark:text-red-400 hover:text-white px-3 py-1.5 rounded-lg font-bold transition-colors border border-red-100 dark:border-red-500/30 shadow-sm" title="Ignorer postering">
+													🚫 Skjul
 												</button>
 											</form>
 										</div>
@@ -657,7 +732,7 @@
 					};
 				}} class="flex items-center gap-3 w-full md:w-auto flex-1">
 					<input type="hidden" name="transactionIds" value={JSON.stringify(selectedTransactions)} />
-					<input type="text" name="groupName" bind:value={groupName} required placeholder="Navngiv gruppen (f.eks. Ferie London)" class="flex-1 px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-inner">
+					<input type="text" name="groupName" bind:value={groupName} required placeholder="Navngiv gruppen (f.eks. Ferie London)" class="flex-1 px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-inner">
 					<button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-5 py-2 rounded-xl text-sm transition-all shadow-lg hover:scale-105 active:scale-95 whitespace-nowrap flex items-center gap-2">
 						✨ Gruppér og Realisér
 					</button>
@@ -668,4 +743,44 @@
 		{/if}
 
 	</div>
+
+	{#if data.ignoredTransactions && data.ignoredTransactions.length > 0}
+	<div class="max-w-7xl mx-auto mt-12 relative z-10 pb-24">
+		<section class="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md p-6 rounded-3xl shadow-sm border border-slate-200/50 dark:border-white/5 opacity-80 hover:opacity-100 transition-opacity">
+			<h2 class="text-lg font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+				<span>🚫</span> Ignorerede Posteringer ({data.ignoredTransactions.length})
+			</h2>
+			<div class="overflow-x-auto">
+				<table class="w-full text-left text-xs whitespace-nowrap">
+					<thead class="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-white/10">
+						<tr>
+							<th class="px-3 py-2">Dato</th>
+							<th class="px-3 py-2">Tekst</th>
+							<th class="px-3 py-2 text-right">Beløb</th>
+							<th class="px-3 py-2 text-right">Handling</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each data.ignoredTransactions as tx}
+							<tr class="border-b border-slate-100/50 dark:border-white/5 text-slate-500 dark:text-slate-400 line-through decoration-slate-300 dark:decoration-slate-600">
+								<td class="px-3 py-2">{formatDate(tx.date)}</td>
+								<td class="px-3 py-2 truncate max-w-[200px]" title={tx.text}>{tx.text}</td>
+								<td class="px-3 py-2 text-right">{formatCur(tx.amount)}</td>
+								<td class="px-3 py-2 text-right no-underline">
+									<form method="POST" action="?/restoreTransaction" use:enhance>
+										<input type="hidden" name="transactionId" value={tx.id} />
+										<button type="submit" class="text-[10px] px-2 py-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded font-bold transition-colors">
+											Gendan
+										</button>
+									</form>
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		</section>
+	</div>
+	{/if}
+
 </div>

@@ -3,6 +3,8 @@ import { fail } from '@sveltejs/kit';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { PageServerLoad, Actions } from './$types';
 
+const formatDateLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const now = new Date();
 	
@@ -26,14 +28,15 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 
 	const diffTime = Math.abs(toDate.getTime() - fromDate.getTime());
 	const daysInPeriod = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-	const periodKey = `${fromDate.toISOString().split('T')[0]}_${toDate.toISOString().split('T')[0]}`;
+	const periodKey = `${formatDateLocal(fromDate)}_${formatDateLocal(toDate)}`;
 
 	// Fetch Data
-	const [transactions, expensesAgg, allWishes, transactionCategories, aiInsight] = await Promise.all([
+	const [transactions, expensesAgg, allWishes, transactionCategories, aiInsight, realizedWishes, ignoredTransactions] = await Promise.all([
 		prisma.transaction.findMany({
 			where: { 
 				date: { gte: fromDate, lte: toDate },
-				amount: { lt: 0 }
+				amount: { lt: 0 },
+				isIgnored: false
 			},
 			include: { category: true, item: true },
 			orderBy: { date: 'desc' }
@@ -41,7 +44,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		prisma.transaction.aggregate({
 			where: { 
 				date: { gte: fromDate, lte: toDate },
-				amount: { lt: 0 }
+				amount: { lt: 0 },
+				isIgnored: false
 			},
 			_sum: { amount: true }
 		}),
@@ -61,7 +65,20 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 					period: periodKey
 				}
 			}
-		}) : Promise.resolve(null)
+		}) : Promise.resolve(null),
+		prisma.item.findMany({
+			where: { status: 'PURCHASED' },
+			orderBy: { purchasedAt: 'desc' }
+		}),
+		prisma.transaction.findMany({
+			where: { 
+				date: { gte: fromDate, lte: toDate },
+				amount: { lt: 0 },
+				isIgnored: true
+			},
+			include: { category: true, item: true },
+			orderBy: { date: 'desc' }
+		})
 	]);
 
 	// Calculate KPIs
@@ -84,7 +101,48 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	// For day of week (Mon-Sun: 0-6 in our array, getDay() returns 0 for Sunday)
 	const dayOfWeekTotals = [0, 0, 0, 0, 0, 0, 0]; 
 
-	transactions.forEach(tx => {
+	// Pre-fill timeSeries and dailyTotals with 0s for the entire period to ensure continuous charts
+	const fillDate = new Date(fromDate);
+	while (fillDate <= toDate) {
+		const dateStr = formatDateLocal(fillDate);
+		dailyTotals[dateStr] = 0;
+
+		let timeKey;
+		if (daysInPeriod <= 31) {
+			timeKey = dateStr;
+		} else if (daysInPeriod <= 90) {
+			const d = new Date(Date.UTC(fillDate.getFullYear(), fillDate.getMonth(), fillDate.getDate()));
+			d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+			const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+			const weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+			timeKey = `Uge ${weekNo}, ${d.getUTCFullYear()}`;
+		} else {
+			timeKey = `${fillDate.getFullYear()}-${String(fillDate.getMonth() + 1).padStart(2, '0')}`;
+		}
+		
+		if (!(timeKey in timeSeries)) {
+			timeSeries[timeKey] = 0;
+		}
+		fillDate.setDate(fillDate.getDate() + 1);
+	}
+
+	const processedTransactions = transactions.map(tx => {
+		let timeKey;
+		if (daysInPeriod <= 31) {
+			timeKey = formatDateLocal(tx.date);
+		} else if (daysInPeriod <= 90) {
+			const d = new Date(Date.UTC(tx.date.getFullYear(), tx.date.getMonth(), tx.date.getDate()));
+			d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+			const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+			const weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+			timeKey = `Uge ${weekNo}, ${d.getUTCFullYear()}`;
+		} else {
+			timeKey = `${tx.date.getFullYear()}-${String(tx.date.getMonth() + 1).padStart(2, '0')}`;
+		}
+		return { ...tx, timeKey };
+	});
+
+	processedTransactions.forEach(tx => {
 		const expense = Math.abs(tx.amount);
 
 		if (!tx.categoryId) unmappedTransactionsCount++;
@@ -108,23 +166,11 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		}
 		categorySpending[catId].amount += expense;
 
-		// Time series (grouped by period size)
-		let timeKey;
-		if (daysInPeriod <= 31) {
-			timeKey = tx.date.toISOString().split('T')[0];
-		} else if (daysInPeriod <= 90) {
-			const d = new Date(Date.UTC(tx.date.getFullYear(), tx.date.getMonth(), tx.date.getDate()));
-			d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-			const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-			const weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
-			timeKey = `Uge ${weekNo}, ${d.getUTCFullYear()}`;
-		} else {
-			timeKey = `${tx.date.getFullYear()}-${String(tx.date.getMonth() + 1).padStart(2, '0')}`;
-		}
-		timeSeries[timeKey] = (timeSeries[timeKey] || 0) + expense;
+		// Time series
+		timeSeries[tx.timeKey] += expense;
 
 		// Daily totals for cumulative
-		const dateStr = tx.date.toISOString().split('T')[0];
+		const dateStr = formatDateLocal(tx.date);
 		dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + expense;
 
 		// Day of Week
@@ -164,7 +210,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		const endDate = new Date(sortedDailyKeys[sortedDailyKeys.length - 1]);
 		
 		for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-			const dStr = d.toISOString().split('T')[0];
+			const dStr = formatDateLocal(d);
 			runningTotal += (dailyTotals[dStr] || 0);
 			cumulativeLabels.push(dStr);
 			cumulativeSeries.push(Math.round(runningTotal));
@@ -193,14 +239,15 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		},
 		topWish,
 		top3Categories,
-		recentTransactions: transactions,
-		activeWishes: allWishes,
+		recentTransactions: processedTransactions,
+		ignoredTransactions,
+		realizedWishes,
 		transactionCategories,
 		aiInsight,
 		periodKey,
 		currentFilter: {
-			from: fromDate.toISOString().split('T')[0],
-			to: toDate.toISOString().split('T')[0],
+			from: formatDateLocal(fromDate),
+			to: formatDateLocal(toDate),
 			daysInPeriod
 		}
 	};
@@ -228,10 +275,20 @@ export const actions: Actions = {
 			toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 		}
 		
-		const periodKey = `${fromDate.toISOString().split('T')[0]}_${toDate.toISOString().split('T')[0]}`;
+		const periodKey = `${formatDateLocal(fromDate)}_${formatDateLocal(toDate)}`;
+		
+		const isOngoing = now.getTime() >= fromDate.getTime() && now.getTime() <= toDate.getTime();
+		const daysInPeriod = Math.max(1, Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)));
+		let daysPassed = daysInPeriod;
+		let daysLeft = 0;
+
+		if (isOngoing) {
+			daysPassed = Math.max(1, Math.ceil((now.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)));
+			daysLeft = Math.max(0, daysInPeriod - daysPassed);
+		}
 
 		// 1. Aggregate Financial Data
-		const [expensesAgg, expenses, wishes] = await Promise.all([
+		const [expensesAgg, expenses, wishes, historicalTotalAgg, historicalCategoriesAgg, oldestTx, allCategories] = await Promise.all([
 			prisma.transaction.aggregate({
 				where: { date: { gte: fromDate, lte: toDate }, amount: { lt: 0 } },
 				_sum: { amount: true }
@@ -244,11 +301,44 @@ export const actions: Actions = {
 				where: { status: 'WISH', userId: locals.user.id },
 				orderBy: [{ desireLevel: 'desc' }, { price: 'desc' }],
 				take: 5
-			})
+			}),
+			prisma.transaction.aggregate({
+				where: { date: { lt: fromDate }, amount: { lt: 0 } },
+				_sum: { amount: true }
+			}),
+			prisma.transaction.groupBy({
+				by: ['categoryId'],
+				where: { date: { lt: fromDate }, amount: { lt: 0 } },
+				_sum: { amount: true }
+			}),
+			prisma.transaction.findFirst({
+				where: { amount: { lt: 0 } },
+				orderBy: { date: 'asc' }
+			}),
+			prisma.transactionCategory.findMany()
 		]);
 
-		// TotalIncome was removed to avoid lint errors
 		const totalExpenses = Math.abs(expensesAgg._sum.amount || 0);
+		let projectedExpenses = totalExpenses;
+		if (isOngoing) {
+			projectedExpenses = (totalExpenses / daysPassed) * daysInPeriod;
+		}
+
+		let monthsHistorical = 1;
+		if (oldestTx && oldestTx.date < fromDate) {
+			const mDiff = (fromDate.getFullYear() - oldestTx.date.getFullYear()) * 12 + (fromDate.getMonth() - oldestTx.date.getMonth());
+			monthsHistorical = Math.max(1, mDiff);
+		}
+		const historicalAvgTotal = Math.abs(historicalTotalAgg._sum.amount || 0) / monthsHistorical;
+
+		const catHistoricalMap: Record<string, number> = {};
+		historicalCategoriesAgg.forEach(h => {
+			if (h.categoryId) {
+				const catName = allCategories.find(c => c.id === h.categoryId)?.name || 'Ukategoriseret';
+				catHistoricalMap[catName] = (catHistoricalMap[catName] || 0) + Math.abs(h._sum.amount || 0);
+			}
+		});
+
 		const catMap: Record<string, number> = {};
 
 		expenses.forEach(tx => {
@@ -266,17 +356,27 @@ export const actions: Actions = {
 
 		// 2. Format Data for Prompt
 		const wishesText = wishes.map(w => `- {Name: ${w.title}, Price: ${w.price} DKK, Desire Level: ${w.desireLevel}/5}`).join('\n');
-		const categoriesText = topCategories.map(c => `- {${c[0]}: ${formatCur(c[1])}}`).join('\n');
+		
+		const categoriesText = topCategories.map(c => {
+			const histTotal = catHistoricalMap[c[0]] || 0;
+			const histAvg = histTotal / monthsHistorical;
+			return `- {${c[0]}: ${formatCur(c[1])}} (Historisk gns. pr. måned: ${formatCur(histAvg)})`;
+		}).join('\n');
 
-		const promptData = `Data for perioden: ${fromDate.toLocaleDateString('da-DK')} til ${toDate.toLocaleDateString('da-DK')}
-- Samlet forbrug: ${formatCur(totalExpenses)}
-- Top udgiftskategorier (Ekskl. ukendte poster): 
-${categoriesText}
-
-Brugerens Ønsker:
-${wishesText || '- Ingen ønsker registreret endnu.'}
-
-VIGTIGE REGLER FOR DIN ANALYSE:
+		let promptData = `Data for perioden: ${fromDate.toLocaleDateString('da-DK')} til ${toDate.toLocaleDateString('da-DK')}\n`;
+		if (isOngoing) {
+			promptData += `- Status: Dette er en IGANGVÆRENDE periode (${daysPassed} dage gået ud af ${daysInPeriod}. Der er ${daysLeft} dage tilbage).\n`;
+			promptData += `- Samlet forbrug indtil videre: ${formatCur(totalExpenses)}\n`;
+			promptData += `- Forventet totalforbrug (Run-Rate) ved periodens afslutning, hvis tendensen fortsætter: ${formatCur(projectedExpenses)}\n`;
+		} else {
+			promptData += `- Samlet forbrug for perioden: ${formatCur(totalExpenses)}\n`;
+		}
+		
+		promptData += `- VIGTIG HISTORISK KONTEKST: Dit normale gennemsnitlige totalforbrug pr. måned (baseret på ${monthsHistorical} måneders historik) er ${formatCur(historicalAvgTotal)}. Hold altid periodens forbrug (eller run-raten) op imod dette gennemsnit for at vurdere niveauet rigtigt!\n\n`;
+		
+		promptData += `Top udgiftskategorier (Ekskl. ukendte poster):\n${categoriesText}\n\n`;
+		promptData += `Brugerens Ønsker:\n${wishesText || '- Ingen ønsker registreret endnu.'}\n\n`;
+		promptData += `VIGTIGE REGLER FOR DIN ANALYSE:
 1. Dette er et udtræk der UDELUKKENDE indeholder udgifter. Du må IKKE kommentere på, at indtægten mangler, eller at økonomien er i fare på grund af dette. Fokusér udelukkende på at analysere forbruget.
 2. Vær direkte og brug konkrete tal i din argumentation.`;
 
@@ -285,16 +385,16 @@ VIGTIGE REGLER FOR DIN ANALYSE:
 Output Structure requested:
 Svar KUN med dette Markdown-format:
 ### 📊 Økonomisk Overblik
-[1-2 korte, skarpe sætninger der opsummerer periodens rå forbrugstal uden at dramatisere].
+[1-2 korte, skarpe sætninger der opsummerer periodens rå forbrugstal uden at dramatisere.${isOngoing ? ' Fokusér specifikt på run-rate (det forventede endelige forbrug) og kom med et kort udsagn om tendensen for de resterende ' + daysLeft + ' dage holdt op imod det historiske gennemsnit.' : ''}]
 
 ### 🕵️ Lommetyvene
-[Fokusér på den af top-kategorierne, der er mest 'fleksibel' (f.eks. Fastfood, Fritid, Tøj, Abonnementer, Dagligvarer). Nævn det præcise beløb og stil et kort, kritisk spørgsmål til, om niveauet er nødvendigt].
+[Fokusér på en af top-kategorierne, der er mest 'fleksibel' (f.eks. Fastfood, Fritid, Tøj). Sammenlign ALTID periodens forbrug ELLER den forventede run-rate med det **historiske gennemsnit** for at vurdere, om det faktisk er en lommetyv, eller om brugeren ligger pænt under budget! Nævn konkrete beløb].
 
 ### 🎯 Forbrug vs. Ønsker
 [Lav et direkte, matematisk eksempel. F.eks.: 'Dit forbrug på X (beløb) svarer til Y% af [Ønske]. Hvis du skar X ned med 30%, ville du kunne købe [Ønske] om Z måneder'].
 
 ### 💡 Skarpe Råd
-* **[Action 1]:** [Kort beskrivelse]
+* **[Action 1]:** [Kort beskrivelse${isOngoing ? ' af hvad brugeren konkret bør fokusere på at undgå i de resterende dage' : ''}]
 * **[Action 2]:** [Kort beskrivelse]
 
 Data at basere rådgivningen på:
@@ -366,19 +466,13 @@ ${promptData}`;
 		if (!transactionId || !itemId) return fail(400, { error: 'Missing data' });
 
 		try {
-			await prisma.$transaction([
-				prisma.transaction.update({
-					where: { id: transactionId },
-					data: { 
-						itemId,
-						status: 'PROCESSED'
-					}
-				}),
-				prisma.item.update({
-					where: { id: itemId },
-					data: { status: 'PURCHASED', purchasedAt: new Date() }
-				})
-			]);
+			await prisma.transaction.update({
+				where: { id: transactionId },
+				data: { 
+					itemId,
+					status: 'PROCESSED'
+				}
+			});
 			return { success: true };
 		} catch { return fail(500, { error: 'Kunne ikke tilknytte ønske' }); }
 	},
@@ -474,5 +568,37 @@ ${promptData}`;
 
 			return { success: true };
 		} catch { return fail(500, { error: 'Kunne ikke oprette gruppe-ønske' }); }
+	},
+
+	ignoreTransaction: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Unauthorized' });
+		const data = await request.formData();
+		const transactionId = data.get('transactionId')?.toString();
+
+		if (!transactionId) return fail(400, { error: 'Missing data' });
+
+		try {
+			await prisma.transaction.update({
+				where: { id: transactionId },
+				data: { isIgnored: true }
+			});
+			return { success: true };
+		} catch { return fail(500, { error: 'Kunne ikke ignorere postering' }); }
+	},
+
+	restoreTransaction: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Unauthorized' });
+		const data = await request.formData();
+		const transactionId = data.get('transactionId')?.toString();
+
+		if (!transactionId) return fail(400, { error: 'Missing data' });
+
+		try {
+			await prisma.transaction.update({
+				where: { id: transactionId },
+				data: { isIgnored: false }
+			});
+			return { success: true };
+		} catch { return fail(500, { error: 'Kunne ikke gendanne postering' }); }
 	}
 };
