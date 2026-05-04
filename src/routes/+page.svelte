@@ -387,9 +387,16 @@
 											</div>
 										</form>
 
-										<span class="text-[10px] font-bold px-2 py-0.5 rounded-md self-start {item.expenseType === 'SHARED' ? 'bg-violet-100 text-violet-700' : 'bg-rose-100 text-rose-700'}">
-											{item.expenseType === 'SHARED' ? 'FÆLLES' : 'EGO'}
-										</span>
+										<form method="POST" action="?/changeItemExpenseType" use:enhance class="inline-flex self-start group/expense">
+											<input type="hidden" name="itemId" value={item.id} />
+											<div class="relative inline-flex items-center">
+												<select name="expenseType" onchange={(e) => e.currentTarget.form?.requestSubmit()} class="appearance-none text-[10px] font-bold px-2 py-0.5 pr-4 rounded-md cursor-pointer focus:ring-0 outline-none transition-colors border-none {item.expenseType === 'SHARED' ? 'bg-violet-100 text-violet-700' : 'bg-rose-100 text-rose-700'}">
+													<option value="SHARED" selected={item.expenseType === 'SHARED'}>FÆLLES</option>
+													<option value="PERSONAL" selected={item.expenseType === 'PERSONAL'}>EGO</option>
+												</select>
+												<span class="pointer-events-none absolute right-1 text-[8px] {item.expenseType === 'SHARED' ? 'text-violet-400' : 'text-rose-400'} group-hover/expense:opacity-100 opacity-50">▼</span>
+											</div>
+										</form>
 									</div>
 
 									<div class="flex gap-1 bg-slate-50 p-1 rounded-lg">
@@ -417,9 +424,20 @@
 								</div>
 
 								<div class="flex justify-between items-center mt-1 mb-2">
-									<p class="text-[11px] font-medium text-slate-500">
-										Af <span class="bg-slate-100 px-1.5 py-0.5 rounded ml-0.5">{item.user.emoji || '👤'} {item.user.displayName || item.user.username}</span>
-									</p>
+									<div class="text-[11px] font-medium text-slate-500 flex items-center gap-1">
+										Af
+										<form method="POST" action="?/changeItemUser" use:enhance class="inline-block relative group/user">
+											<input type="hidden" name="itemId" value={item.id} />
+											<select name="userId" onchange={(e) => e.currentTarget.form?.requestSubmit()} class="appearance-none bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-1.5 py-0.5 pr-4 rounded cursor-pointer outline-none transition-colors border-none text-[11px]">
+												{#each data.users as u}
+													<option value={u.id} selected={u.id === item.userId}>
+														{u.emoji || '👤'} {u.displayName || u.username}
+													</option>
+												{/each}
+											</select>
+											<span class="pointer-events-none absolute right-1 top-1 text-[8px] text-slate-400 group-hover/user:text-indigo-500">▼</span>
+										</form>
+									</div>
 									<p class="text-[10px] font-medium text-slate-400">Oprettet: {formatDate(item.createdAt)}</p>
 								</div>
 								
@@ -476,7 +494,16 @@
 
 								<div class="flex justify-between items-start mb-1.5">
 									<div class="flex items-center gap-2">
-										<span class="text-[9px] font-bold px-1.5 py-0.5 rounded text-slate-500 bg-white border border-slate-200">{item.expenseType === 'SHARED' ? 'FÆLLES' : 'EGO'}</span>
+										<form method="POST" action="?/changeItemExpenseType" use:enhance class="inline-flex group/expense">
+											<input type="hidden" name="itemId" value={item.id} />
+											<div class="relative inline-flex items-center">
+												<select name="expenseType" onchange={(e) => e.currentTarget.form?.requestSubmit()} class="appearance-none text-[9px] font-bold px-1.5 py-0.5 pr-3.5 rounded text-slate-500 bg-white border border-slate-200 cursor-pointer focus:ring-0 outline-none transition-colors">
+													<option value="SHARED" selected={item.expenseType === 'SHARED'}>FÆLLES</option>
+													<option value="PERSONAL" selected={item.expenseType === 'PERSONAL'}>EGO</option>
+												</select>
+												<span class="pointer-events-none absolute right-1 text-[8px] text-slate-300 group-hover/expense:text-indigo-400 opacity-50 group-hover/expense:opacity-100">▼</span>
+											</div>
+										</form>
 										
 										<form method="POST" action="?/changeItemCategory" use:enhance>
 											<input type="hidden" name="itemId" value={item.id} />
@@ -499,9 +526,20 @@
 								<h3 class="text-base font-semibold text-slate-500 line-through decoration-slate-400/50 pr-4">{item.title}</h3>
 								
 								<div class="flex justify-between items-center mt-1 mb-2">
-									<p class="text-[10px] font-medium text-slate-400">
-										Af <span class="px-1 py-0.5 rounded">{item.user.emoji || '👤'} {item.user.displayName || item.user.username}</span>
-									</p>
+									<div class="text-[10px] font-medium text-slate-400 flex items-center gap-1">
+										Af
+										<form method="POST" action="?/changeItemUser" use:enhance class="inline-block relative group/user">
+											<input type="hidden" name="itemId" value={item.id} />
+											<select name="userId" onchange={(e) => e.currentTarget.form?.requestSubmit()} class="appearance-none bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold px-1.5 py-0.5 pr-4 rounded cursor-pointer outline-none transition-colors text-[10px]">
+												{#each data.users as u}
+													<option value={u.id} selected={u.id === item.userId}>
+														{u.emoji || '👤'} {u.displayName || u.username}
+													</option>
+												{/each}
+											</select>
+											<span class="pointer-events-none absolute right-1 top-1 text-[8px] text-slate-400 group-hover/user:text-indigo-500">▼</span>
+										</form>
+									</div>
 									<p class="text-[10px] font-medium text-slate-400">Købt: {item.purchasedAt ? formatDate(item.purchasedAt) : formatDate(item.createdAt)}</p>
 								</div>
 

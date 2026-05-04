@@ -7,9 +7,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 		return { wishes: [], purchases: [], categories: [], kpis: null, user: null };
 	}
 
-	let categories = await prisma.category.findMany({
-		orderBy: { name: 'asc' }
-	});
+	const [categoriesList, allUsers] = await Promise.all([
+		prisma.category.findMany({ orderBy: { name: 'asc' } }),
+		prisma.user.findMany({ orderBy: { displayName: 'asc' } })
+	]);
+	
+	let categories = categoriesList;
 	
 	if (categories.length === 0) {
 		await prisma.category.createMany({
@@ -102,7 +105,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			topDreamer, topSpender, cooldownGain,
 			currentMonthExpenses, topCategoryName: topCategory.name
 		},
-		user: locals.user
+		user: locals.user,
+		users: allUsers
 	};
 };
 
@@ -316,5 +320,39 @@ export const actions: Actions = {
 			}
 			return { success: true };
 		} catch (error) { return fail(500); }
+	},
+
+	changeItemUser: async ({ request, locals }) => {
+		if (!locals.user) return fail(401);
+		const data = await request.formData();
+		const itemId = data.get('itemId')?.toString();
+		const userId = data.get('userId')?.toString();
+
+		if (!itemId || !userId) return fail(400);
+
+		try {
+			await prisma.item.update({
+				where: { id: itemId },
+				data: { userId }
+			});
+			return { success: true };
+		} catch { return fail(500); }
+	},
+
+	changeItemExpenseType: async ({ request, locals }) => {
+		if (!locals.user) return fail(401);
+		const data = await request.formData();
+		const itemId = data.get('itemId')?.toString();
+		const expenseType = data.get('expenseType')?.toString() as 'PERSONAL' | 'SHARED';
+
+		if (!itemId || !expenseType) return fail(400);
+
+		try {
+			await prisma.item.update({
+				where: { id: itemId },
+				data: { expenseType }
+			});
+			return { success: true };
+		} catch { return fail(500); }
 	}
 };

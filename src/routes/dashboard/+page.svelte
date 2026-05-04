@@ -170,35 +170,67 @@
 	});
 
 	// Date Shortcuts
-	function setShortcut(type: 'this_month' | 'prev_month' | 'this_year' | 'all') {
+	const monthNames = ["Jan", "Feb", "Mar", "Apr", "Maj", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"];
+	const currentMonthIndex = new Date().getMonth();
+
+	let activeShortcut = $derived.by(() => {
+		const now = new Date();
+		const fromStr = fromDate;
+		const toStr = toDate;
+		
+		const tmFrom = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+		const tmTo = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+		if (fromStr === tmFrom && toStr === tmTo) return 'this_month';
+
+		const pmFrom = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+		const pmTo = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+		if (fromStr === pmFrom && toStr === pmTo) return 'prev_month';
+
+		const tyFrom = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+		const tyTo = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
+		if (fromStr === tyFrom && toStr === tyTo) return 'this_year';
+
+		const allFrom = new Date(2000, 0, 1).toISOString().split('T')[0];
+		if (fromStr === allFrom) return 'all';
+
+		for (let i = 0; i <= now.getMonth(); i++) {
+			const mFrom = new Date(now.getFullYear(), i, 1).toISOString().split('T')[0];
+			const mTo = new Date(now.getFullYear(), i + 1, 0).toISOString().split('T')[0];
+			if (fromStr === mFrom && toStr === mTo) return i;
+		}
+		return 'custom';
+	});
+
+	function setShortcut(type: 'this_month' | 'prev_month' | 'this_year' | 'all' | number) {
 		const now = new Date();
 		let from, to;
-		let newAiPeriod = data.aiPeriod;
 
 		if (type === 'this_month') {
 			from = new Date(now.getFullYear(), now.getMonth(), 1);
 			to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-			newAiPeriod = 'CURRENT_MONTH';
 		} else if (type === 'prev_month') {
 			from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 			to = new Date(now.getFullYear(), now.getMonth(), 0);
-			newAiPeriod = 'LAST_MONTH';
 		} else if (type === 'this_year') {
 			from = new Date(now.getFullYear(), 0, 1);
 			to = new Date(now.getFullYear(), 11, 31);
-			newAiPeriod = 'CURRENT_YEAR';
-		} else {
-			from = new Date(2000, 0, 1); // "All time"
+		} else if (type === 'all') {
+			from = new Date(2000, 0, 1);
 			to = new Date(now.getFullYear() + 1, 0, 1);
+		} else if (typeof type === 'number') {
+			from = new Date(now.getFullYear(), type, 1);
+			to = new Date(now.getFullYear(), type + 1, 0);
 		}
 
-		fromDate = from.toISOString().split('T')[0];
-		toDate = to.toISOString().split('T')[0];
-		applyFilter(newAiPeriod);
+		if (from && to) {
+			fromDate = from.toISOString().split('T')[0];
+			toDate = to.toISOString().split('T')[0];
+			applyFilter();
+		}
 	}
 
-	function applyFilter(aiPeriod = data.aiPeriod) {
-		goto(`?from=${fromDate}&to=${toDate}&aiPeriod=${aiPeriod}`, { keepFocus: true });
+	function applyFilter() {
+		goto(`?from=${fromDate}&to=${toDate}`, { keepFocus: true });
 	}
 
 </script>
@@ -226,28 +258,38 @@
 		</header>
 
 		<!-- CONTROLS -->
-		<section class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-slate-200/50 dark:border-white/10 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-			<div class="flex flex-wrap items-center gap-2">
-				<span class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase mr-2 tracking-widest">Hurtigvalg</span>
-				<button onclick={() => setShortcut('this_month')} class="px-4 py-2 text-xs font-bold rounded-xl bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-500/30 transition-colors border border-indigo-100 dark:border-indigo-500/20">Denne Måned</button>
-				<button onclick={() => setShortcut('prev_month')} class="px-4 py-2 text-xs font-bold rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-white/5">Forrige Måned</button>
-				<button onclick={() => setShortcut('this_year')} class="px-4 py-2 text-xs font-bold rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-white/5">Dette År</button>
-				<button onclick={() => setShortcut('all')} class="px-4 py-2 text-xs font-bold rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-transparent dark:border-white/5">Altid</button>
+		<section class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl p-5 rounded-3xl shadow-sm border border-slate-200/50 dark:border-white/10 flex flex-col gap-4">
+			<div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+				<div class="flex flex-wrap items-center gap-2">
+					<span class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase mr-2 tracking-widest">Hurtigvalg</span>
+					<button onclick={() => setShortcut('this_month')} class="px-4 py-2 text-xs font-bold rounded-xl transition-colors border {activeShortcut === 'this_month' ? 'bg-indigo-500 text-white shadow-md border-indigo-600' : 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border-transparent dark:border-white/5'}">Denne Måned</button>
+					<button onclick={() => setShortcut('prev_month')} class="px-4 py-2 text-xs font-bold rounded-xl transition-colors border {activeShortcut === 'prev_month' ? 'bg-indigo-500 text-white shadow-md border-indigo-600' : 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border-transparent dark:border-white/5'}">Forrige Måned</button>
+					<button onclick={() => setShortcut('this_year')} class="px-4 py-2 text-xs font-bold rounded-xl transition-colors border {activeShortcut === 'this_year' ? 'bg-indigo-500 text-white shadow-md border-indigo-600' : 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border-transparent dark:border-white/5'}">Dette År</button>
+					<button onclick={() => setShortcut('all')} class="px-4 py-2 text-xs font-bold rounded-xl transition-colors border {activeShortcut === 'all' ? 'bg-indigo-500 text-white shadow-md border-indigo-600' : 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border-transparent dark:border-white/5'}">Altid</button>
+				</div>
+				
+				<div class="flex flex-wrap items-center gap-4 bg-slate-50/50 dark:bg-slate-900/50 p-2 rounded-2xl border border-slate-200/50 dark:border-white/5 {activeShortcut === 'custom' ? 'ring-2 ring-indigo-500/50' : ''}">
+					<div class="flex items-center gap-2 pl-2">
+						<label for="from" class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Fra:</label>
+						<input type="date" id="from" bind:value={fromDate} class="bg-transparent border-none text-sm font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer">
+					</div>
+					<div class="w-px h-6 bg-slate-200 dark:bg-white/10"></div>
+					<div class="flex items-center gap-2">
+						<label for="to" class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Til:</label>
+						<input type="date" id="to" bind:value={toDate} class="bg-transparent border-none text-sm font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer">
+					</div>
+					<button onclick={applyFilter} class="px-5 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs rounded-xl shadow-md hover:scale-105 transition-transform ml-auto xl:ml-2">
+						Opdater
+					</button>
+				</div>
 			</div>
-			
-			<div class="flex flex-wrap items-center gap-4 bg-slate-50/50 dark:bg-slate-900/50 p-2 rounded-2xl border border-slate-200/50 dark:border-white/5">
-				<div class="flex items-center gap-2 pl-2">
-					<label for="from" class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Fra:</label>
-					<input type="date" id="from" bind:value={fromDate} class="bg-transparent border-none text-sm font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer">
-				</div>
-				<div class="w-px h-6 bg-slate-200 dark:bg-white/10"></div>
-				<div class="flex items-center gap-2">
-					<label for="to" class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Til:</label>
-					<input type="date" id="to" bind:value={toDate} class="bg-transparent border-none text-sm font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer">
-				</div>
-				<button onclick={applyFilter} class="px-5 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-xs rounded-xl shadow-md hover:scale-105 transition-transform ml-auto xl:ml-2">
-					Opdater
-				</button>
+
+			<!-- Månedsknapper -->
+			<div class="flex flex-wrap items-center gap-2 pt-4 border-t border-slate-100 dark:border-white/5">
+				<span class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase mr-2 tracking-widest">År {new Date().getFullYear()}</span>
+				{#each Array(currentMonthIndex + 1).fill(0).map((_, i) => i) as m}
+					<button onclick={() => setShortcut(m)} class="px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border {activeShortcut === m ? 'bg-indigo-500 text-white shadow-md border-indigo-600' : 'bg-white text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border-slate-200 dark:border-white/10'}">{monthNames[m]}</button>
+				{/each}
 			</div>
 		</section>
 
@@ -294,18 +336,6 @@
 							<span class="text-3xl">🤖</span> Din Formuerådgiver
 						</h2>
 					</div>
-					
-					<div class="flex bg-slate-800/80 p-1 rounded-xl border border-slate-700/50 backdrop-blur-sm">
-						<button onclick={() => goto(`?from=${fromDate}&to=${toDate}&aiPeriod=CURRENT_MONTH`, { keepFocus: true })} class="px-4 py-2 text-xs font-bold rounded-lg transition-colors {data.aiPeriod === 'CURRENT_MONTH' ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'}">
-							Denne Mdr
-						</button>
-						<button onclick={() => goto(`?from=${fromDate}&to=${toDate}&aiPeriod=LAST_MONTH`, { keepFocus: true })} class="px-4 py-2 text-xs font-bold rounded-lg transition-colors {data.aiPeriod === 'LAST_MONTH' ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'}">
-							Sidste Mdr
-						</button>
-						<button onclick={() => goto(`?from=${fromDate}&to=${toDate}&aiPeriod=CURRENT_YEAR`, { keepFocus: true })} class="px-4 py-2 text-xs font-bold rounded-lg transition-colors {data.aiPeriod === 'CURRENT_YEAR' ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'}">
-							Året
-						</button>
-					</div>
 				</div>
 
 				<div class="flex-1 bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 relative z-10">
@@ -326,7 +356,8 @@
 									isGenerating = false;
 								};
 							}}>
-								<input type="hidden" name="period" value={data.aiPeriod} />
+								<input type="hidden" name="from" value={data.currentFilter.from} />
+								<input type="hidden" name="to" value={data.currentFilter.to} />
 								<button type="submit" disabled={isGenerating} class="px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-400/30 text-indigo-200 text-xs font-bold rounded-lg transition-all flex items-center gap-2">
 									{#if isGenerating} ⏳ Arbejder... {:else} 🔄 Opdater {/if}
 								</button>
@@ -335,7 +366,7 @@
 					{:else}
 						<div class="text-center py-8">
 							<div class="text-4xl mb-4 opacity-50">🧠</div>
-							<p class="text-slate-300 mb-6 text-sm">Der er ikke genereret en analyse for denne periode endnu.</p>
+							<p class="text-slate-300 mb-6 text-sm">Der er ikke genereret en analyse for denne præcise periode endnu.</p>
 							<form method="POST" action="?/generateInsight" use:enhance={() => {
 								isGenerating = true;
 								return async ({ update }) => {
@@ -343,7 +374,8 @@
 									isGenerating = false;
 								};
 							}}>
-								<input type="hidden" name="period" value={data.aiPeriod} />
+								<input type="hidden" name="from" value={data.currentFilter.from} />
+								<input type="hidden" name="to" value={data.currentFilter.to} />
 								<button type="submit" disabled={isGenerating} class="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl transition-all shadow-lg active:scale-95">
 									{#if isGenerating} ⏳ Analyserer... {:else} ✨ Generer Analyse {/if}
 								</button>

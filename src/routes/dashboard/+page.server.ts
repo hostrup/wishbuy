@@ -9,8 +9,6 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	// 1. Læs URL parametre (eller brug fallback til nuværende måned)
 	const fromParam = url.searchParams.get('from');
 	const toParam = url.searchParams.get('to');
-	// Period tab for AI: 'CURRENT_MONTH' | 'LAST_MONTH' | 'CURRENT_YEAR'
-	const aiPeriod = url.searchParams.get('aiPeriod') || 'CURRENT_MONTH';
 
 	let fromDate: Date;
 	let toDate: Date;
@@ -28,6 +26,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 
 	const diffTime = Math.abs(toDate.getTime() - fromDate.getTime());
 	const daysInPeriod = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+	const periodKey = `${fromDate.toISOString().split('T')[0]}_${toDate.toISOString().split('T')[0]}`;
 
 	// Fetch Data
 	const [transactions, expensesAgg, allWishes, transactionCategories, aiInsight] = await Promise.all([
@@ -59,7 +58,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			where: {
 				userId_period: {
 					userId: locals.user.id,
-					period: aiPeriod
+					period: periodKey
 				}
 			}
 		}) : Promise.resolve(null)
@@ -198,7 +197,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		activeWishes: allWishes,
 		transactionCategories,
 		aiInsight,
-		aiPeriod,
+		periodKey,
 		currentFilter: {
 			from: fromDate.toISOString().split('T')[0],
 			to: toDate.toISOString().split('T')[0],
@@ -212,22 +211,24 @@ export const actions: Actions = {
 		if (!locals.user) return fail(401, { error: 'Unauthorized' });
 
 		const data = await request.formData();
-		const period = data.get('period')?.toString() || 'CURRENT_MONTH'; // 'CURRENT_MONTH' | 'LAST_MONTH' | 'CURRENT_YEAR'
+		const fromStr = data.get('from')?.toString();
+		const toStr = data.get('to')?.toString();
 
 		const now = new Date();
 		let fromDate: Date;
 		let toDate: Date;
 
-		if (period === 'LAST_MONTH') {
-			fromDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
-			toDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-		} else if (period === 'CURRENT_YEAR') {
-			fromDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-			toDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+		if (fromStr && toStr) {
+			const [fy, fm, fd] = fromStr.split('-').map(Number);
+			fromDate = new Date(fy, fm - 1, fd, 0, 0, 0, 0);
+			const [ty, tm, td] = toStr.split('-').map(Number);
+			toDate = new Date(ty, tm - 1, td, 23, 59, 59, 999);
 		} else {
 			fromDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
 			toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 		}
+		
+		const periodKey = `${fromDate.toISOString().split('T')[0]}_${toDate.toISOString().split('T')[0]}`;
 
 		// 1. Aggregate Financial Data
 		const [expensesAgg, expenses, wishes] = await Promise.all([
@@ -267,7 +268,7 @@ export const actions: Actions = {
 		const wishesText = wishes.map(w => `- {Name: ${w.title}, Price: ${w.price} DKK, Desire Level: ${w.desireLevel}/5}`).join('\n');
 		const categoriesText = topCategories.map(c => `- {${c[0]}: ${formatCur(c[1])}}`).join('\n');
 
-		const promptData = `Data for perioden:
+		const promptData = `Data for perioden: ${fromDate.toLocaleDateString('da-DK')} til ${toDate.toLocaleDateString('da-DK')}
 - Samlet forbrug: ${formatCur(totalExpenses)}
 - Top udgiftskategorier (Ekskl. ukendte poster): 
 ${categoriesText}
@@ -312,12 +313,11 @@ ${promptData}`;
 			const result = await model.generateContent(systemPrompt);
 			const responseContent = result.response.text();
 
-			// 4. Upsert AiInsight
 			await prisma.aiInsight.upsert({
 				where: {
 					userId_period: {
 						userId: locals.user.id,
-						period
+						period: periodKey
 					}
 				},
 				update: {
@@ -325,7 +325,7 @@ ${promptData}`;
 				},
 				create: {
 					userId: locals.user.id,
-					period,
+					period: periodKey,
 					content: responseContent
 				}
 			});
@@ -354,7 +354,7 @@ ${promptData}`;
 				}
 			});
 			return { success: true };
-		} catch (e) { return fail(500, { error: 'Kunne ikke opdatere kategori' }); }
+		} catch { return fail(500, { error: 'Kunne ikke opdatere kategori' }); }
 	},
 
 	linkWish: async ({ request, locals }) => {
@@ -380,7 +380,7 @@ ${promptData}`;
 				})
 			]);
 			return { success: true };
-		} catch (e) { return fail(500, { error: 'Kunne ikke tilknytte ønske' }); }
+		} catch { return fail(500, { error: 'Kunne ikke tilknytte ønske' }); }
 	},
 
 	createRealizedWish: async ({ request, locals }) => {
@@ -423,7 +423,7 @@ ${promptData}`;
 			});
 
 			return { success: true };
-		} catch (e) { return fail(500, { error: 'Kunne ikke oprette ønske' }); }
+		} catch { return fail(500, { error: 'Kunne ikke oprette ønske' }); }
 	},
 
 	bulkGroupToWish: async ({ request, locals }) => {
@@ -473,6 +473,6 @@ ${promptData}`;
 			});
 
 			return { success: true };
-		} catch (e) { return fail(500, { error: 'Kunne ikke oprette gruppe-ønske' }); }
+		} catch { return fail(500, { error: 'Kunne ikke oprette gruppe-ønske' }); }
 	}
 };
