@@ -66,7 +66,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	]);
 
 	// Calculate KPIs
-	let periodExpenses = Math.abs(expensesAgg._sum.amount || 0);
+	const periodExpenses = Math.abs(expensesAgg._sum.amount || 0);
 	let unmappedTransactionsCount = 0;
 	let largestTransaction = { text: 'Ingen', amount: 0, date: new Date() };
 
@@ -79,6 +79,11 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		'#f43f5e', '#84cc16', '#06b6d4', '#d946ef'
 	];
 	let colorIndex = 0;
+
+	// For cumulative we need transactions grouped by date (ascending)
+	const dailyTotals: Record<string, number> = {};
+	// For day of week (Mon-Sun: 0-6 in our array, getDay() returns 0 for Sunday)
+	const dayOfWeekTotals = [0, 0, 0, 0, 0, 0, 0]; 
 
 	transactions.forEach(tx => {
 		const expense = Math.abs(tx.amount);
@@ -104,7 +109,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		}
 		categorySpending[catId].amount += expense;
 
-		let timeKey = '';
+		// Time series (grouped by period size)
+		let timeKey;
 		if (daysInPeriod <= 31) {
 			timeKey = tx.date.toISOString().split('T')[0];
 		} else if (daysInPeriod <= 90) {
@@ -117,6 +123,15 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			timeKey = `${tx.date.getFullYear()}-${String(tx.date.getMonth() + 1).padStart(2, '0')}`;
 		}
 		timeSeries[timeKey] = (timeSeries[timeKey] || 0) + expense;
+
+		// Daily totals for cumulative
+		const dateStr = tx.date.toISOString().split('T')[0];
+		dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + expense;
+
+		// Day of Week
+		const day = tx.date.getDay(); // 0 = Sun, 1 = Mon ... 6 = Sat
+		const adjustedDay = day === 0 ? 6 : day - 1; // 0 = Mon ... 6 = Sun
+		dayOfWeekTotals[adjustedDay] += expense;
 	});
 
 	const avgDailySpend = periodExpenses / daysInPeriod;
@@ -138,9 +153,28 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const barSeries = sortedTimeKeys.map(k => Math.round(timeSeries[k]));
 	const barLabels = sortedTimeKeys;
 
+	// Calculate Cumulative
+	const sortedDailyKeys = Object.keys(dailyTotals).sort();
+	const cumulativeSeries: number[] = [];
+	const cumulativeLabels: string[] = [];
+	let runningTotal = 0;
+	
+	if (sortedDailyKeys.length > 0) {
+		// Fill in missing days
+		const startDate = new Date(sortedDailyKeys[0]);
+		const endDate = new Date(sortedDailyKeys[sortedDailyKeys.length - 1]);
+		
+		for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+			const dStr = d.toISOString().split('T')[0];
+			runningTotal += (dailyTotals[dStr] || 0);
+			cumulativeLabels.push(dStr);
+			cumulativeSeries.push(Math.round(runningTotal));
+		}
+	}
+
 	const topWish = allWishes[0] || null;
-	let guiltyPleasureSpending = topCategory.amount;
-	let guiltyPleasureName = topCategory.name !== 'Ingen' ? topCategory.name : 'Diverse';
+	const guiltyPleasureSpending = topCategory.amount;
+	const guiltyPleasureName = topCategory.name !== 'Ingen' ? topCategory.name : 'Diverse';
 
 	return {
 		kpis: {
@@ -154,11 +188,13 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		},
 		charts: {
 			donut: { series: donutSeries, labels: donutLabels, colors: donutColors },
-			bar: { series: [{ name: 'Forbrug', data: barSeries }], labels: barLabels }
+			bar: { series: [{ name: 'Forbrug', data: barSeries }], labels: barLabels },
+			cumulative: { series: [{ name: 'Akkumuleret', data: cumulativeSeries }], labels: cumulativeLabels },
+			dayOfWeek: { series: [{ name: 'Gns. pr ugedag', data: dayOfWeekTotals.map(Math.round) }], labels: ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'] }
 		},
 		topWish,
 		top3Categories,
-		recentTransactions: transactions.slice(0, 50),
+		recentTransactions: transactions,
 		activeWishes: allWishes,
 		transactionCategories,
 		aiInsight,
@@ -194,11 +230,7 @@ export const actions: Actions = {
 		}
 
 		// 1. Aggregate Financial Data
-		const [incomes, expensesAgg, expenses, wishes] = await Promise.all([
-			prisma.transaction.aggregate({
-				where: { date: { gte: fromDate, lte: toDate }, amount: { gt: 0 } },
-				_sum: { amount: true }
-			}),
+		const [expensesAgg, expenses, wishes] = await Promise.all([
 			prisma.transaction.aggregate({
 				where: { date: { gte: fromDate, lte: toDate }, amount: { lt: 0 } },
 				_sum: { amount: true }
@@ -214,8 +246,8 @@ export const actions: Actions = {
 			})
 		]);
 
-		const totalIncome = incomes._sum.amount || 0;
-		let totalExpenses = Math.abs(expensesAgg._sum.amount || 0);
+		// TotalIncome was removed to avoid lint errors
+		const totalExpenses = Math.abs(expensesAgg._sum.amount || 0);
 		const catMap: Record<string, number> = {};
 
 		expenses.forEach(tx => {
