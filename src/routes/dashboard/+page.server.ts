@@ -73,6 +73,13 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const categorySpending: Record<string, { name: string; amount: number; color: string }> = {};
 	const timeSeries: Record<string, number> = {};
 
+	const fallbackColors = [
+		'#6366f1', '#ec4899', '#14b8a6', '#f59e0b', 
+		'#8b5cf6', '#ef4444', '#10b981', '#3b82f6', 
+		'#f43f5e', '#84cc16', '#06b6d4', '#d946ef'
+	];
+	let colorIndex = 0;
+
 	transactions.forEach(tx => {
 		const expense = Math.abs(tx.amount);
 
@@ -84,10 +91,15 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 
 		const catId = tx.categoryId || 'unmapped';
 		if (!categorySpending[catId]) {
+			let cColor = tx.category?.color;
+			if (!cColor || cColor === '#cbd5e1' || cColor === '#94a3b8') {
+				cColor = fallbackColors[colorIndex % fallbackColors.length];
+				colorIndex++;
+			}
 			categorySpending[catId] = {
 				name: tx.category?.name || 'Ukategoriseret',
 				amount: 0,
-				color: tx.category?.color || '#cbd5e1'
+				color: cColor
 			};
 		}
 		categorySpending[catId].amount += expense;
@@ -304,7 +316,10 @@ ${promptData}`;
 		try {
 			await prisma.transaction.update({
 				where: { id: transactionId },
-				data: { categoryId }
+				data: { 
+					categoryId,
+					status: 'PROCESSED'
+				}
 			});
 			return { success: true };
 		} catch (e) { return fail(500, { error: 'Kunne ikke opdatere kategori' }); }
@@ -322,7 +337,10 @@ ${promptData}`;
 			await prisma.$transaction([
 				prisma.transaction.update({
 					where: { id: transactionId },
-					data: { itemId }
+					data: { 
+						itemId,
+						status: 'PROCESSED'
+					}
 				}),
 				prisma.item.update({
 					where: { id: itemId },
@@ -366,7 +384,10 @@ ${promptData}`;
 
 			await prisma.transaction.update({
 				where: { id: transactionId },
-				data: { itemId: newItem.id }
+				data: { 
+					itemId: newItem.id,
+					status: 'PROCESSED'
+				}
 			});
 
 			return { success: true };
@@ -413,7 +434,10 @@ ${promptData}`;
 
 			await prisma.transaction.updateMany({
 				where: { id: { in: transactionIds } },
-				data: { itemId: newItem.id }
+				data: { 
+					itemId: newItem.id,
+					status: 'PROCESSED'
+				}
 			});
 
 			return { success: true };

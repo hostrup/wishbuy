@@ -54,11 +54,51 @@
 
 	// State
 	let selectedCategory = $state<string | null>(null);
-	let filteredTransactions = $derived(
-		selectedCategory 
-			? data.recentTransactions.filter(t => (t.category?.name || 'Ukategoriseret') === selectedCategory)
-			: data.recentTransactions
-	);
+	let searchQuery = $state('');
+	let showOnlyUncategorized = $state(false);
+	
+	let sortColumn = $state<'date' | 'text' | 'category' | 'amount'>('date');
+	let sortDirection = $state<'asc' | 'desc'>('desc');
+
+	function toggleSort(col: typeof sortColumn) {
+		if (sortColumn === col) {
+			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+		} else {
+			sortColumn = col;
+			sortDirection = col === 'date' || col === 'amount' ? 'desc' : 'asc';
+		}
+	}
+
+	let filteredTransactions = $derived.by(() => {
+		let result = data.recentTransactions;
+		if (selectedCategory) {
+			result = result.filter(t => (t.category?.name || 'Ukategoriseret') === selectedCategory);
+		}
+		if (showOnlyUncategorized) {
+			result = result.filter(t => {
+				if (!t.categoryId) return true;
+				const name = t.category?.name?.toLowerCase() || '';
+				return name.includes('ukendt') || name.includes('ukategoriseret');
+			});
+		}
+		if (searchQuery.trim() !== '') {
+			const q = searchQuery.toLowerCase();
+			result = result.filter(t => t.text.toLowerCase().includes(q) || (t.category?.name || 'Ukategoriseret').toLowerCase().includes(q));
+		}
+		
+		return [...result].sort((a, b) => {
+			let valA, valB;
+			if (sortColumn === 'date') { valA = new Date(a.date).getTime(); valB = new Date(b.date).getTime(); }
+			else if (sortColumn === 'text') { valA = a.text; valB = b.text; }
+			else if (sortColumn === 'category') { valA = a.category?.name || 'Ukategoriseret'; valB = b.category?.name || 'Ukategoriseret'; }
+			else if (sortColumn === 'amount') { valA = Math.abs(a.amount); valB = Math.abs(b.amount); }
+			else return 0;
+
+			if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+			if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+			return 0;
+		});
+	});
 
 	let fromDate = $state(data.currentFilter.from);
 	let toDate = $state(data.currentFilter.to);
@@ -339,13 +379,26 @@
 
 		<!-- Drill Down Table -->
 		<section class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-			<div class="flex justify-between items-center mb-6">
-				<h3 class="text-sm font-bold text-slate-800 dark:text-white">Seneste Transaktioner i perioden</h3>
-				{#if selectedCategory}
-					<button onclick={() => selectedCategory = null} class="text-xs bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-200 transition-colors">
-						Fjern filter: {selectedCategory} ✕
-					</button>
-				{/if}
+			<div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
+				<h3 class="text-sm font-bold text-slate-800 dark:text-white whitespace-nowrap">Seneste Transaktioner i perioden</h3>
+				
+				<div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+					{#if selectedCategory}
+						<button onclick={() => selectedCategory = null} class="text-xs bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-200 transition-colors">
+							Fjern filter: {selectedCategory} ✕
+						</button>
+					{/if}
+					
+					<label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+						<input type="checkbox" bind:checked={showOnlyUncategorized} class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+						Kun ukendte posteringer
+					</label>
+
+					<div class="relative flex-1 lg:w-64">
+						<input type="text" bind:value={searchQuery} placeholder="Søg (tekst, kategori)..." class="w-full text-xs font-medium bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500">
+						<span class="absolute left-2.5 top-1.5 text-slate-400">🔍</span>
+					</div>
+				</div>
 			</div>
 			
 			<div class="overflow-x-auto pb-24">
@@ -361,10 +414,18 @@
 									}} 
 									class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
 							</th>
-							<th class="px-4 py-3">Dato</th>
-							<th class="px-4 py-3">Tekst</th>
-							<th class="px-4 py-3">Kategori</th>
-							<th class="px-4 py-3 text-right">Beløb</th>
+							<th class="px-4 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" onclick={() => toggleSort('date')}>
+								Dato {sortColumn === 'date' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+							</th>
+							<th class="px-4 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" onclick={() => toggleSort('text')}>
+								Tekst {sortColumn === 'text' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+							</th>
+							<th class="px-4 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" onclick={() => toggleSort('category')}>
+								Kategori {sortColumn === 'category' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+							</th>
+							<th class="px-4 py-3 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" onclick={() => toggleSort('amount')}>
+								Beløb {sortColumn === 'amount' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+							</th>
 							<th class="px-4 py-3 text-right">Handlinger</th>
 						</tr>
 					</thead>
