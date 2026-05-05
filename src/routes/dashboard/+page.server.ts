@@ -290,11 +290,11 @@ export const actions: Actions = {
 		// 1. Aggregate Financial Data
 		const [expensesAgg, expenses, wishes, historicalTotalAgg, historicalCategoriesAgg, oldestTx, allCategories] = await Promise.all([
 			prisma.transaction.aggregate({
-				where: { date: { gte: fromDate, lte: toDate }, amount: { lt: 0 } },
+				where: { date: { gte: fromDate, lte: toDate }, amount: { lt: 0 }, isIgnored: false },
 				_sum: { amount: true }
 			}),
 			prisma.transaction.findMany({
-				where: { date: { gte: fromDate, lte: toDate }, amount: { lt: 0 } },
+				where: { date: { gte: fromDate, lte: toDate }, amount: { lt: 0 }, isIgnored: false },
 				include: { category: true }
 			}),
 			prisma.item.findMany({
@@ -303,16 +303,16 @@ export const actions: Actions = {
 				take: 5
 			}),
 			prisma.transaction.aggregate({
-				where: { date: { lt: fromDate }, amount: { lt: 0 } },
+				where: { date: { lt: fromDate }, amount: { lt: 0 }, isIgnored: false },
 				_sum: { amount: true }
 			}),
 			prisma.transaction.groupBy({
 				by: ['categoryId'],
-				where: { date: { lt: fromDate }, amount: { lt: 0 } },
+				where: { date: { lt: fromDate }, amount: { lt: 0 }, isIgnored: false },
 				_sum: { amount: true }
 			}),
 			prisma.transaction.findFirst({
-				where: { amount: { lt: 0 } },
+				where: { amount: { lt: 0 }, isIgnored: false },
 				orderBy: { date: 'asc' }
 			}),
 			prisma.transactionCategory.findMany()
