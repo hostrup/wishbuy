@@ -341,19 +341,28 @@ export const actions: Actions = {
 		});
 
 		const catMap: Record<string, number> = {};
+		const payerMap: Record<string, number> = {};
 
 		expenses.forEach(tx => {
 			const exp = Math.abs(tx.amount);
 			const catName = tx.category?.name || 'Ukategoriseret';
+			const payer = tx.paidBy || 'Ukendt';
+			
 			catMap[catName] = (catMap[catName] || 0) + exp;
+			payerMap[payer] = (payerMap[payer] || 0) + exp;
 		});
+
+		const formatCur = (val: number) => new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', maximumFractionDigits: 0 }).format(val);
 
 		const topCategories = Object.entries(catMap)
 			.filter(([name]) => !name.toLowerCase().includes('ukategoriseret') && !name.toLowerCase().includes('ukendt'))
 			.sort((a, b) => b[1] - a[1])
 			.slice(0, 3);
-
-		const formatCur = (val: number) => new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', maximumFractionDigits: 0 }).format(val);
+			
+		const payerText = Object.entries(payerMap)
+			.sort((a, b) => b[1] - a[1])
+			.map(([payer, amount]) => `- ${payer}: ${formatCur(amount)}`)
+			.join('\n');
 
 		// 2. Format Data for Prompt
 		const wishesText = wishes.map(w => `- {Name: ${w.title}, Price: ${w.price} DKK, Desire Level: ${w.desireLevel}/5}`).join('\n');
@@ -373,30 +382,31 @@ export const actions: Actions = {
 			promptData += `- Samlet forbrug for perioden: ${formatCur(totalExpenses)}\n`;
 		}
 		
-		promptData += `- VIGTIG HISTORISK KONTEKST: Dit normale gennemsnitlige totalforbrug pr. måned (baseret på ${monthsHistorical} måneders historik) er ${formatCur(historicalAvgTotal)}. Hold altid periodens forbrug (eller run-raten) op imod dette gennemsnit for at vurdere niveauet rigtigt!\n\n`;
+		promptData += `- VIGTIG HISTORISK KONTEKST: Dit normale gennemsnitlige totalforbrug pr. måned (baseret på ${monthsHistorical} måneders historik) er ${formatCur(historicalAvgTotal)}. Hold altid periodens forbrug op imod dette gennemsnit for at vurdere niveauet rigtigt!\n\n`;
 		
 		promptData += `Top udgiftskategorier (Ekskl. ukendte poster):\n${categoriesText}\n\n`;
+		promptData += `Fordeling af betalere (Hvem har trukket kortet):\n${payerText}\n\n`;
 		promptData += `Brugerens Ønsker:\n${wishesText || '- Ingen ønsker registreret endnu.'}\n\n`;
 		promptData += `VIGTIGE REGLER FOR DIN ANALYSE:
 1. Dette er et udtræk der UDELUKKENDE indeholder udgifter. Du må IKKE kommentere på, at indtægten mangler, eller at økonomien er i fare på grund af dette. Fokusér udelukkende på at analysere forbruget.
 2. Vær direkte og brug konkrete tal i din argumentation.`;
 
-		const systemPrompt = `Du er en skarp, analytisk og direkte økonomisk rådgiver. Din tone er professionel, kontant og data-drevet, men stadig opmuntrende. Du må ALDRIG bruge lommefilosofiske floskler, og du skal undgå at være overdrevet terapeutisk. Hold dine sætninger korte og præcise.
+		const systemPrompt = `Du er en skarp, analytisk og direkte økonomisk rådgiver. Din tone er professionel, kontant og forståelig for en almindelig voksen på 40 år. Du må ALDRIG bruge buzzwords som "run-rate", "KPI" eller lommefilosofiske floskler. Brug naturligt dansk sprog (f.eks. "forventet forbrug for resten af måneden"). Hold dine sætninger korte og præcise. Undgå at være overdrevet terapeutisk.
 
 Output Structure requested:
 Svar KUN med dette Markdown-format:
 ### 📊 Økonomisk Overblik
-[1-2 korte, skarpe sætninger der opsummerer periodens rå forbrugstal uden at dramatisere.${isOngoing ? ' Fokusér specifikt på run-rate (det forventede endelige forbrug) og kom med et kort udsagn om tendensen for de resterende ' + daysLeft + ' dage holdt op imod det historiske gennemsnit.' : ''}]
+[1-2 korte, skarpe sætninger der opsummerer periodens rå forbrugstal. ${isOngoing ? 'Fokusér på det forventede samlede forbrug for hele måneden holdt op imod det historiske gennemsnit, og kommentér på tendensen for de resterende ' + daysLeft + ' dage.' : ''} Inddrag også fordelingen af hvem der betaler (f.eks. "Mathilde har betalt 80% af udgifterne, primært på mad").]
 
 ### 🕵️ Lommetyvene
-[Fokusér på en af top-kategorierne, der er mest 'fleksibel' (f.eks. Fastfood, Fritid, Tøj). Sammenlign ALTID periodens forbrug ELLER den forventede run-rate med det **historiske gennemsnit** for at vurdere, om det faktisk er en lommetyv, eller om brugeren ligger pænt under budget! Nævn konkrete beløb].
+[Fokusér på en af top-kategorierne, der er mest 'fleksibel' (f.eks. Fastfood, Fritid, Tøj). Sammenlign ALTID periodens (eller det forventede) forbrug med det **historiske gennemsnit** for at vurdere, om der bruges for meget. Nævn konkrete beløb og nævn gerne hvem af personerne, der trækker forbruget, hvis relevant].
 
 ### 🎯 Forbrug vs. Ønsker
-[Lav et direkte, matematisk eksempel. F.eks.: 'Dit forbrug på X (beløb) svarer til Y% af [Ønske]. Hvis du skar X ned med 30%, ville du kunne købe [Ønske] om Z måneder'].
+[Lav et direkte, matematisk eksempel. F.eks.: 'Forbruget på X (beløb) svarer til Y% af [Ønske]. Hvis I skar X ned med 30%, ville I kunne købe [Ønske] om Z måneder'].
 
 ### 💡 Skarpe Råd
-* **[Action 1]:** [Kort beskrivelse${isOngoing ? ' af hvad brugeren konkret bør fokusere på at undgå i de resterende dage' : ''}]
-* **[Action 2]:** [Kort beskrivelse]
+* **[Action 1]:** [Kort, direkte råd${isOngoing ? ' til hvad de konkret bør ændre i de resterende dage' : ''}. Tiltal personerne (Mathilde/Ronni) direkte hvis relevant.]
+* **[Action 2]:** [Kort, direkte råd]
 
 Data at basere rådgivningen på:
 ${promptData}`;
