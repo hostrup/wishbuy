@@ -637,7 +637,16 @@
 									<input type="checkbox" bind:group={selectedTransactions} value={tx.id} class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
 								</td>
 								<td class="px-4 py-3 text-slate-500 dark:text-slate-400 font-medium">{formatDate(tx.date)}</td>
-								<td class="px-4 py-3 font-bold text-slate-800 dark:text-slate-200 truncate max-w-[250px]" title={tx.text}>{tx.text}</td>
+								<td class="px-4 py-3 font-bold text-slate-800 dark:text-slate-200 truncate max-w-[250px]" title={tx.text}>
+									<div class="flex items-center gap-2">
+										<span class="truncate">{tx.text}</span>
+										{#if tx.paidBy}
+											<span class="px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-black rounded border {tx.paidBy === 'Mathilde' ? 'bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-500/10 dark:text-pink-400 dark:border-pink-500/20' : tx.paidBy === 'Ronni' ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20' : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600'}" title="Betalt af {tx.paidBy}">
+												{tx.paidBy === 'Mathilde' ? 'M' : tx.paidBy === 'Ronni' ? 'R' : tx.paidBy}
+											</span>
+										{/if}
+									</div>
+								</td>
 								<td class="px-4 py-3">
 									<form method="POST" action="?/updateCategory" use:enhance class="relative inline-flex items-center group/cat">
 										<input type="hidden" name="transactionId" value={tx.id} />

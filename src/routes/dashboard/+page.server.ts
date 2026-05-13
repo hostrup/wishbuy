@@ -2,6 +2,7 @@ import { prisma } from '$lib/server/prisma';
 import { fail } from '@sveltejs/kit';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { PageServerLoad, Actions } from './$types';
+import { env } from '$env/dynamic/private';
 
 const formatDateLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -401,7 +402,9 @@ Data at basere rådgivningen på:
 ${promptData}`;
 
 		// 3. Call Gemini
-		const apiKey = process.env.GEMINI_API_KEY;
+		let apiKey = env.GEMINI_API_KEY;
+		if (apiKey) apiKey = apiKey.replace(/^["']|["']$/g, '').trim();
+		
 		if (!apiKey) {
 			return fail(500, { error: 'GEMINI_API_KEY mangler i miljøvariablerne.' });
 		}

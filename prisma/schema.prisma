@@ -133,6 +133,7 @@ model Transaction {
   transferType     String?
   supplementalText String?
   balance          Float?
+  paidBy           String?
 
   isIgnored        Boolean              @default(false)
 

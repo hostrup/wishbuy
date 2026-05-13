@@ -288,7 +288,7 @@
 
 					<form method="POST" action="?/createItem" use:enhance class="space-y-4">
 						<div>
-							<label for="title" class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Hvad kigger du på?</label>
+							<label for="title" class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Hvad drømmer du om?</label>
 							<input type="text" id="title" name="title" required class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-slate-900 dark:bg-slate-800 outline-none transition-all font-medium text-base">
 						</div>
 
@@ -318,14 +318,14 @@
 								<label for="expenseType" class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Hvem?</label>
 								<select id="expenseType" name="expenseType" required class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium">
 									<option value="SHARED">Fælles</option>
-									<option value="PERSONAL">Kun Mig</option>
+									<option value="PERSONAL">Ego</option>
 								</select>
 							</div>
 						</div>
 
 						<div class="bg-slate-50 dark:bg-slate-900/50 p-3 border border-slate-200 dark:border-white/10 rounded-xl mt-2">
 							<input type="hidden" name="desireLevel" value={newDesireLevel} />
-							<label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 text-center">Need-Level (Vigtighed)</label>
+							<label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 text-center">Behovsgrad</label>
 							<div class="flex gap-2 justify-center">
 								{#each [1,2,3,4,5] as level}
 									<button type="button" onclick={() => newDesireLevel = level} class="text-2xl transition-all hover:scale-110 active:scale-95 {newDesireLevel >= level ? 'drop-shadow-sm scale-110' : 'opacity-20 hover:opacity-50 grayscale'}" title={desireLabels[level-1].replace(/⭐/g, '').trim()}>⭐</button>
