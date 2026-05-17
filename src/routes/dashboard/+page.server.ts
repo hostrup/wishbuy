@@ -58,7 +58,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				{ price: 'desc' }
 			]
 		}),
-		prisma.transactionCategory.findMany(),
+		prisma.transactionCategory.findMany({ orderBy: { name: 'asc' } }),
 		locals.user ? prisma.aiInsight.findUnique({
 			where: {
 				userId_period: {
@@ -316,7 +316,7 @@ export const actions: Actions = {
 				where: { amount: { lt: 0 }, isIgnored: false },
 				orderBy: { date: 'asc' }
 			}),
-			prisma.transactionCategory.findMany()
+			prisma.transactionCategory.findMany({ orderBy: { name: 'asc' } })
 		]);
 
 		const totalExpenses = Math.abs(expensesAgg._sum.amount || 0);
@@ -613,5 +613,64 @@ ${promptData}`;
 			});
 			return { success: true };
 		} catch { return fail(500, { error: 'Kunne ikke gendanne postering' }); }
+	},
+
+	createCategory: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Unauthorized' });
+		const data = await request.formData();
+		const name = data.get('name')?.toString();
+		const icon = data.get('icon')?.toString() || '';
+
+		if (!name) return fail(400, { error: 'Navn er påkrævet' });
+
+		try {
+			await prisma.transactionCategory.create({
+				data: { name, icon }
+			});
+			return { success: true };
+		} catch { return fail(500, { error: 'Kunne ikke oprette kategori' }); }
+	},
+
+	updateCategoryDetails: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Unauthorized' });
+		const data = await request.formData();
+		const id = data.get('id')?.toString();
+		const name = data.get('name')?.toString();
+		const icon = data.get('icon')?.toString() || '';
+
+		if (!id || !name) return fail(400, { error: 'Manglende data' });
+
+		try {
+			await prisma.transactionCategory.update({
+				where: { id },
+				data: { name, icon }
+			});
+			return { success: true };
+		} catch { return fail(500, { error: 'Kunne ikke opdatere kategori' }); }
+	},
+
+	deleteCategory: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Unauthorized' });
+		const data = await request.formData();
+		const id = data.get('id')?.toString();
+
+		if (!id) return fail(400, { error: 'Manglende data' });
+
+		try {
+			// Først sæt relaterede transaktioner til UNPROCESSED (Prisma kan ikke cascade set null her uden konfiguration)
+			await prisma.transaction.updateMany({
+				where: { categoryId: id },
+				data: { categoryId: null, status: 'UNPROCESSED' }
+			});
+
+			await prisma.mappingRule.deleteMany({
+				where: { categoryId: id }
+			});
+
+			await prisma.transactionCategory.delete({
+				where: { id }
+			});
+			return { success: true };
+		} catch { return fail(500, { error: 'Kunne ikke slette kategori' }); }
 	}
 };

@@ -130,6 +130,17 @@
 	let sortColumn = $state<'date' | 'text' | 'category' | 'amount'>('date');
 	let sortDirection = $state<'asc' | 'desc'>('desc');
 
+	let isCategoryEditorOpen = $state(false);
+	let editingCategory = $state<{ id?: string, name: string, icon: string } | null>(null);
+	let expandedTxTexts = $state<Set<string>>(new Set());
+
+	function toggleTxText(id: string) {
+		const newSet = new Set(expandedTxTexts);
+		if (newSet.has(id)) newSet.delete(id);
+		else newSet.add(id);
+		expandedTxTexts = newSet;
+	}
+
 	function toggleSort(col: typeof sortColumn) {
 		if (sortColumn === col) {
 			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
@@ -302,6 +313,9 @@
 				<p class="text-slate-500 dark:text-slate-400 mt-2 font-medium">Dit fulde overblik over forbrug, vaner og økonomi.</p>
 			</div>
 			<div class="mt-4 md:mt-0 flex gap-3">
+				<button onclick={() => isCategoryEditorOpen = true} class="bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm border border-indigo-200 dark:border-indigo-500/30 hover:bg-indigo-500/20 dark:hover:bg-indigo-500/30 transition-colors flex items-center gap-2">
+					<span>🏷️</span> Kategorier
+				</button>
 				<a href="/" class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md text-slate-700 dark:text-slate-200 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700 transition-colors">
 					← Brønden
 				</a>
@@ -637,13 +651,30 @@
 									<input type="checkbox" bind:group={selectedTransactions} value={tx.id} class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
 								</td>
 								<td class="px-4 py-3 text-slate-500 dark:text-slate-400 font-medium">{formatDate(tx.date)}</td>
-								<td class="px-4 py-3 font-bold text-slate-800 dark:text-slate-200 truncate max-w-[250px]" title={tx.text}>
-									<div class="flex items-center gap-2">
-										<span class="truncate">{tx.text}</span>
-										{#if tx.paidBy}
-											<span class="px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-black rounded border {tx.paidBy === 'Mathilde' ? 'bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-500/10 dark:text-pink-400 dark:border-pink-500/20' : tx.paidBy === 'Ronni' ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20' : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600'}" title="Betalt af {tx.paidBy}">
-												{tx.paidBy === 'Mathilde' ? 'M' : tx.paidBy === 'Ronni' ? 'R' : tx.paidBy}
+								<td class="px-4 py-3 font-bold text-slate-800 dark:text-slate-200 max-w-[250px]">
+									<div class="flex items-start flex-col gap-1">
+										<div class="flex items-center gap-2 w-full">
+											<span class="truncate cursor-pointer hover:text-indigo-500 transition-colors flex-1" onclick={() => toggleTxText(tx.id)} title="Klik for detaljer">
+												{tx.text}
 											</span>
+											{#if tx.paidBy}
+												<span class="px-1.5 py-0.5 text-[9px] uppercase tracking-wider font-black rounded border shrink-0 {tx.paidBy === 'Mathilde' ? 'bg-pink-100 text-pink-700 border-pink-200 dark:bg-pink-500/10 dark:text-pink-400 dark:border-pink-500/20' : tx.paidBy === 'Ronni' ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20' : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600'}" title="Betalt af {tx.paidBy}">
+													{tx.paidBy === 'Mathilde' ? 'M' : tx.paidBy === 'Ronni' ? 'R' : tx.paidBy}
+												</span>
+											{/if}
+										</div>
+										{#if expandedTxTexts.has(tx.id)}
+											<div class="text-xs text-slate-500 dark:text-slate-400 font-normal whitespace-normal bg-slate-100 dark:bg-slate-900/50 p-2 rounded-lg mt-1 w-full border border-slate-200 dark:border-white/5 animate-in slide-in-from-top-1 fade-in duration-200">
+												{#if tx.supplementalText}
+													<span class="block"><strong>Supplerende:</strong> {tx.supplementalText}</span>
+												{/if}
+												{#if tx.receiverName}
+													<span class="block"><strong>Modtager:</strong> {tx.receiverName}</span>
+												{/if}
+												{#if !tx.supplementalText && !tx.receiverName}
+													<span class="italic">Ingen supplerende information.</span>
+												{/if}
+											</div>
 										{/if}
 									</div>
 								</td>
@@ -793,3 +824,71 @@
 	{/if}
 
 </div>
+
+	<!-- CATEGORY EDITOR MODAL -->
+	{#if isCategoryEditorOpen}
+		<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+			<div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+				<div class="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+					<h2 class="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+						<span>🏷️</span> Administrer Kategorier
+					</h2>
+					<button onclick={() => isCategoryEditorOpen = false} class="text-slate-400 hover:text-slate-600 dark:hover:text-white font-bold transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">✕</button>
+				</div>
+				
+				<div class="p-6 overflow-y-auto flex-1 space-y-6">
+					<!-- Create/Edit Form -->
+					<div class="bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl p-5 relative">
+						<h3 class="text-sm font-bold text-indigo-800 dark:text-indigo-300 mb-4">{editingCategory ? 'Ret Kategori' : 'Ny Kategori'}</h3>
+						<form method="POST" action={editingCategory ? '?/updateCategoryDetails' : '?/createCategory'} use:enhance={() => {
+							return async ({ update }) => {
+								await update();
+								editingCategory = null;
+							};
+						}} class="flex items-end gap-3 flex-wrap">
+							{#if editingCategory?.id}
+								<input type="hidden" name="id" value={editingCategory.id} />
+							{/if}
+							<div class="w-20">
+								<label class="block text-xs font-bold text-slate-500 mb-1">Emoji</label>
+								<input type="text" name="icon" value={editingCategory?.icon || '📦'} class="w-full text-center text-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-2 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+							</div>
+							<div class="flex-1 min-w-[200px]">
+								<label class="block text-xs font-bold text-slate-500 mb-1">Kategori Navn</label>
+								<input type="text" name="name" value={editingCategory?.name || ''} required class="w-full text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-white">
+							</div>
+							<div class="flex gap-2">
+								<button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-md active:scale-95">
+									{editingCategory ? 'Gem' : 'Opret'}
+								</button>
+								{#if editingCategory}
+									<button type="button" onclick={() => editingCategory = null} class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-xl text-sm transition-colors">
+										Annuller
+									</button>
+								{/if}
+							</div>
+						</form>
+					</div>
+
+					<!-- List -->
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+						{#each data.transactionCategories as cat}
+							<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-white/5 rounded-xl p-3 flex items-center justify-between group hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-colors">
+								<div class="flex items-center gap-3">
+									<span class="text-xl">{cat.icon || '📦'}</span>
+									<span class="font-bold text-sm text-slate-700 dark:text-slate-200">{cat.name}</span>
+								</div>
+								<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+									<button onclick={() => editingCategory = cat} class="p-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/20 rounded-lg transition-colors" title="Ret">✏️</button>
+									<form method="POST" action="?/deleteCategory" use:enhance onsubmit={(e) => { if (!confirm(`Slet ${cat.name}? Dette fjerner kategorien fra evt. transaktioner.`)) e.preventDefault(); }}>
+										<input type="hidden" name="id" value={cat.id} />
+										<button type="submit" class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/20 rounded-lg transition-colors" title="Slet">🗑️</button>
+									</form>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
