@@ -206,6 +206,9 @@
 						<a href="/dashboard" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-1.5 rounded-lg shadow-sm flex items-center gap-2 transition-colors">
 							📊 Dashboard →
 						</a>
+						<a href="https://ugeplan.hostrup.org" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-1.5 rounded-lg shadow-sm flex items-center gap-2 transition-colors">
+							📅 Ugeplan ↗
+						</a>
 					</div>
 				{/if}
 			</div>
