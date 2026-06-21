@@ -6,7 +6,10 @@
 	let isDark = $state(false);
 
 	onMount(() => {
-		if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+		if (
+			localStorage.getItem('theme') === 'dark' ||
+			(!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
+		) {
 			isDark = true;
 			document.documentElement.classList.add('dark');
 		} else {
@@ -31,7 +34,11 @@
 	<title>Ønskebrønden</title>
 </svelte:head>
 
-<button onclick={toggleTheme} class="fixed bottom-4 right-4 z-50 p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white rounded-full shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-110 active:scale-95 transition-all" title="Skift tema">
+<button
+	onclick={toggleTheme}
+	class="fixed right-4 bottom-4 z-50 rounded-full border border-slate-200 bg-white p-3 text-slate-800 shadow-lg transition-all hover:scale-110 active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+	title="Skift tema"
+>
 	{#if isDark}
 		☀️
 	{:else}

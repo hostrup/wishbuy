@@ -11,9 +11,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 		prisma.category.findMany({ orderBy: { name: 'asc' } }),
 		prisma.user.findMany({ orderBy: { displayName: 'asc' } })
 	]);
-	
+
 	let categories = categoriesList;
-	
+
 	if (categories.length === 0) {
 		await prisma.category.createMany({
 			data: [
@@ -45,10 +45,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const now = new Date();
 	const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-	transactions.forEach(tx => {
+	transactions.forEach((tx) => {
 		const expense = Math.abs(tx.amount);
 		if (tx.date >= firstDayOfMonth) currentMonthExpenses += expense;
-		
+
 		const catId = tx.categoryId || 'unmapped';
 		if (!categorySpending[catId]) {
 			categorySpending[catId] = { name: tx.category?.name || 'Ukategoriseret', amount: 0 };
@@ -61,49 +61,72 @@ export const load: PageServerLoad = async ({ locals }) => {
 		{ name: 'Ingen', amount: 0 }
 	);
 
-	const wishes = allItems.filter(i => i.status === 'WISH');
-	const purchases = allItems.filter(i => i.status === 'PURCHASED');
+	const wishes = allItems.filter((i) => i.status === 'WISH');
+	const purchases = allItems.filter((i) => i.status === 'PURCHASED');
 
 	const wishTotal = wishes.reduce((acc, i) => acc + i.price, 0);
-	const wishShared = wishes.filter(i => i.expenseType === 'SHARED').reduce((acc, i) => acc + i.price, 0);
-	const wishPersonal = wishes.filter(i => i.expenseType === 'PERSONAL').reduce((acc, i) => acc + i.price, 0);
+	const wishShared = wishes
+		.filter((i) => i.expenseType === 'SHARED')
+		.reduce((acc, i) => acc + i.price, 0);
+	const wishPersonal = wishes
+		.filter((i) => i.expenseType === 'PERSONAL')
+		.reduce((acc, i) => acc + i.price, 0);
 
 	const buyTotal = purchases.reduce((acc, i) => acc + i.price, 0);
-	const buyShared = purchases.filter(i => i.expenseType === 'SHARED').reduce((acc, i) => acc + i.price, 0);
-	const buyPersonal = purchases.filter(i => i.expenseType === 'PERSONAL').reduce((acc, i) => acc + i.price, 0);
+	const buyShared = purchases
+		.filter((i) => i.expenseType === 'SHARED')
+		.reduce((acc, i) => acc + i.price, 0);
+	const buyPersonal = purchases
+		.filter((i) => i.expenseType === 'PERSONAL')
+		.reduce((acc, i) => acc + i.price, 0);
 
-	const abandoned = allItems.filter(i => i.status === 'ABANDONED');
+	const abandoned = allItems.filter((i) => i.status === 'ABANDONED');
 	const cooldownGain = abandoned.reduce((acc, i) => acc + i.price, 0);
 
-	const wishCounts: Record<string, {name: string, amount: number}> = {};
-	wishes.forEach(i => {
+	const wishCounts: Record<string, { name: string; amount: number }> = {};
+	wishes.forEach((i) => {
 		if (!wishCounts[i.userId]) {
 			const nameToDisplay = i.user.displayName || i.user.username;
 			wishCounts[i.userId] = { name: `${i.user.emoji || '👤'} ${nameToDisplay}`, amount: 0 };
 		}
 		wishCounts[i.userId].amount += i.price;
 	});
-	const topDreamer = Object.values(wishCounts).sort((a, b) => b.amount - a.amount)[0] || { name: 'Ingen', amount: 0 };
+	const topDreamer = Object.values(wishCounts).sort((a, b) => b.amount - a.amount)[0] || {
+		name: 'Ingen',
+		amount: 0
+	};
 
-	const buyCounts: Record<string, {name: string, amount: number}> = {};
-	purchases.forEach(i => {
+	const buyCounts: Record<string, { name: string; amount: number }> = {};
+	purchases.forEach((i) => {
 		if (!buyCounts[i.userId]) {
 			const nameToDisplay = i.user.displayName || i.user.username;
 			buyCounts[i.userId] = { name: `${i.user.emoji || '👤'} ${nameToDisplay}`, amount: 0 };
 		}
 		buyCounts[i.userId].amount += i.price;
 	});
-	const topSpender = Object.values(buyCounts).sort((a, b) => b.amount - a.amount)[0] || { name: 'Ingen', amount: 0 };
+	const topSpender = Object.values(buyCounts).sort((a, b) => b.amount - a.amount)[0] || {
+		name: 'Ingen',
+		amount: 0
+	};
 
 	return {
 		wishes,
 		purchases,
 		categories,
 		kpis: {
-			wishTotal, wishShared, wishPersonal, wishCount: wishes.length,
-			buyTotal, buyShared, buyPersonal, buyCount: purchases.length,
-			topDreamer, topSpender, cooldownGain,
-			currentMonthExpenses, topCategoryName: topCategory.name
+			wishTotal,
+			wishShared,
+			wishPersonal,
+			wishCount: wishes.length,
+			buyTotal,
+			buyShared,
+			buyPersonal,
+			buyCount: purchases.length,
+			topDreamer,
+			topSpender,
+			cooldownGain,
+			currentMonthExpenses,
+			topCategoryName: topCategory.name
 		},
 		user: locals.user,
 		users: allUsers
@@ -204,8 +227,9 @@ export const actions: Actions = {
 		const expenseType = data.get('expenseType')?.toString() as 'PERSONAL' | 'SHARED';
 		const desireLevelStr = data.get('desireLevel')?.toString();
 		const desireLevel = desireLevelStr ? parseInt(desireLevelStr, 10) : 3;
-		
-		const targetStatus = data.get('targetStatus')?.toString() === 'PURCHASED' ? 'PURCHASED' : 'WISH';
+
+		const targetStatus =
+			data.get('targetStatus')?.toString() === 'PURCHASED' ? 'PURCHASED' : 'WISH';
 		const purchasedDate = targetStatus === 'PURCHASED' ? new Date() : null;
 
 		if (!title || !priceStr || !categoryIdStr || !expenseType) {
@@ -215,20 +239,21 @@ export const actions: Actions = {
 		const price = parseFloat(priceStr);
 		const categoryId = parseInt(categoryIdStr, 10);
 
-		if (isNaN(price) || isNaN(categoryId)) return fail(400, { error: 'Ugyldigt beløb eller kategori.' });
+		if (isNaN(price) || isNaN(categoryId))
+			return fail(400, { error: 'Ugyldigt beløb eller kategori.' });
 
 		try {
 			await prisma.item.create({
-				data: { 
-					title, 
-					url, 
-					price, 
-					categoryId, 
-					expenseType, 
-					status: targetStatus, 
+				data: {
+					title,
+					url,
+					price,
+					categoryId,
+					expenseType,
+					status: targetStatus,
 					desireLevel,
 					purchasedAt: purchasedDate,
-					userId: locals.user.id 
+					userId: locals.user.id
 				}
 			});
 			return { success: true };
@@ -252,7 +277,9 @@ export const actions: Actions = {
 				create: { itemId, userId: locals.user.id, value }
 			});
 			return { success: true };
-		} catch (error) { return fail(500); }
+		} catch (error) {
+			return fail(500);
+		}
 	},
 
 	toggleStatus: async ({ request, locals }) => {
@@ -263,14 +290,16 @@ export const actions: Actions = {
 		if (!itemId) return fail(400);
 
 		try {
-			const item = await prisma.item.findUnique({ where: { id: itemId }});
+			const item = await prisma.item.findUnique({ where: { id: itemId } });
 			if (!item) return fail(404);
 
 			// Tvungen Cooldown check (kun for ønsker over 1000 DKK)
 			if (item.status === 'WISH' && item.price >= 1000) {
 				const daysOld = (new Date().getTime() - item.createdAt.getTime()) / (1000 * 3600 * 24);
 				if (daysOld < 7) {
-					return fail(400, { error: `Cooldown aktiv: Varen kan tidligst købes om ${Math.ceil(7 - daysOld)} dage.` });
+					return fail(400, {
+						error: `Cooldown aktiv: Varen kan tidligst købes om ${Math.ceil(7 - daysOld)} dage.`
+					});
 				}
 			}
 
@@ -282,7 +311,9 @@ export const actions: Actions = {
 				data: { status: newStatus, purchasedAt: newPurchasedAt }
 			});
 			return { success: true };
-		} catch (error) { return fail(500); }
+		} catch (error) {
+			return fail(500);
+		}
 	},
 
 	changeItemCategory: async ({ request, locals }) => {
@@ -299,7 +330,9 @@ export const actions: Actions = {
 				data: { categoryId }
 			});
 			return { success: true };
-		} catch (error) { return fail(500); }
+		} catch (error) {
+			return fail(500);
+		}
 	},
 
 	deleteItem: async ({ request, locals }) => {
@@ -310,7 +343,7 @@ export const actions: Actions = {
 		if (!itemId) return fail(400);
 
 		try {
-			const item = await prisma.item.findUnique({ where: { id: itemId }});
+			const item = await prisma.item.findUnique({ where: { id: itemId } });
 			if (!item) return fail(404);
 
 			if (item.status === 'WISH') {
@@ -319,7 +352,9 @@ export const actions: Actions = {
 				await prisma.item.delete({ where: { id: itemId } });
 			}
 			return { success: true };
-		} catch (error) { return fail(500); }
+		} catch (error) {
+			return fail(500);
+		}
 	},
 
 	changeItemUser: async ({ request, locals }) => {
@@ -336,7 +371,9 @@ export const actions: Actions = {
 				data: { userId }
 			});
 			return { success: true };
-		} catch { return fail(500); }
+		} catch {
+			return fail(500);
+		}
 	},
 
 	changeItemExpenseType: async ({ request, locals }) => {
@@ -353,6 +390,8 @@ export const actions: Actions = {
 				data: { expenseType }
 			});
 			return { success: true };
-		} catch { return fail(500); }
+		} catch {
+			return fail(500);
+		}
 	}
 };

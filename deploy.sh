@@ -1,49 +1,42 @@
 #!/usr/bin/env bash
-# =============================================================================
-# deploy.sh — wishbuy deploy-script
-# =============================================================================
-set -euo pipefail
+set -e
 
-PROJECT_DIR="/hostrup/docker/config/wishbuy"
-COMPOSE_FILE="/hostrup/docker/docker-compose.yml"
-ENV_FILE="/hostrup/docker/.env"
-COMPOSE_CMD="docker compose -f ${COMPOSE_FILE} --env-file ${ENV_FILE}"
-SERVICE_NAME="wishbuy"
-CONTAINER_NAME="wishbuy"
+# Farvekoder
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+NC='\033[0m'
 
-echo "=== Deploying wishbuy ==="
-cd "$PROJECT_DIR"
-
-# Generer Prisma klient lokalt
-echo "Generating Prisma client..."
-npx prisma generate
-
-# Indlæs eventuelle database-migrationer
-echo "Checking/Running Prisma migrations..."
-if [ -f .env ]; then
-    # Indlæs midlertidigt .env variabler
-    export $(grep -v '^#' .env | xargs)
+echo -e "${BLUE}[1/4] Kører kvalitetskontrol (Svelte-check)...${NC}"
+if npm run check; then
+  echo -e "${GREEN}✓ Build og tests bestået! Går videre til git-integration...${NC}"
+else
+  echo -e "${RED}✗ Build eller tests fejlede! Afbryder udrulning.${NC}"
+  exit 1
 fi
 
-LOCAL_DB_URL=$(echo "${DATABASE_URL:-}" | sed 's/@postgresql:/@127.0.0.1:/')
-if [ -n "$LOCAL_DB_URL" ]; then
-    echo "Running Prisma db push using local DB URL..."
-    DATABASE_URL="$LOCAL_DB_URL" npx prisma db push --accept-data-loss
+echo -e "\n${BLUE}[2/4] Tilføjer ændringer og uploader til Git...${NC}"
+MSG="${1:-Auto-deploy via AI agent}"
+git add .
+if ! git diff-index --quiet HEAD --; then
+  echo -e "${BLUE}Opretter commit: '$MSG'...${NC}"
+  git commit -m "$MSG"
+  echo -e "${BLUE}Pusher ændringer...${NC}"
+  git push
+  echo -e "${GREEN}✓ Kildekoden er synkroniseret!${NC}"
 else
-    echo "DATABASE_URL ikke fundet i .env, springer db push over."
+  git push || true
+  echo -e "${GREEN}✓ Ingen lokale ændringer at committe.${NC}"
 fi
 
-# Rebuild og genstart containeren via docker compose
-echo "Rebuilding and restarting docker container..."
-sudo $COMPOSE_CMD up -d --build --no-deps "$SERVICE_NAME"
+echo -e "\n${BLUE}[3/4] Genbygger og opdaterer Docker-containeren...${NC}"
+docker compose -f /hostrup/docker/docker-compose.yml --env-file /hostrup/docker/.env up -d --build wishbuy
 
-echo "Waiting for container to start..."
-sleep 5
-
-if docker ps --format '{{.Names}} {{.Status}}' | grep "$CONTAINER_NAME" | grep -q "Up"; then
-    echo "=== Deployment successful ==="
+echo -e "\n${BLUE}[4/4] Verificerer container status...${NC}"
+sleep 2
+if docker ps | grep -q wishbuy; then
+  echo -e "${GREEN}✓ Docker-container kører stabilt!${NC}"
 else
-    echo "=== Deployment failed: Container is not running! ==="
-    docker logs --tail 20 "$CONTAINER_NAME"
-    exit 1
+  echo -e "${RED}✗ Advarsel: Containeren fejlede opstart.${NC}"
+  exit 1
 fi

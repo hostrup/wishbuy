@@ -4,11 +4,12 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { PageServerLoad, Actions } from './$types';
 import { env } from '$env/dynamic/private';
 
-const formatDateLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const formatDateLocal = (d: Date) =>
+	`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export const load: PageServerLoad = async ({ url, locals }) => {
 	const now = new Date();
-	
+
 	// 1. Læs URL parametre (eller brug fallback til nuværende måned)
 	const fromParam = url.searchParams.get('from');
 	const toParam = url.searchParams.get('to');
@@ -32,9 +33,17 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const periodKey = `${formatDateLocal(fromDate)}_${formatDateLocal(toDate)}`;
 
 	// Fetch Data
-	const [transactions, expensesAgg, allWishes, transactionCategories, aiInsight, realizedWishes, ignoredTransactions] = await Promise.all([
+	const [
+		transactions,
+		expensesAgg,
+		allWishes,
+		transactionCategories,
+		aiInsight,
+		realizedWishes,
+		ignoredTransactions
+	] = await Promise.all([
 		prisma.transaction.findMany({
-			where: { 
+			where: {
 				date: { gte: fromDate, lte: toDate },
 				amount: { lt: 0 },
 				isIgnored: false
@@ -43,7 +52,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			orderBy: { date: 'desc' }
 		}),
 		prisma.transaction.aggregate({
-			where: { 
+			where: {
 				date: { gte: fromDate, lte: toDate },
 				amount: { lt: 0 },
 				isIgnored: false
@@ -53,26 +62,25 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		prisma.item.findMany({
 			where: { status: 'WISH' },
 			include: { category: true, user: true },
-			orderBy: [
-				{ desireLevel: 'desc' },
-				{ price: 'desc' }
-			]
+			orderBy: [{ desireLevel: 'desc' }, { price: 'desc' }]
 		}),
 		prisma.transactionCategory.findMany({ orderBy: { name: 'asc' } }),
-		locals.user ? prisma.aiInsight.findUnique({
-			where: {
-				userId_period: {
-					userId: locals.user.id,
-					period: periodKey
-				}
-			}
-		}) : Promise.resolve(null),
+		locals.user
+			? prisma.aiInsight.findUnique({
+					where: {
+						userId_period: {
+							userId: locals.user.id,
+							period: periodKey
+						}
+					}
+				})
+			: Promise.resolve(null),
 		prisma.item.findMany({
 			where: { status: 'PURCHASED' },
 			orderBy: { purchasedAt: 'desc' }
 		}),
 		prisma.transaction.findMany({
-			where: { 
+			where: {
 				date: { gte: fromDate, lte: toDate },
 				amount: { lt: 0 },
 				isIgnored: true
@@ -91,16 +99,25 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const timeSeries: Record<string, number> = {};
 
 	const fallbackColors = [
-		'#6366f1', '#ec4899', '#14b8a6', '#f59e0b', 
-		'#8b5cf6', '#ef4444', '#10b981', '#3b82f6', 
-		'#f43f5e', '#84cc16', '#06b6d4', '#d946ef'
+		'#6366f1',
+		'#ec4899',
+		'#14b8a6',
+		'#f59e0b',
+		'#8b5cf6',
+		'#ef4444',
+		'#10b981',
+		'#3b82f6',
+		'#f43f5e',
+		'#84cc16',
+		'#06b6d4',
+		'#d946ef'
 	];
 	let colorIndex = 0;
 
 	// For cumulative we need transactions grouped by date (ascending)
 	const dailyTotals: Record<string, number> = {};
 	// For day of week (Mon-Sun: 0-6 in our array, getDay() returns 0 for Sunday)
-	const dayOfWeekTotals = [0, 0, 0, 0, 0, 0, 0]; 
+	const dayOfWeekTotals = [0, 0, 0, 0, 0, 0, 0];
 
 	// Pre-fill timeSeries and dailyTotals with 0s for the entire period to ensure continuous charts
 	const fillDate = new Date(fromDate);
@@ -113,29 +130,29 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			timeKey = dateStr;
 		} else if (daysInPeriod <= 90) {
 			const d = new Date(Date.UTC(fillDate.getFullYear(), fillDate.getMonth(), fillDate.getDate()));
-			d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-			const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-			const weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+			d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+			const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+			const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 			timeKey = `Uge ${weekNo}, ${d.getUTCFullYear()}`;
 		} else {
 			timeKey = `${fillDate.getFullYear()}-${String(fillDate.getMonth() + 1).padStart(2, '0')}`;
 		}
-		
+
 		if (!(timeKey in timeSeries)) {
 			timeSeries[timeKey] = 0;
 		}
 		fillDate.setDate(fillDate.getDate() + 1);
 	}
 
-	const processedTransactions = transactions.map(tx => {
+	const processedTransactions = transactions.map((tx) => {
 		let timeKey;
 		if (daysInPeriod <= 31) {
 			timeKey = formatDateLocal(tx.date);
 		} else if (daysInPeriod <= 90) {
 			const d = new Date(Date.UTC(tx.date.getFullYear(), tx.date.getMonth(), tx.date.getDate()));
-			d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-			const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-			const weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1)/7);
+			d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+			const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+			const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 			timeKey = `Uge ${weekNo}, ${d.getUTCFullYear()}`;
 		} else {
 			timeKey = `${tx.date.getFullYear()}-${String(tx.date.getMonth() + 1).padStart(2, '0')}`;
@@ -143,7 +160,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		return { ...tx, timeKey };
 	});
 
-	processedTransactions.forEach(tx => {
+	processedTransactions.forEach((tx) => {
 		const expense = Math.abs(tx.amount);
 
 		if (!tx.categoryId) unmappedTransactionsCount++;
@@ -183,20 +200,24 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const avgDailySpend = periodExpenses / daysInPeriod;
 
 	const sortedCategories = Object.values(categorySpending).sort((a, b) => b.amount - a.amount);
-	
-	const topCategory = sortedCategories.filter(c => c.name !== 'Ukategoriseret')[0] || { name: 'Ingen', amount: 0, color: '' };
-	const top3Categories = sortedCategories.slice(0, 3).map(c => ({
+
+	const topCategory = sortedCategories.filter((c) => c.name !== 'Ukategoriseret')[0] || {
+		name: 'Ingen',
+		amount: 0,
+		color: ''
+	};
+	const top3Categories = sortedCategories.slice(0, 3).map((c) => ({
 		...c,
 		percentage: periodExpenses > 0 ? ((c.amount / periodExpenses) * 100).toFixed(1) : '0'
 	}));
 
-	const donutData = sortedCategories.filter(c => c.amount > 0);
-	const donutSeries = donutData.map(d => Math.round(d.amount));
-	const donutLabels = donutData.map(d => d.name);
-	const donutColors = donutData.map(d => d.color || '#94a3b8');
+	const donutData = sortedCategories.filter((c) => c.amount > 0);
+	const donutSeries = donutData.map((d) => Math.round(d.amount));
+	const donutLabels = donutData.map((d) => d.name);
+	const donutColors = donutData.map((d) => d.color || '#94a3b8');
 
 	const sortedTimeKeys = Object.keys(timeSeries).sort();
-	const barSeries = sortedTimeKeys.map(k => Math.round(timeSeries[k]));
+	const barSeries = sortedTimeKeys.map((k) => Math.round(timeSeries[k]));
 	const barLabels = sortedTimeKeys;
 
 	// Calculate Cumulative
@@ -204,15 +225,15 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const cumulativeSeries: number[] = [];
 	const cumulativeLabels: string[] = [];
 	let runningTotal = 0;
-	
+
 	if (sortedDailyKeys.length > 0) {
 		// Fill in missing days
 		const startDate = new Date(sortedDailyKeys[0]);
 		const endDate = new Date(sortedDailyKeys[sortedDailyKeys.length - 1]);
-		
+
 		for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
 			const dStr = formatDateLocal(d);
-			runningTotal += (dailyTotals[dStr] || 0);
+			runningTotal += dailyTotals[dStr] || 0;
 			cumulativeLabels.push(dStr);
 			cumulativeSeries.push(Math.round(runningTotal));
 		}
@@ -235,8 +256,14 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		charts: {
 			donut: { series: donutSeries, labels: donutLabels, colors: donutColors },
 			bar: { series: [{ name: 'Forbrug', data: barSeries }], labels: barLabels },
-			cumulative: { series: [{ name: 'Akkumuleret', data: cumulativeSeries }], labels: cumulativeLabels },
-			dayOfWeek: { series: [{ name: 'Gns. pr ugedag', data: dayOfWeekTotals.map(Math.round) }], labels: ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'] }
+			cumulative: {
+				series: [{ name: 'Akkumuleret', data: cumulativeSeries }],
+				labels: cumulativeLabels
+			},
+			dayOfWeek: {
+				series: [{ name: 'Gns. pr ugedag', data: dayOfWeekTotals.map(Math.round) }],
+				labels: ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn']
+			}
 		},
 		topWish,
 		top3Categories,
@@ -275,21 +302,35 @@ export const actions: Actions = {
 			fromDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
 			toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 		}
-		
+
 		const periodKey = `${formatDateLocal(fromDate)}_${formatDateLocal(toDate)}`;
-		
+
 		const isOngoing = now.getTime() >= fromDate.getTime() && now.getTime() <= toDate.getTime();
-		const daysInPeriod = Math.max(1, Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)));
+		const daysInPeriod = Math.max(
+			1,
+			Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24))
+		);
 		let daysPassed = daysInPeriod;
 		let daysLeft = 0;
 
 		if (isOngoing) {
-			daysPassed = Math.max(1, Math.ceil((now.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)));
+			daysPassed = Math.max(
+				1,
+				Math.ceil((now.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24))
+			);
 			daysLeft = Math.max(0, daysInPeriod - daysPassed);
 		}
 
 		// 1. Aggregate Financial Data
-		const [expensesAgg, expenses, wishes, historicalTotalAgg, historicalCategoriesAgg, oldestTx, allCategories] = await Promise.all([
+		const [
+			expensesAgg,
+			expenses,
+			wishes,
+			historicalTotalAgg,
+			historicalCategoriesAgg,
+			oldestTx,
+			allCategories
+		] = await Promise.all([
 			prisma.transaction.aggregate({
 				where: { date: { gte: fromDate, lte: toDate }, amount: { lt: 0 }, isIgnored: false },
 				_sum: { amount: true }
@@ -327,15 +368,17 @@ export const actions: Actions = {
 
 		let monthsHistorical = 1;
 		if (oldestTx && oldestTx.date < fromDate) {
-			const mDiff = (fromDate.getFullYear() - oldestTx.date.getFullYear()) * 12 + (fromDate.getMonth() - oldestTx.date.getMonth());
+			const mDiff =
+				(fromDate.getFullYear() - oldestTx.date.getFullYear()) * 12 +
+				(fromDate.getMonth() - oldestTx.date.getMonth());
 			monthsHistorical = Math.max(1, mDiff);
 		}
 		const historicalAvgTotal = Math.abs(historicalTotalAgg._sum.amount || 0) / monthsHistorical;
 
 		const catHistoricalMap: Record<string, number> = {};
-		historicalCategoriesAgg.forEach(h => {
+		historicalCategoriesAgg.forEach((h) => {
 			if (h.categoryId) {
-				const catName = allCategories.find(c => c.id === h.categoryId)?.name || 'Ukategoriseret';
+				const catName = allCategories.find((c) => c.id === h.categoryId)?.name || 'Ukategoriseret';
 				catHistoricalMap[catName] = (catHistoricalMap[catName] || 0) + Math.abs(h._sum.amount || 0);
 			}
 		});
@@ -343,35 +386,47 @@ export const actions: Actions = {
 		const catMap: Record<string, number> = {};
 		const payerMap: Record<string, number> = {};
 
-		expenses.forEach(tx => {
+		expenses.forEach((tx) => {
 			const exp = Math.abs(tx.amount);
 			const catName = tx.category?.name || 'Ukategoriseret';
 			const payer = tx.paidBy || 'Ukendt';
-			
+
 			catMap[catName] = (catMap[catName] || 0) + exp;
 			payerMap[payer] = (payerMap[payer] || 0) + exp;
 		});
 
-		const formatCur = (val: number) => new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', maximumFractionDigits: 0 }).format(val);
+		const formatCur = (val: number) =>
+			new Intl.NumberFormat('da-DK', {
+				style: 'currency',
+				currency: 'DKK',
+				maximumFractionDigits: 0
+			}).format(val);
 
 		const topCategories = Object.entries(catMap)
-			.filter(([name]) => !name.toLowerCase().includes('ukategoriseret') && !name.toLowerCase().includes('ukendt'))
+			.filter(
+				([name]) =>
+					!name.toLowerCase().includes('ukategoriseret') && !name.toLowerCase().includes('ukendt')
+			)
 			.sort((a, b) => b[1] - a[1])
 			.slice(0, 3);
-			
+
 		const payerText = Object.entries(payerMap)
 			.sort((a, b) => b[1] - a[1])
 			.map(([payer, amount]) => `- ${payer}: ${formatCur(amount)}`)
 			.join('\n');
 
 		// 2. Format Data for Prompt
-		const wishesText = wishes.map(w => `- {Name: ${w.title}, Price: ${w.price} DKK, Desire Level: ${w.desireLevel}/5}`).join('\n');
-		
-		const categoriesText = topCategories.map(c => {
-			const histTotal = catHistoricalMap[c[0]] || 0;
-			const histAvg = histTotal / monthsHistorical;
-			return `- {${c[0]}: ${formatCur(c[1])}} (Historisk gns. pr. måned: ${formatCur(histAvg)})`;
-		}).join('\n');
+		const wishesText = wishes
+			.map((w) => `- {Name: ${w.title}, Price: ${w.price} DKK, Desire Level: ${w.desireLevel}/5}`)
+			.join('\n');
+
+		const categoriesText = topCategories
+			.map((c) => {
+				const histTotal = catHistoricalMap[c[0]] || 0;
+				const histAvg = histTotal / monthsHistorical;
+				return `- {${c[0]}: ${formatCur(c[1])}} (Historisk gns. pr. måned: ${formatCur(histAvg)})`;
+			})
+			.join('\n');
 
 		let promptData = `Data for perioden: ${fromDate.toLocaleDateString('da-DK')} til ${toDate.toLocaleDateString('da-DK')}\n`;
 		if (isOngoing) {
@@ -381,9 +436,9 @@ export const actions: Actions = {
 		} else {
 			promptData += `- Samlet forbrug for perioden: ${formatCur(totalExpenses)}\n`;
 		}
-		
+
 		promptData += `- VIGTIG HISTORISK KONTEKST: Dit normale gennemsnitlige totalforbrug pr. måned (baseret på ${monthsHistorical} måneders historik) er ${formatCur(historicalAvgTotal)}. Hold altid periodens forbrug op imod dette gennemsnit for at vurdere niveauet rigtigt!\n\n`;
-		
+
 		promptData += `Top udgiftskategorier (Ekskl. ukendte poster):\n${categoriesText}\n\n`;
 		promptData += `Fordeling af betalere (Hvem har trukket kortet):\n${payerText}\n\n`;
 		promptData += `Brugerens Ønsker:\n${wishesText || '- Ingen ønsker registreret endnu.'}\n\n`;
@@ -414,7 +469,7 @@ ${promptData}`;
 		// 3. Call Gemini
 		let apiKey = env.GEMINI_API_KEY;
 		if (apiKey) apiKey = apiKey.replace(/^["']|["']$/g, '').trim();
-		
+
 		if (!apiKey) {
 			return fail(500, { error: 'GEMINI_API_KEY mangler i miljøvariablerne.' });
 		}
@@ -461,13 +516,15 @@ ${promptData}`;
 		try {
 			await prisma.transaction.update({
 				where: { id: transactionId },
-				data: { 
+				data: {
 					categoryId,
 					status: 'PROCESSED'
 				}
 			});
 			return { success: true };
-		} catch { return fail(500, { error: 'Kunne ikke opdatere kategori' }); }
+		} catch {
+			return fail(500, { error: 'Kunne ikke opdatere kategori' });
+		}
 	},
 
 	linkWish: async ({ request, locals }) => {
@@ -481,13 +538,15 @@ ${promptData}`;
 		try {
 			await prisma.transaction.update({
 				where: { id: transactionId },
-				data: { 
+				data: {
 					itemId,
 					status: 'PROCESSED'
 				}
 			});
 			return { success: true };
-		} catch { return fail(500, { error: 'Kunne ikke tilknytte ønske' }); }
+		} catch {
+			return fail(500, { error: 'Kunne ikke tilknytte ønske' });
+		}
 	},
 
 	createRealizedWish: async ({ request, locals }) => {
@@ -498,7 +557,7 @@ ${promptData}`;
 		if (!transactionId) return fail(400, { error: 'Missing data' });
 
 		try {
-			const tx = await prisma.transaction.findUnique({ where: { id: transactionId }});
+			const tx = await prisma.transaction.findUnique({ where: { id: transactionId } });
 			if (!tx) return fail(404, { error: 'Transaktion ikke fundet' });
 
 			let itemCategoryId = 8;
@@ -523,14 +582,16 @@ ${promptData}`;
 
 			await prisma.transaction.update({
 				where: { id: transactionId },
-				data: { 
+				data: {
 					itemId: newItem.id,
 					status: 'PROCESSED'
 				}
 			});
 
 			return { success: true };
-		} catch { return fail(500, { error: 'Kunne ikke oprette ønske' }); }
+		} catch {
+			return fail(500, { error: 'Kunne ikke oprette ønske' });
+		}
 	},
 
 	bulkGroupToWish: async ({ request, locals }) => {
@@ -542,7 +603,8 @@ ${promptData}`;
 		if (!transactionIdsStr || !groupName) return fail(400, { error: 'Manglende data' });
 
 		const transactionIds = JSON.parse(transactionIdsStr) as string[];
-		if (!Array.isArray(transactionIds) || transactionIds.length === 0) return fail(400, { error: 'Ingen transaktioner valgt' });
+		if (!Array.isArray(transactionIds) || transactionIds.length === 0)
+			return fail(400, { error: 'Ingen transaktioner valgt' });
 
 		try {
 			const txs = await prisma.transaction.findMany({
@@ -573,14 +635,16 @@ ${promptData}`;
 
 			await prisma.transaction.updateMany({
 				where: { id: { in: transactionIds } },
-				data: { 
+				data: {
 					itemId: newItem.id,
 					status: 'PROCESSED'
 				}
 			});
 
 			return { success: true };
-		} catch { return fail(500, { error: 'Kunne ikke oprette gruppe-ønske' }); }
+		} catch {
+			return fail(500, { error: 'Kunne ikke oprette gruppe-ønske' });
+		}
 	},
 
 	ignoreTransaction: async ({ request, locals }) => {
@@ -596,7 +660,9 @@ ${promptData}`;
 				data: { isIgnored: true }
 			});
 			return { success: true };
-		} catch { return fail(500, { error: 'Kunne ikke ignorere postering' }); }
+		} catch {
+			return fail(500, { error: 'Kunne ikke ignorere postering' });
+		}
 	},
 
 	restoreTransaction: async ({ request, locals }) => {
@@ -612,7 +678,9 @@ ${promptData}`;
 				data: { isIgnored: false }
 			});
 			return { success: true };
-		} catch { return fail(500, { error: 'Kunne ikke gendanne postering' }); }
+		} catch {
+			return fail(500, { error: 'Kunne ikke gendanne postering' });
+		}
 	},
 
 	createCategory: async ({ request, locals }) => {
@@ -628,7 +696,9 @@ ${promptData}`;
 				data: { name, icon }
 			});
 			return { success: true };
-		} catch { return fail(500, { error: 'Kunne ikke oprette kategori' }); }
+		} catch {
+			return fail(500, { error: 'Kunne ikke oprette kategori' });
+		}
 	},
 
 	updateCategoryDetails: async ({ request, locals }) => {
@@ -646,7 +716,9 @@ ${promptData}`;
 				data: { name, icon }
 			});
 			return { success: true };
-		} catch { return fail(500, { error: 'Kunne ikke opdatere kategori' }); }
+		} catch {
+			return fail(500, { error: 'Kunne ikke opdatere kategori' });
+		}
 	},
 
 	deleteCategory: async ({ request, locals }) => {
@@ -671,6 +743,8 @@ ${promptData}`;
 				where: { id }
 			});
 			return { success: true };
-		} catch { return fail(500, { error: 'Kunne ikke slette kategori' }); }
+		} catch {
+			return fail(500, { error: 'Kunne ikke slette kategori' });
+		}
 	}
 };

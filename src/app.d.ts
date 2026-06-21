@@ -7,6 +7,8 @@ declare global {
 			user: {
 				id: string;
 				username: string;
+				displayName?: string | null;
+				emoji?: string | null;
 			} | null;
 		}
 		// interface PageData {}
