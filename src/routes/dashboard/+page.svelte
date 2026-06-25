@@ -5,11 +5,13 @@
 	import { chart } from '$lib/actions/apexcharts';
 	import { onMount } from 'svelte';
 	import { marked } from 'marked';
+	import DOMPurify from 'isomorphic-dompurify';
 
 	let { data, form } = $props();
 
-	let isGenerating = $state(false);
+	// TS-1.1: isDarkMode defineret øverst i script for at undgå hoisting-fejl
 	let isDarkMode = $state(false);
+	let isGenerating = $state(false);
 
 	// ApexCharts configs
 	// ApexCharts configs
@@ -651,7 +653,7 @@
 						<div
 							class="prose prose-invert prose-indigo prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-p:text-slate-300 prose-li:text-slate-300 prose-strong:text-indigo-300 max-w-none text-sm md:text-base"
 						>
-							{@html marked(data.aiInsight.content)}
+							{@html DOMPurify.sanitize(marked(data.aiInsight.content) as string)}
 						</div>
 						<div class="mt-8 flex items-center justify-between border-t border-white/10 pt-4">
 							<span class="text-xs text-slate-400"

@@ -25,6 +25,7 @@
 		"@tailwindcss/vite": "^4.2.2",
 		"@types/marked": "^5.0.2",
 		"@types/node": "^22",
+		"@types/papaparse": "^5.5.2",
 		"@types/pg": "^8.20.0",
 		"eslint": "^10.2.0",
 		"eslint-config-prettier": "^10.1.8",
@@ -49,7 +50,9 @@
 		"@prisma/client": "^7.7.0",
 		"apexcharts": "^5.10.6",
 		"dotenv": "^17.4.2",
+		"isomorphic-dompurify": "^3.18.0",
 		"marked": "^18.0.3",
+		"papaparse": "^5.5.4",
 		"pg": "^8.20.0"
 	}
 }

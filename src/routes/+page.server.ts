@@ -242,6 +242,10 @@ export const actions: Actions = {
 		if (isNaN(price) || isNaN(categoryId))
 			return fail(400, { error: 'Ugyldigt beløb eller kategori.' });
 
+		// TS-1.6: XSS-validering — tillad kun http/https URL'er
+		if (url && !/^https?:\/\//i.test(url))
+			return fail(400, { error: 'Linket skal starte med http:// eller https://' });
+
 		try {
 			await prisma.item.create({
 				data: {
@@ -292,6 +296,8 @@ export const actions: Actions = {
 		try {
 			const item = await prisma.item.findUnique({ where: { id: itemId } });
 			if (!item) return fail(404);
+			// TS-1.5: Authorization check — verificer at item tilhører brugeren
+			if (item.userId !== locals.user.id) return fail(403, { error: 'Adgang nægtet.' });
 
 			// Tvungen Cooldown check (kun for ønsker over 1000 DKK)
 			if (item.status === 'WISH' && item.price >= 1000) {
@@ -325,6 +331,10 @@ export const actions: Actions = {
 		if (!itemId || !categoryId) return fail(400);
 
 		try {
+			// TS-1.5: Authorization check
+			const item = await prisma.item.findUnique({ where: { id: itemId } });
+			if (!item || item.userId !== locals.user.id) return fail(403, { error: 'Adgang nægtet.' });
+
 			await prisma.item.update({
 				where: { id: itemId },
 				data: { categoryId }
@@ -343,8 +353,9 @@ export const actions: Actions = {
 		if (!itemId) return fail(400);
 
 		try {
+			// TS-1.5: Authorization check
 			const item = await prisma.item.findUnique({ where: { id: itemId } });
-			if (!item) return fail(404);
+			if (!item || item.userId !== locals.user.id) return fail(403, { error: 'Adgang nægtet.' });
 
 			if (item.status === 'WISH') {
 				await prisma.item.update({ where: { id: itemId }, data: { status: 'ABANDONED' } });
@@ -366,6 +377,10 @@ export const actions: Actions = {
 		if (!itemId || !userId) return fail(400);
 
 		try {
+			// TS-1.5: Authorization check
+			const item = await prisma.item.findUnique({ where: { id: itemId } });
+			if (!item || item.userId !== locals.user.id) return fail(403, { error: 'Adgang nægtet.' });
+
 			await prisma.item.update({
 				where: { id: itemId },
 				data: { userId }
@@ -385,6 +400,10 @@ export const actions: Actions = {
 		if (!itemId || !expenseType) return fail(400);
 
 		try {
+			// TS-1.5: Authorization check
+			const item = await prisma.item.findUnique({ where: { id: itemId } });
+			if (!item || item.userId !== locals.user.id) return fail(403, { error: 'Adgang nægtet.' });
+
 			await prisma.item.update({
 				where: { id: itemId },
 				data: { expenseType }

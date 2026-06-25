@@ -18,10 +18,22 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	let toDate: Date;
 
 	if (fromParam && toParam) {
-		const [fy, fm, fd] = fromParam.split('-').map(Number);
-		fromDate = new Date(fy, fm - 1, fd, 0, 0, 0, 0);
-		const [ty, tm, td] = toParam.split('-').map(Number);
-		toDate = new Date(ty, tm - 1, td, 23, 59, 59, 999);
+		// TS-1.4: Valider dato-parametre med regex for at forhindre NaN/Invalid Date
+		const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+		if (DATE_REGEX.test(fromParam) && DATE_REGEX.test(toParam)) {
+			const [fy, fm, fd] = fromParam.split('-').map(Number);
+			fromDate = new Date(fy, fm - 1, fd, 0, 0, 0, 0);
+			const [ty, tm, td] = toParam.split('-').map(Number);
+			toDate = new Date(ty, tm - 1, td, 23, 59, 59, 999);
+			// Fallback hvis datoer parses men giver ugyldige dates
+			if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+				fromDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+				toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+			}
+		} else {
+			fromDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+			toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+		}
 	} else {
 		// Nuværende måned
 		fromDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
@@ -294,10 +306,21 @@ export const actions: Actions = {
 		let toDate: Date;
 
 		if (fromStr && toStr) {
-			const [fy, fm, fd] = fromStr.split('-').map(Number);
-			fromDate = new Date(fy, fm - 1, fd, 0, 0, 0, 0);
-			const [ty, tm, td] = toStr.split('-').map(Number);
-			toDate = new Date(ty, tm - 1, td, 23, 59, 59, 999);
+			// TS-1.4: Valider dato-parametre med regex
+			const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+			if (DATE_REGEX.test(fromStr) && DATE_REGEX.test(toStr)) {
+				const [fy, fm, fd] = fromStr.split('-').map(Number);
+				fromDate = new Date(fy, fm - 1, fd, 0, 0, 0, 0);
+				const [ty, tm, td] = toStr.split('-').map(Number);
+				toDate = new Date(ty, tm - 1, td, 23, 59, 59, 999);
+				if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+					fromDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+					toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+				}
+			} else {
+				fromDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+				toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+			}
 		} else {
 			fromDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
 			toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -602,7 +625,13 @@ ${promptData}`;
 
 		if (!transactionIdsStr || !groupName) return fail(400, { error: 'Manglende data' });
 
-		const transactionIds = JSON.parse(transactionIdsStr) as string[];
+		// TS-1.3: Wrap JSON.parse i try-catch for at forhindre server-crash på ugyldigt input
+		let transactionIds: string[];
+		try {
+			transactionIds = JSON.parse(transactionIdsStr) as string[];
+		} catch {
+			return fail(400, { error: 'Ugyldigt JSON-format for transaktions-IDer.' });
+		}
 		if (!Array.isArray(transactionIds) || transactionIds.length === 0)
 			return fail(400, { error: 'Ingen transaktioner valgt' });
 
