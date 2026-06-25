@@ -68,14 +68,14 @@
 			</a>
 
 			<a
-				href="/dashboard/weekly"
-				class="group relative flex flex-col items-center gap-3 overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm opacity-60 transition-all duration-300 hover:scale-[1.02] hover:border-sky-500/30 hover:bg-white/10 hover:opacity-90 hover:shadow-2xl hover:shadow-sky-500/10"
+				href="https://ugeplan.hostrup.org"
+				class="group relative flex flex-col items-center gap-3 overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-sky-500/30 hover:bg-white/10 hover:opacity-90 hover:shadow-2xl hover:shadow-sky-500/10"
 			>
 				<div class="absolute -top-6 -right-6 h-24 w-24 rounded-full bg-sky-500/10 blur-2xl transition-all group-hover:bg-sky-500/20"></div>
 				<span class="relative text-5xl">📅</span>
 				<h2 class="relative text-xl font-bold">
 					Ugeplan
-					<span class="ml-2 rounded-full bg-sky-500/20 px-2 py-0.5 text-[10px] font-bold text-sky-300">SOON</span>
+					<span class="ml-2 rounded-full bg-sky-500/20 px-2 py-0.5 text-[10px] font-bold text-sky-300">↗</span>
 				</h2>
 				<p class="relative text-center text-sm text-slate-400 transition-colors group-hover:text-slate-300">
 					Madplan, fremmøde og dagens noter — kommer snart
