@@ -455,7 +455,7 @@
 				class="flex snap-x snap-mandatory gap-4 overflow-x-auto pt-1 pb-4 [-ms-overflow-style:none] [scrollbar-width:none] md:grid md:grid-cols-3 md:overflow-visible lg:grid-cols-5 [&::-webkit-scrollbar]:hidden"
 			>
 				<div
-					class="flex w-[85vw] flex-shrink-0 snap-center flex-col justify-center rounded-2xl border border-indigo-100 bg-white bg-gradient-to-br from-white to-indigo-50/50 p-5 shadow-sm md:w-auto md:p-6 dark:bg-slate-800"
+					class="flex w-[85vw] flex-shrink-0 snap-center flex-col justify-center rounded-2xl border border-indigo-100/50 bg-white/80 backdrop-blur-xl bg-gradient-to-br from-white/80 to-indigo-50/30 p-5 shadow-sm md:w-auto md:p-6 dark:border-indigo-500/20 dark:bg-slate-800/80"
 				>
 					<p class="mb-1 text-[10px] font-bold tracking-widest text-indigo-400 uppercase">
 						Værdi af Drømme
@@ -468,7 +468,7 @@
 
 				<a
 					href="/dashboard/finance"
-					class="group relative flex w-[85vw] flex-shrink-0 cursor-pointer snap-center flex-col justify-center overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-colors hover:bg-slate-50 md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800 dark:bg-slate-900/50 dark:hover:bg-slate-700/50"
+					class="group relative flex w-[85vw] flex-shrink-0 cursor-pointer snap-center flex-col justify-center overflow-hidden rounded-2xl border border-slate-200/50 bg-white/80 p-5 shadow-sm backdrop-blur-xl transition-colors hover:bg-white/90 md:w-auto md:p-6 dark:border-white/10 dark:bg-slate-800/80 dark:hover:bg-slate-700/80"
 				>
 					<div
 						class="absolute top-3 right-3 text-slate-300 opacity-0 transition-opacity group-hover:opacity-100"
@@ -489,7 +489,7 @@
 				</a>
 
 				<div
-					class="flex w-[85vw] flex-shrink-0 snap-center items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800"
+					class="flex w-[85vw] flex-shrink-0 snap-center items-center gap-4 rounded-2xl border border-slate-200/50 bg-white/80 p-5 shadow-sm backdrop-blur-xl md:w-auto md:p-6 dark:border-white/10 dark:bg-slate-800/80"
 				>
 					<div
 						class="h-14 w-14 shrink-0 rounded-full shadow-inner"
@@ -516,7 +516,7 @@
 				</div>
 
 				<div
-					class="flex w-[85vw] flex-shrink-0 snap-center items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800"
+					class="flex w-[85vw] flex-shrink-0 snap-center items-center gap-4 rounded-2xl border border-slate-200/50 bg-white/80 p-5 shadow-sm backdrop-blur-xl md:w-auto md:p-6 dark:border-white/10 dark:bg-slate-800/80"
 				>
 					<div
 						class="h-14 w-14 shrink-0 rounded-full shadow-inner"
@@ -543,7 +543,7 @@
 				</div>
 
 				<div
-					class="flex w-[85vw] flex-shrink-0 snap-center items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800"
+					class="flex w-[85vw] flex-shrink-0 snap-center items-center gap-4 rounded-2xl border border-slate-200/50 bg-white/80 p-5 shadow-sm backdrop-blur-xl md:w-auto md:p-6 dark:border-white/10 dark:bg-slate-800/80"
 				>
 					<div
 						class="h-14 w-14 shrink-0 rounded-full shadow-inner"
@@ -570,7 +570,7 @@
 				</div>
 
 				<div
-					class="flex w-[85vw] flex-shrink-0 snap-center flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-sm md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800"
+					class="flex w-[85vw] flex-shrink-0 snap-center flex-col justify-between rounded-2xl border border-slate-200/50 bg-white/80 p-5 shadow-sm backdrop-blur-xl md:w-auto md:p-6 dark:border-white/10 dark:bg-slate-800/80"
 				>
 					<div class="mb-2 md:mb-0">
 						<p class="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
@@ -598,7 +598,7 @@
 
 				{#if data.kpis.cooldownGain !== undefined}
 					<div
-						class="relative flex w-[85vw] flex-shrink-0 snap-center flex-col justify-center overflow-hidden rounded-2xl border border-emerald-100 bg-white bg-gradient-to-br from-white to-emerald-50/50 p-5 shadow-sm md:w-auto md:p-6 dark:bg-slate-800"
+						class="relative flex w-[85vw] flex-shrink-0 snap-center flex-col justify-center overflow-hidden rounded-2xl border border-emerald-100/50 bg-white/80 bg-gradient-to-br from-white/80 to-emerald-50/30 p-5 shadow-sm backdrop-blur-xl md:w-auto md:p-6 dark:border-emerald-500/20 dark:bg-slate-800/80"
 					>
 						<div class="absolute -right-4 -bottom-4 rotate-12 text-7xl text-emerald-500/10">🥶</div>
 						<p class="mb-1 text-[10px] font-bold tracking-widest text-emerald-500 uppercase">
@@ -616,7 +616,7 @@
 		<main class="grid grid-cols-1 gap-6 md:gap-8 xl:grid-cols-3">
 			<section class="order-first xl:col-span-1">
 				<div
-					class="sticky top-4 z-10 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm md:top-6 md:p-6 dark:border-white/5 dark:bg-slate-800"
+					class="sticky top-4 z-10 rounded-3xl border border-slate-200/50 bg-white/80 p-5 shadow-sm backdrop-blur-xl md:top-6 md:p-6 dark:border-white/10 dark:bg-slate-800/80"
 				>
 					<h2 class="mb-4 border-b border-slate-100 pb-2 text-lg font-bold dark:border-white/5">
 						Kast i Brønden
@@ -798,7 +798,7 @@
 							{@const daysLeft = Math.ceil(7 - itemDaysOld)}
 
 							<div
-								class="group relative flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-colors hover:border-indigo-300 dark:border-white/10 dark:bg-slate-800"
+								class="group relative flex flex-col rounded-3xl border border-slate-200/50 bg-white/80 p-5 shadow-sm backdrop-blur-xl transition-colors hover:border-indigo-500/50 dark:border-white/10 dark:bg-slate-800/80"
 							>
 								<div
 									class="absolute -top-3 -right-3 z-10 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
