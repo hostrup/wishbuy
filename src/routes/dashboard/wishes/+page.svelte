@@ -547,7 +547,7 @@
 				>
 					<div
 						class="h-14 w-14 shrink-0 rounded-full shadow-inner"
-						style="background: conic-gradient(var(--color-emerald-500) 0% {buySharedPct}%, var(--color-amber-500) {buySharedPct}% 100%);"
+						style="background: conic-gradient(var(--color-emerald-500) 0% {buySharedPct}%, var(--color-rose-500) {buySharedPct}% 100%);"
 					></div>
 					<div class="flex flex-col justify-center">
 						<p class="mb-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
@@ -563,7 +563,7 @@
 						<div
 							class="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-300"
 						>
-							<span class="h-2 w-2 rounded-full bg-amber-500"></span> Ego ({100 -
+							<span class="h-2 w-2 rounded-full bg-rose-500"></span> Ego ({100 -
 								Math.round(buySharedPct)}%)
 						</div>
 					</div>
