@@ -86,7 +86,7 @@
 		}).format(Math.abs(val));
 </script>
 
-<div class="relative min-h-screen bg-slate-50 p-4 font-sans text-slate-900 md:p-8 lg:p-12 dark:bg-[#0b1120] dark:text-slate-100">
+<div class="relative min-h-screen bg-slate-50 p-4 font-sans text-slate-900 md:p-8 lg:p-12 dark:bg-slate-950 dark:text-slate-100">
 	<!-- Ambient Background -->
 	<div class="pointer-events-none absolute top-0 left-1/4 h-[500px] w-[500px] rounded-full bg-emerald-500/10 blur-3xl dark:bg-emerald-600/10"></div>
 	<div class="pointer-events-none absolute right-1/4 bottom-1/4 h-[400px] w-[400px] rounded-full bg-sky-500/10 blur-3xl dark:bg-sky-500/10"></div>

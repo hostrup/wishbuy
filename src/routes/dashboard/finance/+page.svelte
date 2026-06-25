@@ -370,7 +370,7 @@
 
 <!-- BACKDROP & CONTAINER -->
 <div
-	class="relative min-h-screen bg-slate-50 p-4 font-sans text-slate-900 transition-colors duration-300 md:p-8 lg:p-12 dark:bg-[#0b1120] dark:text-slate-100"
+	class="relative min-h-screen bg-slate-50 p-4 font-sans text-slate-900 transition-colors duration-300 md:p-8 lg:p-12 dark:bg-slate-950 dark:text-slate-100"
 >
 	<!-- Ambient Background Glows -->
 	<div
