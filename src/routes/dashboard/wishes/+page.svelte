@@ -114,7 +114,7 @@
 
 {#if showCategoryModal}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-bg-root/60 p-4 backdrop-blur-sm"
 	>
 		<div
 			class="relative flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-800"
@@ -125,7 +125,7 @@
 					editCatId = null;
 					isCreatingCat = false;
 				}}
-				class="absolute top-4 right-4 z-10 text-xl font-bold text-slate-400 hover:text-slate-600 dark:text-slate-300"
+				class="absolute top-4 right-4 z-10 text-xl font-bold text-ink-subtle hover:text-slate-600 dark:text-slate-300"
 				>✕</button
 			>
 			<h3 class="mb-6 text-xl font-bold text-slate-800 dark:text-white">
@@ -143,13 +143,13 @@
 					{#each data.categories as cat}
 						<button
 							onclick={() => openCategoryEdit(cat)}
-							class="group flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition-colors hover:bg-indigo-50 dark:border-white/10 dark:bg-slate-900/50"
+							class="group flex w-full items-center justify-between rounded-xl border border-border-light bg-surface-light p-3 text-left transition-colors hover:bg-accent-bg dark:border-white/10 dark:bg-bg-root/50"
 						>
 							<span class="font-medium text-slate-700 dark:text-slate-200"
 								>{cat.icon} {cat.name}</span
 							>
 							<span
-								class="text-xs font-bold text-indigo-500 opacity-0 transition-opacity group-hover:opacity-100"
+								class="text-xs font-bold text-accent opacity-0 transition-opacity group-hover:opacity-100"
 								>Rediger</span
 							>
 						</button>
@@ -157,7 +157,7 @@
 				</div>
 				<button
 					onclick={openCategoryCreate}
-					class="w-full rounded-xl border border-slate-200 bg-slate-100 py-3 font-bold text-slate-700 transition-colors hover:bg-slate-200 dark:border-white/10 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+					class="w-full rounded-xl border border-border-light bg-slate-100 py-3 font-bold text-slate-700 transition-colors hover:bg-slate-200 dark:border-white/10 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
 				>
 					+ Opret Ny Kategori
 				</button>
@@ -178,11 +178,11 @@
 
 					<div>
 						<label
-							class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+							class="mb-2 block text-xs font-bold tracking-wider text-ink-tertiary uppercase dark:text-ink-subtle"
 							>Vælg Kategori Ikon</label
 						>
 						<div
-							class="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-slate-900/50"
+							class="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-border-light bg-surface-light p-3 dark:border-white/10 dark:bg-bg-root/50"
 						>
 							{#each commonEmojis as emoji}
 								<button
@@ -190,7 +190,7 @@
 									onclick={() => (editCatIcon = emoji)}
 									class="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-all hover:bg-slate-200 dark:hover:bg-slate-600 {editCatIcon ===
 									emoji
-										? 'bg-indigo-200 shadow-sm ring-2 ring-indigo-500'
+										? 'bg-indigo-200 shadow-sm ring-2 ring-accent'
 										: ''}"
 								>
 									{emoji}
@@ -202,7 +202,7 @@
 					<div>
 						<label
 							for="name"
-							class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+							class="mb-2 block text-xs font-bold tracking-wider text-ink-tertiary uppercase dark:text-ink-subtle"
 							>Kategorinavn</label
 						>
 						<input
@@ -211,7 +211,7 @@
 							name="name"
 							bind:value={editCatName}
 							required
-							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium transition-all outline-none focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-900/50"
+							class="w-full rounded-xl border border-border-light bg-surface-light px-4 py-3 font-medium transition-all outline-none focus:ring-2 focus:ring-accent dark:border-white/10 dark:bg-bg-root/50"
 						/>
 					</div>
 				</form>
@@ -225,7 +225,7 @@
 					<button
 						type="submit"
 						form="createCatForm"
-						class="flex-1 rounded-xl bg-indigo-600 py-3.5 font-bold text-white shadow-md transition-all hover:bg-indigo-700"
+						class="flex-1 rounded-xl bg-accent py-3.5 font-bold text-white shadow-md transition-all hover:bg-accent-hover"
 						>Opret</button
 					>
 				</div>
@@ -247,11 +247,11 @@
 
 					<div>
 						<label
-							class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+							class="mb-2 block text-xs font-bold tracking-wider text-ink-tertiary uppercase dark:text-ink-subtle"
 							>Vælg Kategori Ikon</label
 						>
 						<div
-							class="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-slate-900/50"
+							class="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-border-light bg-surface-light p-3 dark:border-white/10 dark:bg-bg-root/50"
 						>
 							{#each commonEmojis as emoji}
 								<button
@@ -259,7 +259,7 @@
 									onclick={() => (editCatIcon = emoji)}
 									class="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-all hover:bg-slate-200 dark:hover:bg-slate-600 {editCatIcon ===
 									emoji
-										? 'bg-indigo-200 shadow-sm ring-2 ring-indigo-500'
+										? 'bg-indigo-200 shadow-sm ring-2 ring-accent'
 										: ''}"
 								>
 									{emoji}
@@ -271,7 +271,7 @@
 					<div>
 						<label
 							for="name"
-							class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+							class="mb-2 block text-xs font-bold tracking-wider text-ink-tertiary uppercase dark:text-ink-subtle"
 							>Kategorinavn</label
 						>
 						<input
@@ -280,7 +280,7 @@
 							name="name"
 							bind:value={editCatName}
 							required
-							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium transition-all outline-none focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-900/50"
+							class="w-full rounded-xl border border-border-light bg-surface-light px-4 py-3 font-medium transition-all outline-none focus:ring-2 focus:ring-accent dark:border-white/10 dark:bg-bg-root/50"
 						/>
 					</div>
 				</form>
@@ -318,7 +318,7 @@
 					<button
 						type="submit"
 						form="updateCatForm"
-						class="flex-1 rounded-xl bg-indigo-600 py-3.5 font-bold text-white shadow-md transition-all hover:bg-indigo-700"
+						class="flex-1 rounded-xl bg-accent py-3.5 font-bold text-white shadow-md transition-all hover:bg-accent-hover"
 						>Gem</button
 					>
 				</div>
@@ -329,14 +329,14 @@
 
 {#if showProfileModal}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-bg-root/60 p-4 backdrop-blur-sm"
 	>
 		<div
 			class="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-800"
 		>
 			<button
 				onclick={() => (showProfileModal = false)}
-				class="absolute top-4 right-4 text-xl font-bold text-slate-400 hover:text-slate-600 dark:text-slate-300"
+				class="absolute top-4 right-4 text-xl font-bold text-ink-subtle hover:text-slate-600 dark:text-slate-300"
 				>✕</button
 			>
 			<h3 class="mb-6 text-xl font-bold text-slate-800 dark:text-white">Rediger Din Profil</h3>
@@ -356,11 +356,11 @@
 
 				<div>
 					<label
-						class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+						class="mb-2 block text-xs font-bold tracking-wider text-ink-tertiary uppercase dark:text-ink-subtle"
 						>Din Personlige Emoji</label
 					>
 					<div
-						class="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-slate-900/50"
+						class="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-border-light bg-surface-light p-3 dark:border-white/10 dark:bg-bg-root/50"
 					>
 						{#each commonEmojis as emoji}
 							<button
@@ -368,7 +368,7 @@
 								onclick={() => (profileEmoji = emoji)}
 								class="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-all hover:bg-slate-200 dark:hover:bg-slate-600 {profileEmoji ===
 								emoji
-									? 'bg-indigo-200 shadow-sm ring-2 ring-indigo-500'
+									? 'bg-indigo-200 shadow-sm ring-2 ring-accent'
 									: ''}"
 							>
 								{emoji}
@@ -380,7 +380,7 @@
 				<div>
 					<label
 						for="displayName"
-						class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+						class="mb-2 block text-xs font-bold tracking-wider text-ink-tertiary uppercase dark:text-ink-subtle"
 						>Dit Viste Navn</label
 					>
 					<input
@@ -389,7 +389,7 @@
 						name="displayName"
 						value={data.user?.displayName || data.user?.username || ''}
 						required
-						class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium transition-all outline-none focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-900/50"
+						class="w-full rounded-xl border border-border-light bg-surface-light px-4 py-3 font-medium transition-all outline-none focus:ring-2 focus:ring-accent dark:border-white/10 dark:bg-bg-root/50"
 						placeholder="Fx Ronni Hostrup"
 					/>
 				</div>
@@ -397,7 +397,7 @@
 				<div class="pt-2">
 					<button
 						type="submit"
-						class="w-full rounded-xl bg-indigo-600 py-3.5 font-bold text-white shadow-md transition-all hover:bg-indigo-700 active:scale-[0.98]"
+						class="w-full rounded-xl bg-accent py-3.5 font-bold text-white shadow-md transition-all hover:bg-accent-hover active:scale-[0.98]"
 					>
 						Gem Profil
 					</button>
@@ -408,15 +408,15 @@
 {/if}
 
 <div
-	class="min-h-screen bg-slate-50 p-4 font-sans text-slate-900 transition-colors duration-300 md:p-12 dark:bg-slate-900 dark:text-slate-100"
+	class="min-h-screen bg-surface-light p-4 font-sans text-slate-900 transition-colors duration-300 md:p-12 dark:bg-bg-root dark:text-slate-100"
 >
 	<div class="mx-auto max-w-7xl space-y-6 md:space-y-8">
 		<header
-			class="flex flex-col border-b border-slate-200 pb-4 md:flex-row md:items-end md:justify-between md:pb-6 dark:border-white/10"
+			class="flex flex-col border-b border-border-light pb-4 md:flex-row md:items-end md:justify-between md:pb-6 dark:border-white/10"
 		>
 			<div>
 				<h1
-					class="bg-gradient-to-r from-indigo-600 to-sky-500 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent md:text-4xl"
+					class="bg-gradient-to-r from-accent to-accent-light bg-clip-text text-3xl font-extrabold tracking-tight text-transparent md:text-4xl"
 				>
 					Ønskebrønden
 				</h1>
@@ -427,7 +427,7 @@
 								profileEmoji = data.user?.emoji || '👤';
 								showProfileModal = true;
 							}}
-							class="flex items-center gap-2 rounded-lg border border-indigo-100/50 bg-indigo-50 px-3 py-1.5 font-bold text-indigo-600 shadow-sm transition-colors hover:bg-indigo-100 hover:text-indigo-800 active:scale-95"
+							class="flex items-center gap-2 rounded-lg border border-accent-border/50 bg-accent-bg px-3 py-1.5 font-bold text-accent shadow-sm transition-colors hover:bg-accent-bg hover:text-indigo-800 active:scale-95"
 						>
 							<span class="text-lg">{data.user.emoji || '👤'}</span>
 							{data.user.displayName || data.user.username}
@@ -435,13 +435,13 @@
 						</button>
 						<a
 							href="/dashboard/finance"
-							class="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-1.5 font-bold text-white shadow-sm transition-colors hover:bg-indigo-700"
+							class="flex items-center gap-2 rounded-lg bg-accent px-4 py-1.5 font-bold text-white shadow-sm transition-colors hover:bg-accent-hover"
 						>
 							📊 Økonomi →
 						</a>
 						<a
 							href="https://ugeplan.hostrup.org"
-							class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-1.5 font-bold text-white shadow-sm transition-colors hover:bg-emerald-700"
+							class="flex items-center gap-2 rounded-lg bg-accent px-4 py-1.5 font-bold text-white shadow-sm transition-colors hover:bg-emerald-700"
 						>
 							📅 Ugeplan ↗
 						</a>
@@ -455,54 +455,54 @@
 				class="flex snap-x snap-mandatory gap-4 overflow-x-auto pt-1 pb-4 [-ms-overflow-style:none] [scrollbar-width:none] md:grid md:grid-cols-3 md:overflow-visible lg:grid-cols-5 [&::-webkit-scrollbar]:hidden"
 			>
 				<div
-					class="flex w-[85vw] flex-shrink-0 snap-center flex-col justify-center rounded-2xl border border-indigo-100 bg-white bg-gradient-to-br from-white to-indigo-50/50 p-5 shadow-sm md:w-auto md:p-6 dark:bg-slate-800"
+					class="flex w-[85vw] flex-shrink-0 snap-center flex-col justify-center rounded-2xl border border-accent-border bg-white bg-gradient-to-br from-card-light to-accent-bg/50 p-5 shadow-sm md:w-auto md:p-6 dark:bg-slate-800"
 				>
-					<p class="mb-1 text-[10px] font-bold tracking-widest text-indigo-400 uppercase">
+					<p class="mb-1 text-[10px] font-bold tracking-widest text-accent uppercase">
 						Værdi af Drømme
 					</p>
 					<p class="text-3xl font-black text-indigo-900">{formatCur(data.kpis.wishTotal)}</p>
-					<p class="mt-1 text-xs font-medium text-indigo-600/70">
+					<p class="mt-1 text-xs font-medium text-accent/70">
 						Udsat behov i {data.kpis.wishCount} ønsker
 					</p>
 				</div>
 
 				<a
 					href="/dashboard/finance"
-					class="group relative flex w-[85vw] flex-shrink-0 cursor-pointer snap-center flex-col justify-center overflow-hidden rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-colors hover:bg-slate-50 md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800 dark:bg-slate-900/50 dark:hover:bg-slate-700/50"
+					class="group relative flex w-[85vw] flex-shrink-0 cursor-pointer snap-center flex-col justify-center overflow-hidden rounded-2xl border border-border-light bg-white p-5 shadow-sm transition-colors hover:bg-surface-light md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800 dark:bg-bg-root/50 dark:hover:bg-slate-700/50"
 				>
 					<div
 						class="absolute top-3 right-3 text-slate-300 opacity-0 transition-opacity group-hover:opacity-100"
 					>
 						↗
 					</div>
-					<p class="mb-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+					<p class="mb-1 text-[10px] font-bold tracking-widest text-ink-subtle uppercase">
 						Forbrug denne måned
 					</p>
 					<p class="text-3xl font-black text-slate-800 dark:text-white">
 						{formatCur(data.kpis.currentMonthExpenses || 0)}
 					</p>
 					<p
-						class="mt-1 max-w-[150px] truncate text-xs font-medium text-slate-500 dark:text-slate-400"
+						class="mt-1 max-w-[150px] truncate text-xs font-medium text-ink-tertiary dark:text-ink-subtle"
 					>
 						Største post: {data.kpis.topCategoryName || 'Ingen'}
 					</p>
 				</a>
 
 				<div
-					class="flex w-[85vw] flex-shrink-0 snap-center items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800"
+					class="flex w-[85vw] flex-shrink-0 snap-center items-center gap-4 rounded-2xl border border-border-light bg-white p-5 shadow-sm md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800"
 				>
 					<div
 						class="h-14 w-14 shrink-0 rounded-full shadow-inner"
 						style="background: conic-gradient(#6366f1 0% {wishVsBuyPct}%, #cbd5e1 {wishVsBuyPct}% 100%);"
 					></div>
 					<div class="flex flex-col justify-center">
-						<p class="mb-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+						<p class="mb-1.5 text-[10px] font-bold tracking-widest text-ink-subtle uppercase">
 							Økonomisk Tyngde
 						</p>
 						<div
 							class="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-300"
 						>
-							<span class="h-2 w-2 rounded-full bg-indigo-500"></span> Drømme ({Math.round(
+							<span class="h-2 w-2 rounded-full bg-accent"></span> Drømme ({Math.round(
 								wishVsBuyPct
 							)}%)
 						</div>
@@ -516,14 +516,14 @@
 				</div>
 
 				<div
-					class="flex w-[85vw] flex-shrink-0 snap-center items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800"
+					class="flex w-[85vw] flex-shrink-0 snap-center items-center gap-4 rounded-2xl border border-border-light bg-white p-5 shadow-sm md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800"
 				>
 					<div
 						class="h-14 w-14 shrink-0 rounded-full shadow-inner"
 						style="background: conic-gradient(#8b5cf6 0% {sharedPct}%, #f43f5e {sharedPct}% 100%);"
 					></div>
 					<div class="flex flex-col justify-center">
-						<p class="mb-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+						<p class="mb-1.5 text-[10px] font-bold tracking-widest text-ink-subtle uppercase">
 							Drømme-fordeling
 						</p>
 						<div
@@ -536,60 +536,60 @@
 						<div
 							class="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-300"
 						>
-							<span class="h-2 w-2 rounded-full bg-rose-500"></span> Ego ({100 -
+							<span class="h-2 w-2 rounded-full bg-pink"></span> Ego ({100 -
 								Math.round(sharedPct)}%)
 						</div>
 					</div>
 				</div>
 
 				<div
-					class="flex w-[85vw] flex-shrink-0 snap-center items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800"
+					class="flex w-[85vw] flex-shrink-0 snap-center items-center gap-4 rounded-2xl border border-border-light bg-white p-5 shadow-sm md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800"
 				>
 					<div
 						class="h-14 w-14 shrink-0 rounded-full shadow-inner"
 						style="background: conic-gradient(#10b981 0% {buySharedPct}%, #f59e0b {buySharedPct}% 100%);"
 					></div>
 					<div class="flex flex-col justify-center">
-						<p class="mb-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+						<p class="mb-1.5 text-[10px] font-bold tracking-widest text-ink-subtle uppercase">
 							Forbrugs-fordeling
 						</p>
 						<div
 							class="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-300"
 						>
-							<span class="h-2 w-2 rounded-full bg-emerald-500"></span> Fælles ({Math.round(
+							<span class="h-2 w-2 rounded-full bg-accent"></span> Fælles ({Math.round(
 								buySharedPct
 							)}%)
 						</div>
 						<div
 							class="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-300"
 						>
-							<span class="h-2 w-2 rounded-full bg-amber-500"></span> Ego ({100 -
+							<span class="h-2 w-2 rounded-full bg-pink-bg0"></span> Ego ({100 -
 								Math.round(buySharedPct)}%)
 						</div>
 					</div>
 				</div>
 
 				<div
-					class="flex w-[85vw] flex-shrink-0 snap-center flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-sm md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800"
+					class="flex w-[85vw] flex-shrink-0 snap-center flex-col justify-between rounded-2xl border border-border-light bg-white p-5 shadow-sm md:w-auto md:p-6 dark:border-white/5 dark:bg-slate-800"
 				>
 					<div class="mb-2 md:mb-0">
-						<p class="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+						<p class="text-[10px] font-bold tracking-widest text-ink-subtle uppercase">
 							Største Drømmer
 						</p>
 						<p class="text-sm font-bold text-slate-800 dark:text-white">
 							{data.kpis.topDreamer.name}
-							<span class="ml-1 text-xs font-normal text-slate-500 dark:text-slate-400"
+							<span class="ml-1 text-xs font-normal text-ink-tertiary dark:text-ink-subtle"
 								>({formatCur(data.kpis.topDreamer.amount)})</span
 							>
 						</p>
 					</div>
 					<div>
-						<p class="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+						<p class="text-[10px] font-bold tracking-widest text-ink-subtle uppercase">
 							Største Forbruger
 						</p>
 						<p class="text-sm font-bold text-slate-800 dark:text-white">
 							{data.kpis.topSpender.name}
-							<span class="ml-1 text-xs font-normal text-slate-500 dark:text-slate-400"
+							<span class="ml-1 text-xs font-normal text-ink-tertiary dark:text-ink-subtle"
 								>({formatCur(data.kpis.topSpender.amount)})</span
 							>
 						</p>
@@ -598,14 +598,14 @@
 
 				{#if data.kpis.cooldownGain !== undefined}
 					<div
-						class="relative flex w-[85vw] flex-shrink-0 snap-center flex-col justify-center overflow-hidden rounded-2xl border border-emerald-100 bg-white bg-gradient-to-br from-white to-emerald-50/50 p-5 shadow-sm md:w-auto md:p-6 dark:bg-slate-800"
+						class="relative flex w-[85vw] flex-shrink-0 snap-center flex-col justify-center overflow-hidden rounded-2xl border border-accent-border bg-white bg-gradient-to-br from-card-light to-accent-bg/50 p-5 shadow-sm md:w-auto md:p-6 dark:bg-slate-800"
 					>
-						<div class="absolute -right-4 -bottom-4 rotate-12 text-7xl text-emerald-500/10">🥶</div>
-						<p class="mb-1 text-[10px] font-bold tracking-widest text-emerald-500 uppercase">
+						<div class="absolute -right-4 -bottom-4 rotate-12 text-7xl text-accent/10">🥶</div>
+						<p class="mb-1 text-[10px] font-bold tracking-widest text-accent uppercase">
 							Afkølings-gevinst
 						</p>
-						<p class="text-3xl font-black text-emerald-600">{formatCur(data.kpis.cooldownGain)}</p>
-						<p class="relative z-10 mt-1 text-xs font-medium text-emerald-600/70">
+						<p class="text-3xl font-black text-accent">{formatCur(data.kpis.cooldownGain)}</p>
+						<p class="relative z-10 mt-1 text-xs font-medium text-accent/70">
 							Sparet ved at "sove på det"
 						</p>
 					</div>
@@ -616,9 +616,9 @@
 		<main class="grid grid-cols-1 gap-6 md:gap-8 xl:grid-cols-3">
 			<section class="order-first xl:col-span-1">
 				<div
-					class="sticky top-4 z-10 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm md:top-6 md:p-6 dark:border-white/5 dark:bg-slate-800"
+					class="sticky top-4 z-10 rounded-2xl border border-border-light bg-white p-5 shadow-sm md:top-6 md:p-6 dark:border-white/5 dark:bg-slate-800"
 				>
-					<h2 class="mb-4 border-b border-slate-100 pb-2 text-lg font-bold dark:border-white/5">
+					<h2 class="mb-4 border-b border-border-light pb-2 text-lg font-bold dark:border-white/5">
 						Kast i Brønden
 					</h2>
 
@@ -632,7 +632,7 @@
 						<div>
 							<label
 								for="title"
-								class="mb-1 block text-[11px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+								class="mb-1 block text-[11px] font-bold tracking-wider text-ink-tertiary uppercase dark:text-ink-subtle"
 								>Hvad drømmer du om?</label
 							>
 							<input
@@ -640,21 +640,21 @@
 								id="title"
 								name="title"
 								required
-								class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-base font-medium transition-all outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-800 dark:bg-slate-900/50 dark:focus:bg-slate-900"
+								class="w-full rounded-lg border border-border-light bg-surface-light px-3 py-2.5 text-base font-medium transition-all outline-none focus:bg-white focus:ring-2 focus:ring-accent dark:border-white/10 dark:bg-slate-800 dark:bg-bg-root/50 dark:focus:bg-bg-root"
 							/>
 						</div>
 
 						<div>
 							<label
 								for="url"
-								class="mb-1 block text-[11px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+								class="mb-1 block text-[11px] font-bold tracking-wider text-ink-tertiary uppercase dark:text-ink-subtle"
 								>Link (valgfrit)</label
 							>
 							<input
 								type="url"
 								id="url"
 								name="url"
-								class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm transition-all outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-800 dark:bg-slate-900/50 dark:focus:bg-slate-900"
+								class="w-full rounded-lg border border-border-light bg-surface-light px-3 py-2.5 text-sm transition-all outline-none focus:bg-white focus:ring-2 focus:ring-accent dark:border-white/10 dark:bg-slate-800 dark:bg-bg-root/50 dark:focus:bg-bg-root"
 								placeholder="https://..."
 							/>
 						</div>
@@ -662,7 +662,7 @@
 						<div>
 							<label
 								for="price"
-								class="mb-1 block text-[11px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+								class="mb-1 block text-[11px] font-bold tracking-wider text-ink-tertiary uppercase dark:text-ink-subtle"
 								>Pris (DKK)</label
 							>
 							<input
@@ -671,7 +671,7 @@
 								id="price"
 								name="price"
 								required
-								class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-lg font-bold transition-all outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-800 dark:bg-slate-900/50 dark:focus:bg-slate-900"
+								class="w-full rounded-lg border border-border-light bg-surface-light px-3 py-2.5 text-lg font-bold transition-all outline-none focus:bg-white focus:ring-2 focus:ring-accent dark:border-white/10 dark:bg-slate-800 dark:bg-bg-root/50 dark:focus:bg-bg-root"
 								placeholder="0"
 							/>
 						</div>
@@ -681,7 +681,7 @@
 								<div class="mb-1 flex items-center justify-between">
 									<label
 										for="categoryId"
-										class="block text-[11px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+										class="block text-[11px] font-bold tracking-wider text-ink-tertiary uppercase dark:text-ink-subtle"
 										>Kategori</label
 									>
 									<button
@@ -691,7 +691,7 @@
 											editCatId = null;
 											isCreatingCat = false;
 										}}
-										class="rounded px-1 text-[10px] font-bold text-indigo-500 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
+										class="rounded px-1 text-[10px] font-bold text-accent transition-colors hover:bg-accent-bg hover:text-accent"
 										>✎ Ret</button
 									>
 								</div>
@@ -699,7 +699,7 @@
 									id="categoryId"
 									name="categoryId"
 									required
-									class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-900/50"
+									class="w-full rounded-lg border border-border-light bg-surface-light px-3 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-accent dark:border-white/10 dark:bg-bg-root/50"
 								>
 									{#each data.categories as category}
 										<option value={category.id}>{category.icon} {category.name}</option>
@@ -709,14 +709,14 @@
 							<div>
 								<label
 									for="expenseType"
-									class="mb-1 block text-[11px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+									class="mb-1 block text-[11px] font-bold tracking-wider text-ink-tertiary uppercase dark:text-ink-subtle"
 									>Hvem?</label
 								>
 								<select
 									id="expenseType"
 									name="expenseType"
 									required
-									class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-900/50"
+									class="w-full rounded-lg border border-border-light bg-surface-light px-3 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-accent dark:border-white/10 dark:bg-bg-root/50"
 								>
 									<option value="SHARED">Fælles</option>
 									<option value="PERSONAL">Ego</option>
@@ -725,11 +725,11 @@
 						</div>
 
 						<div
-							class="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-slate-900/50"
+							class="mt-2 rounded-xl border border-border-light bg-surface-light p-3 dark:border-white/10 dark:bg-bg-root/50"
 						>
 							<input type="hidden" name="desireLevel" value={newDesireLevel} />
 							<label
-								class="mb-2 block text-center text-[11px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+								class="mb-2 block text-center text-[11px] font-bold tracking-wider text-ink-tertiary uppercase dark:text-ink-subtle"
 								>Behovsgrad</label
 							>
 							<div class="flex justify-center gap-2">
@@ -746,7 +746,7 @@
 								{/each}
 							</div>
 							<p
-								class="mt-2 h-4 text-center text-[10px] font-medium text-slate-500 dark:text-slate-400"
+								class="mt-2 h-4 text-center text-[10px] font-medium text-ink-tertiary dark:text-ink-subtle"
 							>
 								{desireLabels[newDesireLevel - 1]}
 							</p>
@@ -757,7 +757,7 @@
 								type="submit"
 								name="targetStatus"
 								value="WISH"
-								class="w-full rounded-xl bg-indigo-600 py-3.5 text-base font-bold text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-[0.98]"
+								class="w-full rounded-xl bg-accent py-3.5 text-base font-bold text-white shadow-sm transition-all hover:bg-accent-hover active:scale-[0.98]"
 							>
 								✨ Gem i Brønden
 							</button>
@@ -765,7 +765,7 @@
 								type="submit"
 								name="targetStatus"
 								value="PURCHASED"
-								class="w-full rounded-xl bg-slate-100 py-3 text-sm font-bold text-slate-600 transition-all hover:bg-emerald-100 hover:text-emerald-700 active:scale-[0.98] dark:bg-slate-700 dark:text-slate-300"
+								class="w-full rounded-xl bg-slate-100 py-3 text-sm font-bold text-slate-600 transition-all hover:bg-accent-bg hover:text-accent active:scale-[0.98] dark:bg-slate-700 dark:text-slate-300"
 							>
 								💸 Registrer direkte som købt
 							</button>
@@ -778,14 +778,14 @@
 				<div>
 					<h2 class="mb-4 flex items-center gap-2 text-xl font-bold text-slate-800 dark:text-white">
 						✨ I Brønden <span
-							class="rounded-full bg-indigo-100 px-2 py-0.5 text-sm font-medium text-indigo-700"
+							class="rounded-full bg-accent-bg px-2 py-0.5 text-sm font-medium text-accent"
 							>{data.wishes.length}</span
 						>
 					</h2>
 
 					{#if data.wishes.length === 0}
 						<div
-							class="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-500 dark:border-white/10 dark:bg-slate-800 dark:text-slate-400"
+							class="rounded-2xl border border-dashed border-border-light bg-white p-8 text-center text-ink-tertiary dark:border-white/10 dark:bg-slate-800 dark:text-ink-subtle"
 						>
 							Brønden er tom.
 						</div>
@@ -798,7 +798,7 @@
 							{@const daysLeft = Math.ceil(7 - itemDaysOld)}
 
 							<div
-								class="group relative flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-colors hover:border-indigo-300 dark:border-white/10 dark:bg-slate-800"
+								class="group relative flex flex-col rounded-2xl border border-border-light bg-white p-5 shadow-sm transition-colors hover:border-accent/50 dark:border-white/10 dark:bg-slate-800"
 							>
 								<div
 									class="absolute -top-3 -right-3 z-10 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
@@ -828,7 +828,7 @@
 												<select
 													name="categoryId"
 													onchange={(e) => e.currentTarget.form?.requestSubmit()}
-													class="cursor-pointer appearance-none border-none bg-transparent p-0 pr-3.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-colors outline-none group-hover/cat:text-indigo-500 focus:ring-0"
+													class="cursor-pointer appearance-none border-none bg-transparent p-0 pr-3.5 text-[10px] font-bold tracking-widest text-ink-subtle uppercase transition-colors outline-none group-hover/cat:text-accent focus:ring-0"
 												>
 													{#each data.categories as cat}
 														<option value={cat.id} selected={cat.id === item.categoryId}>
@@ -838,7 +838,7 @@
 													{/each}
 												</select>
 												<span
-													class="pointer-events-none absolute right-0 text-[8px] text-slate-300 transition-colors group-hover/cat:text-indigo-400"
+													class="pointer-events-none absolute right-0 text-[8px] text-slate-300 transition-colors group-hover/cat:text-accent"
 													>▼</span
 												>
 											</div>
@@ -857,8 +857,8 @@
 													onchange={(e) => e.currentTarget.form?.requestSubmit()}
 													class="cursor-pointer appearance-none rounded-md border-none px-2 py-0.5 pr-4 text-[10px] font-bold transition-colors outline-none focus:ring-0 {item.expenseType ===
 													'SHARED'
-														? 'bg-violet-100 text-violet-700'
-														: 'bg-rose-100 text-rose-700'}"
+														? 'bg-accent-bg text-accent'
+														: 'bg-pink-bg text-pink'}"
 												>
 													<option value="SHARED" selected={item.expenseType === 'SHARED'}
 														>FÆLLES</option
@@ -870,20 +870,20 @@
 												<span
 													class="pointer-events-none absolute right-1 text-[8px] {item.expenseType ===
 													'SHARED'
-														? 'text-violet-400'
-														: 'text-rose-400'} opacity-50 group-hover/expense:opacity-100">▼</span
+														? 'text-accent-light'
+														: 'text-pink'} opacity-50 group-hover/expense:opacity-100">▼</span
 												>
 											</div>
 										</form>
 									</div>
 
-									<div class="flex gap-1 rounded-lg bg-slate-50 p-1 dark:bg-slate-900/50">
+									<div class="flex gap-1 rounded-lg bg-surface-light p-1 dark:bg-bg-root/50">
 										<form method="POST" action="?/rateItem" use:enhance>
 											<input type="hidden" name="itemId" value={item.id} />
 											<button
 												name="value"
 												value="1"
-												class="flex items-center gap-1 rounded px-2 py-1.5 text-slate-400 transition-all hover:bg-green-100 hover:text-green-600 active:scale-95 md:py-1"
+												class="flex items-center gap-1 rounded px-2 py-1.5 text-ink-subtle transition-all hover:bg-green-100 hover:text-green-600 active:scale-95 md:py-1"
 											>
 												👍 <span class="text-xs font-bold"
 													>{item.ratings.filter((r) => r.value === 1).length}</span
@@ -895,7 +895,7 @@
 											<button
 												name="value"
 												value="-1"
-												class="flex items-center gap-1 rounded px-2 py-1.5 text-slate-400 transition-all hover:bg-red-100 hover:text-red-600 active:scale-95 md:py-1"
+												class="flex items-center gap-1 rounded px-2 py-1.5 text-ink-subtle transition-all hover:bg-red-100 hover:text-red-600 active:scale-95 md:py-1"
 											>
 												👎 <span class="text-xs font-bold"
 													>{item.ratings.filter((r) => r.value === -1).length}</span
@@ -913,13 +913,13 @@
 
 								<div class="mt-1.5 mb-1 flex gap-0.5">
 									{#each Array(item.desireLevel || 3) as _}
-										<span class="text-[10px] text-amber-400">⭐</span>
+										<span class="text-[10px] text-pink">⭐</span>
 									{/each}
 								</div>
 
 								<div class="mt-1 mb-2 flex items-center justify-between">
 									<div
-										class="flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400"
+										class="flex items-center gap-1 text-[11px] font-medium text-ink-tertiary dark:text-ink-subtle"
 									>
 										Af
 										<form
@@ -942,12 +942,12 @@
 												{/each}
 											</select>
 											<span
-												class="pointer-events-none absolute top-1 right-1 text-[8px] text-slate-400 group-hover/user:text-indigo-500"
+												class="pointer-events-none absolute top-1 right-1 text-[8px] text-ink-subtle group-hover/user:text-accent"
 												>▼</span
 											>
 										</form>
 									</div>
-									<p class="text-[10px] font-medium text-slate-400">
+									<p class="text-[10px] font-medium text-ink-subtle">
 										Oprettet: {formatDate(item.createdAt)}
 									</p>
 								</div>
@@ -956,13 +956,13 @@
 									{formatCur(item.price)}
 								</p>
 
-								<div class="mt-auto flex gap-2 border-t border-slate-100 pt-4 dark:border-white/5">
+								<div class="mt-auto flex gap-2 border-t border-border-light pt-4 dark:border-white/5">
 									{#if item.url}
 										<a
 											href={item.url}
 											target="_blank"
 											rel="noopener noreferrer"
-											class="flex-shrink-0 rounded-xl bg-slate-50 p-3 text-center text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600 md:rounded-lg md:p-2 dark:bg-slate-900/50"
+											class="flex-shrink-0 rounded-xl bg-surface-light p-3 text-center text-ink-subtle transition-colors hover:bg-accent-bg hover:text-accent md:rounded-lg md:p-2 dark:bg-bg-root/50"
 											>🔗</a
 										>
 									{/if}
@@ -992,8 +992,8 @@
 										<button
 											type={isLocked ? 'button' : 'submit'}
 											class="w-full rounded-xl py-3 text-sm font-bold transition-all md:rounded-lg md:py-2 {isLocked
-												? 'cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400 dark:border-white/10 dark:bg-slate-700'
-												: 'border border-emerald-100 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white active:scale-[0.98]'}"
+												? 'cursor-not-allowed border border-border-light bg-slate-100 text-ink-subtle dark:border-white/10 dark:bg-slate-700'
+												: 'border border-accent-border bg-accent-bg text-accent hover:bg-accent hover:text-white active:scale-[0.98]'}"
 										>
 											{#if isLocked}
 												🔒 Låst i {daysLeft} {daysLeft === 1 ? 'dag' : 'dage'}
@@ -1010,7 +1010,7 @@
 
 				<div class="opacity-90">
 					<h2
-						class="mb-4 flex items-center gap-2 text-lg font-bold text-slate-500 dark:text-slate-400"
+						class="mb-4 flex items-center gap-2 text-lg font-bold text-ink-tertiary dark:text-ink-subtle"
 					>
 						💸 Realiseret (Købt) <span
 							class="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600 dark:text-slate-300"
@@ -1021,7 +1021,7 @@
 					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 						{#each data.purchases as item}
 							<div
-								class="group relative flex flex-col rounded-2xl border border-slate-200 bg-slate-100 p-4 md:p-5 dark:border-white/10 dark:bg-slate-700/70"
+								class="group relative flex flex-col rounded-2xl border border-border-light bg-slate-100 p-4 md:p-5 dark:border-white/10 dark:bg-slate-700/70"
 							>
 								<div
 									class="absolute -top-2 -right-2 z-10 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
@@ -1036,7 +1036,7 @@
 									>
 										<input type="hidden" name="itemId" value={item.id} />
 										<button
-											class="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] text-slate-400 shadow-sm transition-colors hover:bg-red-500 hover:text-white dark:border-white/10 dark:bg-slate-800"
+											class="flex h-7 w-7 items-center justify-center rounded-full border border-border-light bg-white text-[10px] text-ink-subtle shadow-sm transition-colors hover:bg-red-500 hover:text-white dark:border-white/10 dark:bg-slate-800"
 											title="Slet">✕</button
 										>
 									</form>
@@ -1055,7 +1055,7 @@
 												<select
 													name="expenseType"
 													onchange={(e) => e.currentTarget.form?.requestSubmit()}
-													class="cursor-pointer appearance-none rounded border border-slate-200 bg-white px-1.5 py-0.5 pr-3.5 text-[9px] font-bold text-slate-500 transition-colors outline-none focus:ring-0 dark:border-white/10 dark:bg-slate-800 dark:text-slate-400"
+													class="cursor-pointer appearance-none rounded border border-border-light bg-white px-1.5 py-0.5 pr-3.5 text-[9px] font-bold text-ink-tertiary transition-colors outline-none focus:ring-0 dark:border-white/10 dark:bg-slate-800 dark:text-ink-subtle"
 												>
 													<option value="SHARED" selected={item.expenseType === 'SHARED'}
 														>FÆLLES</option
@@ -1065,7 +1065,7 @@
 													>
 												</select>
 												<span
-													class="pointer-events-none absolute right-1 text-[8px] text-slate-300 opacity-50 group-hover/expense:text-indigo-400 group-hover/expense:opacity-100"
+													class="pointer-events-none absolute right-1 text-[8px] text-slate-300 opacity-50 group-hover/expense:text-accent group-hover/expense:opacity-100"
 													>▼</span
 												>
 											</div>
@@ -1077,7 +1077,7 @@
 												<select
 													name="categoryId"
 													onchange={(e) => e.currentTarget.form?.requestSubmit()}
-													class="cursor-pointer appearance-none border-none bg-transparent p-0 pr-3.5 text-[9px] font-bold tracking-widest text-slate-400 uppercase transition-colors outline-none group-hover/cat:text-indigo-500 focus:ring-0"
+													class="cursor-pointer appearance-none border-none bg-transparent p-0 pr-3.5 text-[9px] font-bold tracking-widest text-ink-subtle uppercase transition-colors outline-none group-hover/cat:text-accent focus:ring-0"
 												>
 													{#each data.categories as cat}
 														<option value={cat.id} selected={cat.id === item.categoryId}>
@@ -1087,24 +1087,24 @@
 													{/each}
 												</select>
 												<span
-													class="pointer-events-none absolute right-0 text-[8px] text-slate-300 transition-colors group-hover/cat:text-indigo-400"
+													class="pointer-events-none absolute right-0 text-[8px] text-slate-300 transition-colors group-hover/cat:text-accent"
 													>▼</span
 												>
 											</div>
 										</form>
 									</div>
 
-									<p class="text-sm font-bold text-slate-400">{formatCur(item.price)}</p>
+									<p class="text-sm font-bold text-ink-subtle">{formatCur(item.price)}</p>
 								</div>
 
 								<h3
-									class="pr-4 text-base font-semibold text-slate-500 line-through decoration-slate-400/50 dark:text-slate-400"
+									class="pr-4 text-base font-semibold text-ink-tertiary line-through decoration-ink-subtle/50 dark:text-ink-subtle"
 								>
 									{item.title}
 								</h3>
 
 								<div class="mt-1 mb-2 flex items-center justify-between">
-									<div class="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+									<div class="flex items-center gap-1 text-[10px] font-medium text-ink-subtle">
 										Af
 										<form
 											method="POST"
@@ -1116,7 +1116,7 @@
 											<select
 												name="userId"
 												onchange={(e) => e.currentTarget.form?.requestSubmit()}
-												class="cursor-pointer appearance-none rounded border border-slate-200 bg-white px-1.5 py-0.5 pr-4 text-[10px] font-bold text-slate-600 transition-colors outline-none hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-700/50"
+												class="cursor-pointer appearance-none rounded border border-border-light bg-white px-1.5 py-0.5 pr-4 text-[10px] font-bold text-slate-600 transition-colors outline-none hover:bg-surface-light dark:border-white/10 dark:bg-slate-800 dark:bg-bg-root/50 dark:text-slate-300 dark:hover:bg-slate-700/50"
 											>
 												{#each data.users as u}
 													<option value={u.id} selected={u.id === item.userId}>
@@ -1126,12 +1126,12 @@
 												{/each}
 											</select>
 											<span
-												class="pointer-events-none absolute top-1 right-1 text-[8px] text-slate-400 group-hover/user:text-indigo-500"
+												class="pointer-events-none absolute top-1 right-1 text-[8px] text-ink-subtle group-hover/user:text-accent"
 												>▼</span
 											>
 										</form>
 									</div>
-									<p class="text-[10px] font-medium text-slate-400">
+									<p class="text-[10px] font-medium text-ink-subtle">
 										Købt: {item.purchasedAt
 											? formatDate(item.purchasedAt)
 											: formatDate(item.createdAt)}
@@ -1141,7 +1141,7 @@
 								<form method="POST" action="?/toggleStatus" use:enhance class="mt-4">
 									<input type="hidden" name="itemId" value={item.id} />
 									<button
-										class="py-1 text-[11px] font-bold text-indigo-500 underline decoration-indigo-200 underline-offset-2 transition-colors hover:text-indigo-700 active:opacity-70"
+										class="py-1 text-[11px] font-bold text-accent underline decoration-indigo-200 underline-offset-2 transition-colors hover:text-accent active:opacity-70"
 									>
 										Fortryd køb (Send til brønd)
 									</button>
