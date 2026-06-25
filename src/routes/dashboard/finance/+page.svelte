@@ -3,7 +3,6 @@
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
 	import { chart } from '$lib/actions/apexcharts';
-	import { onMount } from 'svelte';
 	import { marked } from 'marked';
 	import DOMPurify from 'isomorphic-dompurify';
 
@@ -249,31 +248,13 @@
 			new Date(date)
 		);
 
-	onMount(() => {
-		const updateThemes = () => {
+	$effect(() => {
+		const observer = new MutationObserver(() => {
 			isDarkMode = document.documentElement.classList.contains('dark');
-			const mode = isDarkMode ? 'dark' : 'light';
-			const gridColor = isDarkMode ? '#334155' : '#e2e8f0';
-			const strokeColor = isDarkMode ? '#1e293b' : '#ffffff';
-
-			donutOptions.theme.mode = mode;
-			donutOptions.stroke.colors = [strokeColor];
-			barOptions.theme.mode = mode;
-			barOptions.grid = { borderColor: gridColor, strokeDashArray: 4 };
-			cumulativeOptions.theme.mode = mode;
-			cumulativeOptions.grid = { borderColor: gridColor, strokeDashArray: 4 };
-			dayOfWeekOptions.theme.mode = mode;
-		};
-
-		const observer = new MutationObserver((mutations) => {
-			mutations.forEach((mutation) => {
-				if (mutation.attributeName === 'class') {
-					updateThemes();
-				}
-			});
 		});
-		observer.observe(document.documentElement, { attributes: true });
-		updateThemes();
+		observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+		isDarkMode = document.documentElement.classList.contains('dark');
+		return () => observer.disconnect();
 	});
 
 	// Date Shortcuts
