@@ -13,7 +13,11 @@
 	let isDarkMode = $state(false);
 	let isGenerating = $state(false);
 
-	// ApexCharts configs
+	function getThemeColor(variableName: string, fallback: string): string {
+		if (typeof window === 'undefined') return fallback;
+		return getComputedStyle(document.documentElement).getPropertyValue(variableName).trim() || fallback;
+	}
+
 	// ApexCharts configs
 	let donutOptions = $derived({
 		chart: {
@@ -61,7 +65,7 @@
 				}
 			}
 		},
-		stroke: { show: true, colors: [isDarkMode ? '#1e293b' : '#ffffff'], width: 2 },
+		stroke: { show: true, colors: [isDarkMode ? getThemeColor('--color-slate-800', '#181c18') : '#ffffff'], width: 2 },
 		theme: { mode: isDarkMode ? 'dark' : 'light' }
 	});
 
@@ -84,7 +88,7 @@
 		},
 		series: data.charts.bar.series,
 		xaxis: { categories: data.charts.bar.labels },
-		colors: ['#6366f1'],
+		colors: [getThemeColor('--color-indigo-500', '#6c5ce7')],
 		dataLabels: { enabled: false },
 		tooltip: {
 			y: {
@@ -93,7 +97,7 @@
 				}
 			}
 		},
-		grid: { borderColor: isDarkMode ? '#334155' : '#e2e8f0', strokeDashArray: 4 },
+		grid: { borderColor: isDarkMode ? getThemeColor('--color-slate-700', '#2a2f29') : getThemeColor('--color-slate-200', '#e8eae5'), strokeDashArray: 4 },
 		theme: { mode: isDarkMode ? 'dark' : 'light' }
 	});
 
@@ -116,7 +120,7 @@
 		},
 		series: data.charts.cumulative.series,
 		xaxis: { categories: data.charts.cumulative.labels, type: 'datetime' },
-		colors: ['#10b981'],
+		colors: [getThemeColor('--color-emerald-500', '#10b981')],
 		fill: {
 			type: 'gradient',
 			gradient: { shadeIntensity: 1, opacityFrom: 0.5, opacityTo: 0.1, stops: [0, 90, 100] }
@@ -131,7 +135,7 @@
 				}
 			}
 		},
-		grid: { borderColor: isDarkMode ? '#334155' : '#e2e8f0', strokeDashArray: 4 },
+		grid: { borderColor: isDarkMode ? getThemeColor('--color-slate-700', '#2a2f29') : getThemeColor('--color-slate-200', '#e8eae5'), strokeDashArray: 4 },
 		theme: { mode: isDarkMode ? 'dark' : 'light' }
 	});
 
@@ -139,7 +143,7 @@
 		chart: { type: 'radar', height: 350, toolbar: { show: false }, background: 'transparent' },
 		series: data.charts.dayOfWeek.series,
 		labels: data.charts.dayOfWeek.labels,
-		colors: ['#f43f5e'],
+		colors: [getThemeColor('--color-rose-500', '#e8879e')],
 		stroke: { width: 2 },
 		fill: { opacity: 0.2 },
 		markers: { size: 4 },

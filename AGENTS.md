@@ -1,24 +1,32 @@
-# WishBuy — Antigravity Agent Guidelines
+# WishBuy / Hostrup Hub — Agent Guidelines
 
-This is a wishlist application built with SvelteKit, Prisma, and PostgreSQL.
+**LÆS `CLAUDE.md` INDEN DU SKRIVER KOD.** Det er den autoritative guide med arkitekturregler, tema-konventioner og hvad du IKKE må gøre.
 
-## Architecture & Database
+---
 
-- **Framework**: SvelteKit (Vite/Node.js).
-- **Database**: PostgreSQL database.
-- **ORM**: Prisma. The Prisma schema is located in `prisma/schema.prisma`.
-- **Authentication**: Proxied by Authelia, passing down the user through the `Remote-User` header (defined in `AUTH_HEADER` env).
+## Framework & Commands
 
-## Commands & Actions
+- **Framework**: SvelteKit (Svelte 5), Tailwind CSS v4, Prisma + PostgreSQL
+- **Dev server**: `npm run dev`
+- **Lint**: `npm run lint`
+- **Format**: `npm run format`
+- **Type check**: `npm run check`
+- **Build verification**: `npm run build`
+- **DB migration**: `npx prisma db push` (dev) / automatisk i `deploy.sh`
+- **Deploy**: `./deploy.sh "commit message"` — kører lint → build → prisma push → docker rebuild
 
-- **Development**: `npm run dev` starts the SvelteKit local dev server.
-- **Lint & Format**: `npm run lint` and `npm run format`.
-- **Database Migration**: `npx prisma db push` or `npx prisma migrate dev` to sync schema modifications.
-- **Build Verification**: `npm run build` to verify production compilation.
-- **Deploy**: Run `./deploy.sh` to update Prisma client, push migrations, and rebuild the container.
+## Kritiske regler (uddybet i CLAUDE.md)
 
-## Global Behavior & Project Rules
+1. **Ingen hardkodede hex-farver** — brug Tailwind-klasser eller `var(--color-*)` CSS custom properties
+2. **Ingen mutation af `$derived`** — brug `$effect` til side-effekter, `{#key ...}` til re-render
+3. **Amber er pink** — `amber-500`+ er omkortet til Editorial Pink i temaet. Brug `rose-*` til pink, find et alternativ til orange
+4. **Glassmorphism på alle kort** — `bg-white/80 backdrop-blur-xl border-slate-200/50 dark:bg-slate-800/80`
+5. **Mørke baggrunde via tema** — `dark:bg-slate-950`, ALDRIG `dark:bg-[#xxxxxx]`
+6. **Ingen direkte SQL** — brug altid Prisma
 
-1. **No Manual Logs**: Do not create or read manual log files to track state. Rely on Git history (`git log -n 5`, `git diff`) and the current conversational context.
-2. **Local Skills**: Use the local skills in `.agents/skills/` (like `/build-check`, `/db-migrate`, or `/deploy`) when appropriate. Keep tasks atomic.
-3. **Self-Verification**: Always verify changes by running `npm run build` or deploying via `./deploy.sh` before reporting back.
+## Global Behavior
+
+1. **No Manual Logs**: Brug `git log -n 5` og `git diff` til kontekst — aldrig manuelle logfiler
+2. **Self-Verification**: Kør `npm run build` og `npm run lint` inden du rapporterer opgaven som done
+3. **Strict Working Directory**: Opret ALDRIG filer uden for `/hostrup/docker/projects/wishbuy/`
+4. **Backlog**: Se `BACKLOG.md` for prioriterede opgaver. Sprint 0 (tema-fejl) har højeste prioritet
