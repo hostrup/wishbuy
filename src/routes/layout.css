@@ -3,71 +3,93 @@
 @plugin '@tailwindcss/forms';
 
 /* ═══════════════════════════════════════════
-   Hostrup Hub 2026 — Design System
-   Deep Forest Green + Electric Indigo + Editorial Pink
+   Hostrup Hub 2026 — Central Theme
+   Overrides Tailwind's built-in colors so ALL
+   existing classes use the new palette.
    ═══════════════════════════════════════════ */
 
 @theme {
-	/* ── Light Mode Surfaces ── */
-	--color-surface-light: #f5f6f2;
-	--color-card-light: #ffffff;
-	--color-card-hover-light: #f9faf7;
+	/* ── Slate → Surface/Text palette ── */
+	--color-slate-50: #f5f6f2;   /* light page bg */
+	--color-slate-100: #ffffff;  /* light card */
+	--color-slate-200: #e8eae5;  /* light border */
+	--color-slate-300: #d0d3ce;  /* light divider */
+	--color-slate-400: #a0a5a0;  /* subtle text */
+	--color-slate-500: #7a7f79;  /* tertiary text */
+	--color-slate-600: #4a4f49;  /* secondary text */
+	--color-slate-700: #2a2f29;  /* dark secondary text */
+	--color-slate-800: #181c18;  /* dark card bg */
+	--color-slate-900: #0d110d;  /* dark panel bg */
+	--color-slate-950: #080c08;  /* dark root bg */
 
-	/* ── Light Mode Text ── */
-	--color-ink: #1a1d19;
-	--color-ink-secondary: #4a4f49;
-	--color-ink-tertiary: #7a7f79;
-	--color-ink-subtle: #a0a5a0;
+	/* ── Indigo → Electric Indigo ⚡ ── */
+	--color-indigo-50: #f3f0ff;
+	--color-indigo-100: #e8e3ff;
+	--color-indigo-200: #cec4ff;
+	--color-indigo-300: #a59aff;
+	--color-indigo-400: #8b7fff;
+	--color-indigo-500: #6c5ce7;
+	--color-indigo-600: #5a4bd4;
+	--color-indigo-700: #4a3db5;
+	--color-indigo-800: #3d3296;
+	--color-indigo-900: #322a7a;
+	--color-indigo-950: #1e1850;
 
-	/* ── Dark Mode Surfaces (Deep Forest Green) ── */
-	--color-bg-root: #080c08;
-	--color-bg-panel: #0d110d;
-	--color-bg-surface: #121612;
-	--color-bg-card: #181c18;
-	--color-bg-card-hover: #202420;
+	/* ── Emerald → Success (keep green for finance) ── */
+	--color-emerald-50: #ecfdf5;
+	--color-emerald-100: #d1fae5;
+	--color-emerald-200: #a7f3d0;
+	--color-emerald-300: #6ee7b7;
+	--color-emerald-400: #34d399;
+	--color-emerald-500: #10b981;
+	--color-emerald-600: #059669;
+	--color-emerald-700: #047857;
+	--color-emerald-800: #065f46;
+	--color-emerald-900: #064e3b;
 
-	/* ── Dark Mode Text ── */
-	--color-text-primary: #f0f2ef;
-	--color-text-secondary: #c5cac3;
-	--color-text-tertiary: #8a8f88;
-	--color-text-subtle: #5d615c;
+	/* ── Rose → Editorial Pink 🩷 ── */
+	--color-rose-50: #fdf2f4;
+	--color-rose-100: #fce7ec;
+	--color-rose-200: #f9d0da;
+	--color-rose-300: #f5a9ba;
+	--color-rose-400: #f098b0;
+	--color-rose-500: #e8879e;
+	--color-rose-600: #d47087;
+	--color-rose-700: #b85a6f;
+	--color-rose-800: #9a4b5c;
+	--color-rose-900: #7d3d4c;
 
-	/* ── Accent: Electric Indigo (AI / Interactive) ── */
-	--color-accent: #6c5ce7;
-	--color-accent-hover: #7c6ff7;
-	--color-accent-light: #a59aff;
-	--color-accent-bg: oklch(48% 0.22 288 / 0.12);
-	--color-accent-border: oklch(48% 0.22 288 / 0.25);
+	/* ── Amber → Editorial Pink (warm highlights) ── */
+	--color-amber-50: #fef9f0;
+	--color-amber-100: #fef0de;
+	--color-amber-200: #fde0c2;
+	--color-amber-300: #fcc99b;
+	--color-amber-400: #f5b87a;
+	--color-amber-500: #e8879e;  /* mapped to pink */
+	--color-amber-600: #d47087;
+	--color-amber-700: #b85a6f;
+	--color-amber-800: #9a4b5c;
+	--color-amber-900: #7d3d4c;
 
-	/* ── Punctuation: Editorial Pink ── */
-	--color-pink: #e8879e;
-	--color-pink-hover: #f098b0;
-	--color-pink-light: #f5c0cb;
-	--color-pink-bg: oklch(64% 0.15 5 / 0.10);
-	--color-pink-border: oklch(64% 0.15 5 / 0.20);
+	/* ── Sky → Indigo (gradients) ── */
+	--color-sky-300: #a59aff;
+	--color-sky-500: #6c5ce7;
 
-	/* ── Semantic ── */
-	--color-success: #10b981;
-	--color-success-bg: rgba(16, 185, 129, 0.10);
-	--color-danger: #ef4444;
-	--color-danger-bg: rgba(239, 68, 68, 0.10);
-	--color-warning: #f59e0b;
-	--color-info: #3b82f6;
+	/* ── Violet → Indigo ── */
+	--color-violet-100: #e8e3ff;
+	--color-violet-400: #8b7fff;
+	--color-violet-500: #6c5ce7;
+	--color-violet-600: #5a4bd4;
+	--color-violet-700: #4a3db5;
 
-	/* ── Borders ── */
-	--color-border-light: rgba(0,0,0,0.06);
-	--color-border-dark: rgba(255,255,255,0.06);
+	/* ── White keep as-is ── */
 }
 
-/* ── Base ── */
+/* Base styling */
 html {
-	background: var(--color-surface-light);
-	color: var(--color-ink);
 	font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 html.dark {
-	background: var(--color-bg-root);
-	color: var(--color-text-primary);
 	color-scheme: dark;
 }
