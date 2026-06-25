@@ -31,7 +31,7 @@
 </script>
 
 <svelte:head>
-	<title>Ønskebrønden</title>
+	<title>Hostrup Hub</title>
 </svelte:head>
 
 <button

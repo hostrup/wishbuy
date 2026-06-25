@@ -393,6 +393,18 @@
 			</div>
 			<div class="mt-4 flex gap-3 md:mt-0">
 				<a
+					href="/"
+					class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-md transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700"
+				>
+					← Hub
+				</a>
+				<a
+					href="/dashboard/wishes"
+					class="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-500/10 px-5 py-2.5 text-sm font-bold text-amber-700 shadow-sm transition-colors hover:bg-amber-500/20 dark:border-amber-500/30 dark:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/30"
+				>
+					<span>🎁</span> Ønsker
+				</a>
+				<a
 					href="/dashboard/import"
 					class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-500/10 px-5 py-2.5 text-sm font-bold text-emerald-700 shadow-sm transition-colors hover:bg-emerald-500/20 dark:border-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-300 dark:hover:bg-emerald-500/30"
 				>
@@ -404,12 +416,6 @@
 				>
 					<span>🏷️</span> Kategorier
 				</button>
-				<a
-					href="/"
-					class="rounded-xl border border-slate-200 bg-white/80 px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-md transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700"
-				>
-					← Brønden
-				</a>
 			</div>
 		</header>
 

@@ -103,8 +103,8 @@
 				</p>
 			</div>
 			<div class="mt-4 flex gap-3 md:mt-0">
-				<a href="/dashboard" class="rounded-xl border border-slate-200 bg-white/80 px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-md transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700">
-					← Cockpit
+				<a href="/dashboard/finance" class="rounded-xl border border-slate-200 bg-white/80 px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-md transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700">
+					← Økonomi
 				</a>
 			</div>
 		</header>
@@ -361,7 +361,7 @@
 						Importer ny fil
 					</button>
 					<a
-						href="/dashboard"
+						href="/dashboard/finance"
 						class="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-lg hover:bg-emerald-500"
 					>
 						Gå til Cockpit →
