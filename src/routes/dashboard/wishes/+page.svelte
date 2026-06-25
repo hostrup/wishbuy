@@ -493,7 +493,7 @@
 				>
 					<div
 						class="h-14 w-14 shrink-0 rounded-full shadow-inner"
-						style="background: conic-gradient(#6366f1 0% {wishVsBuyPct}%, #cbd5e1 {wishVsBuyPct}% 100%);"
+						style="background: conic-gradient(var(--color-indigo-500) 0% {wishVsBuyPct}%, var(--color-slate-300) {wishVsBuyPct}% 100%);"
 					></div>
 					<div class="flex flex-col justify-center">
 						<p class="mb-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
@@ -520,7 +520,7 @@
 				>
 					<div
 						class="h-14 w-14 shrink-0 rounded-full shadow-inner"
-						style="background: conic-gradient(#8b5cf6 0% {sharedPct}%, #f43f5e {sharedPct}% 100%);"
+						style="background: conic-gradient(var(--color-violet-500) 0% {sharedPct}%, var(--color-rose-500) {sharedPct}% 100%);"
 					></div>
 					<div class="flex flex-col justify-center">
 						<p class="mb-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
@@ -547,7 +547,7 @@
 				>
 					<div
 						class="h-14 w-14 shrink-0 rounded-full shadow-inner"
-						style="background: conic-gradient(#10b981 0% {buySharedPct}%, #f59e0b {buySharedPct}% 100%);"
+						style="background: conic-gradient(var(--color-emerald-500) 0% {buySharedPct}%, var(--color-amber-500) {buySharedPct}% 100%);"
 					></div>
 					<div class="flex flex-col justify-center">
 						<p class="mb-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
