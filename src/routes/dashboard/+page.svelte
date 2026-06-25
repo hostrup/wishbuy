@@ -392,6 +392,12 @@
 				</p>
 			</div>
 			<div class="mt-4 flex gap-3 md:mt-0">
+				<a
+					href="/dashboard/import"
+					class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-500/10 px-5 py-2.5 text-sm font-bold text-emerald-700 shadow-sm transition-colors hover:bg-emerald-500/20 dark:border-emerald-500/30 dark:bg-emerald-500/20 dark:text-emerald-300 dark:hover:bg-emerald-500/30"
+				>
+					<span>🏦</span> Bankimport
+				</a>
 				<button
 					onclick={() => (isCategoryEditorOpen = true)}
 					class="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-500/10 px-5 py-2.5 text-sm font-bold text-indigo-700 shadow-sm transition-colors hover:bg-indigo-500/20 dark:border-indigo-500/30 dark:bg-indigo-500/20 dark:text-indigo-300 dark:hover:bg-indigo-500/30"
