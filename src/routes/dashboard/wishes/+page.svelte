@@ -427,24 +427,12 @@
 								profileEmoji = data.user?.emoji || '👤';
 								showProfileModal = true;
 							}}
-							class="flex items-center gap-2 rounded-lg border border-indigo-100/50 bg-indigo-50 px-3 py-1.5 font-bold text-indigo-600 shadow-sm transition-colors hover:bg-indigo-100 hover:text-indigo-800 active:scale-95"
+							class="flex items-center gap-2 rounded-xl border border-indigo-100/30 bg-indigo-500/10 px-3.5 py-2.0 font-bold text-indigo-600 shadow-sm transition-colors hover:bg-indigo-100/50 hover:text-indigo-800 active:scale-95 dark:border-indigo-500/20 dark:bg-indigo-500/15 dark:text-indigo-400 dark:hover:bg-indigo-500/30"
 						>
 							<span class="text-lg">{data.user.emoji || '👤'}</span>
-							{data.user.displayName || data.user.username}
+							<span>Rediger Profil</span>
 							<span class="ml-1 text-[10px] opacity-60">✎</span>
 						</button>
-						<a
-							href="/dashboard/finance"
-							class="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-1.5 font-bold text-white shadow-sm transition-colors hover:bg-indigo-700"
-						>
-							📊 Økonomi →
-						</a>
-						<a
-							href="https://ugeplan.hostrup.org"
-							class="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-1.5 font-bold text-white shadow-sm transition-colors hover:bg-emerald-700"
-						>
-							📅 Ugeplan ↗
-						</a>
 					</div>
 				{/if}
 			</div>

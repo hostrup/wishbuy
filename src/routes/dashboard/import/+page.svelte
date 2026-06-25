@@ -102,11 +102,6 @@
 					Upload din CSV kontoudtog og kategorisér automatisk.
 				</p>
 			</div>
-			<div class="mt-4 flex gap-3 md:mt-0">
-				<a href="/dashboard/finance" class="rounded-xl border border-slate-200 bg-white/80 px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm backdrop-blur-md transition-colors hover:bg-white dark:border-white/10 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700">
-					← Økonomi
-				</a>
-			</div>
 		</header>
 
 		<!-- STEP 1: UPLOAD -->
