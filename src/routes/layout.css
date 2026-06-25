@@ -2,50 +2,72 @@
 @custom-variant dark (&:where(.dark, .dark *));
 @plugin '@tailwindcss/forms';
 
-/* === Hostrup Hub 2026 Design System === */
+/* ═══════════════════════════════════════════
+   Hostrup Hub 2026 — Design System
+   Deep Forest Green + Electric Indigo + Editorial Pink
+   ═══════════════════════════════════════════ */
 
 @theme {
-	/* Deep Forest Green — Foundation */
+	/* ── Light Mode Surfaces ── */
+	--color-surface-light: #f5f6f2;
+	--color-card-light: #ffffff;
+	--color-card-hover-light: #f9faf7;
+
+	/* ── Light Mode Text ── */
+	--color-ink: #1a1d19;
+	--color-ink-secondary: #4a4f49;
+	--color-ink-tertiary: #7a7f79;
+	--color-ink-subtle: #a0a5a0;
+
+	/* ── Dark Mode Surfaces (Deep Forest Green) ── */
 	--color-bg-root: #080c08;
 	--color-bg-panel: #0d110d;
 	--color-bg-surface: #121612;
 	--color-bg-card: #181c18;
-	--color-bg-hover: #1e221e;
+	--color-bg-card-hover: #202420;
 
-	/* Electric Indigo — AI & Interactive */
-	--color-accent: #6c5ce7;
-	--color-accent-hover: #7c6ff7;
-	--color-accent-glow: oklch(48% 0.22 288 / 0.15);
-
-	/* Editorial Pink — Punctuation */
-	--color-pink: #e8879e;
-	--color-pink-hover: #f098b0;
-	--color-pink-glow: oklch(64% 0.15 5 / 0.12);
-
-	/* Text */
+	/* ── Dark Mode Text ── */
 	--color-text-primary: #f0f2ef;
 	--color-text-secondary: #c5cac3;
 	--color-text-tertiary: #8a8f88;
 	--color-text-subtle: #5d615c;
 
-	/* Legacy indigo (keep for existing components during migration) */
-	--color-primary-50: #eef2ff;
-	--color-primary-100: #e0e7ff;
-	--color-primary-200: #c7d2fe;
-	--color-primary-300: #a5b4fc;
-	--color-primary-400: #818cf8;
-	--color-primary-500: #6366f1;
-	--color-primary-600: #4f46e5;
-	--color-primary-700: #4338ca;
-	--color-primary-800: #3730a3;
-	--color-primary-900: #312e81;
+	/* ── Accent: Electric Indigo (AI / Interactive) ── */
+	--color-accent: #6c5ce7;
+	--color-accent-hover: #7c6ff7;
+	--color-accent-light: #a59aff;
+	--color-accent-bg: oklch(48% 0.22 288 / 0.12);
+	--color-accent-border: oklch(48% 0.22 288 / 0.25);
+
+	/* ── Punctuation: Editorial Pink ── */
+	--color-pink: #e8879e;
+	--color-pink-hover: #f098b0;
+	--color-pink-light: #f5c0cb;
+	--color-pink-bg: oklch(64% 0.15 5 / 0.10);
+	--color-pink-border: oklch(64% 0.15 5 / 0.20);
+
+	/* ── Semantic ── */
+	--color-success: #10b981;
+	--color-success-bg: rgba(16, 185, 129, 0.10);
+	--color-danger: #ef4444;
+	--color-danger-bg: rgba(239, 68, 68, 0.10);
+	--color-warning: #f59e0b;
+	--color-info: #3b82f6;
+
+	/* ── Borders ── */
+	--color-border-light: rgba(0,0,0,0.06);
+	--color-border-dark: rgba(255,255,255,0.06);
 }
 
+/* ── Base ── */
 html {
-	background: var(--color-bg-root);
-	color: var(--color-text-primary);
+	background: var(--color-surface-light);
+	color: var(--color-ink);
+	font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 html.dark {
+	background: var(--color-bg-root);
+	color: var(--color-text-primary);
 	color-scheme: dark;
 }
