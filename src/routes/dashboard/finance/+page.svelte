@@ -619,28 +619,26 @@
 		<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 			<!-- AI Advisor -->
 			<section
-				class="relative flex flex-col overflow-hidden rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-slate-900 to-indigo-950 p-6 text-white shadow-xl md:p-8 lg:col-span-2"
+				class="relative flex flex-col overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-800/80 lg:col-span-2 md:p-8"
 			>
 				<div
-					class="pointer-events-none absolute -top-20 -right-20 h-80 w-80 rounded-full bg-indigo-500 opacity-20 blur-3xl"
+					class="pointer-events-none absolute -top-20 -right-20 h-80 w-80 rounded-full bg-emerald-500/5 opacity-20 blur-3xl dark:bg-emerald-500/5"
 				></div>
 
 				<div
 					class="relative z-10 mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center"
 				>
 					<div>
-						<h2 class="flex items-center gap-3 text-xl font-bold md:text-2xl">
+						<h2 class="flex items-center gap-3 text-xl font-bold md:text-2xl text-slate-800 dark:text-white">
 							<span class="text-3xl">🤖</span> Din Formuerådgiver
 						</h2>
 					</div>
 				</div>
 
-				<div
-					class="relative z-10 flex-1 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md"
-				>
+				<div class="relative z-10 flex-1">
 					{#if form?.error}
 						<div
-							class="mb-6 rounded-xl border border-red-500/30 bg-red-500/20 p-4 text-sm text-red-200"
+							class="mb-6 rounded-xl border border-red-200 bg-red-500/10 p-4 text-sm text-red-600 dark:border-red-500/20 dark:text-red-400"
 						>
 							{form.error}
 						</div>
@@ -648,12 +646,12 @@
 
 					{#if data.aiInsight}
 						<div
-							class="prose prose-invert prose-indigo prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-p:text-slate-300 prose-li:text-slate-300 prose-strong:text-indigo-300 max-w-none text-sm md:text-base"
+							class="prose dark:prose-invert prose-slate prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-strong:text-indigo-600 dark:prose-strong:text-indigo-400 max-w-none text-sm md:text-base"
 						>
 							{@html DOMPurify.sanitize(marked(data.aiInsight.content) as string)}
 						</div>
-						<div class="mt-8 flex items-center justify-between border-t border-white/10 pt-4">
-							<span class="text-xs text-slate-400"
+						<div class="mt-8 flex items-center justify-between border-t border-slate-200/50 dark:border-white/10 pt-4">
+							<span class="text-xs text-slate-400 dark:text-slate-500"
 								>Opdateret: {new Intl.DateTimeFormat('da-DK', {
 									dateStyle: 'medium',
 									timeStyle: 'short'
@@ -675,7 +673,7 @@
 								<button
 									type="submit"
 									disabled={isGenerating}
-									class="flex items-center gap-2 rounded-lg border border-indigo-400/30 bg-indigo-500/20 px-4 py-2 text-xs font-bold text-indigo-200 transition-all hover:bg-indigo-500/40"
+									class="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-500/10 px-4 py-2 text-xs font-bold text-indigo-700 transition-all hover:bg-indigo-500/20 dark:border-indigo-500/30 dark:bg-indigo-500/20 dark:text-indigo-300 dark:hover:bg-indigo-500/30"
 								>
 									{#if isGenerating}
 										⏳ Arbejder...
@@ -688,7 +686,7 @@
 					{:else}
 						<div class="py-8 text-center">
 							<div class="mb-4 text-4xl opacity-50">🧠</div>
-							<p class="mb-6 text-sm text-slate-300">
+							<p class="mb-6 text-sm text-slate-600 dark:text-slate-400">
 								Der er ikke genereret en analyse for denne præcise periode endnu.
 							</p>
 							<form
@@ -707,7 +705,7 @@
 								<button
 									type="submit"
 									disabled={isGenerating}
-									class="rounded-xl bg-indigo-500 px-6 py-3 font-bold text-white shadow-lg transition-all hover:bg-indigo-600 active:scale-95"
+									class="rounded-xl bg-indigo-600 px-6 py-3 font-bold text-white shadow-md transition-all hover:bg-indigo-500 active:scale-95"
 								>
 									{#if isGenerating}
 										⏳ Analyserer...
@@ -729,28 +727,25 @@
 						(data.kpis.guiltyPleasureSpending / data.topWish.price) * 100
 					)}
 					<section
-						class="relative flex-1 overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-700 p-6 text-white shadow-lg md:p-8"
+						class="relative flex-1 overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-800/80 md:p-8"
 					>
-						<div
-							class="absolute -top-10 -right-10 h-64 w-64 rounded-full bg-white opacity-5 blur-3xl"
-						></div>
-						<h2 class="mb-4 flex items-center gap-2 text-lg font-bold">🎯 Reality Check</h2>
-						<p class="mb-6 text-sm leading-relaxed text-indigo-100">
+						<h2 class="mb-4 flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-white">🎯 Reality Check</h2>
+						<p class="mb-6 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
 							Du har brugt <strong>{formatCur(data.kpis.guiltyPleasureSpending)}</strong> på
-							<span class="rounded bg-white/20 px-1.5 py-0.5 font-bold"
+							<span class="rounded bg-slate-100 dark:bg-slate-700/50 px-1.5 py-0.5 font-bold text-slate-800 dark:text-slate-200"
 								>{data.kpis.guiltyPleasureName}</span
 							>.<br /><br />
-							Det er <strong class="text-xl text-amber-300">{Math.round(wishPct)}%</strong> af:
-							<br /><strong>{data.topWish.title}</strong>!
+							Det er <strong class="text-xl text-indigo-600 dark:text-indigo-400">{Math.round(wishPct)}%</strong> af:
+							<br /><strong class="text-slate-800 dark:text-white">{data.topWish.title}</strong>!
 						</p>
 
-						<div class="mb-2 h-3 w-full overflow-hidden rounded-full bg-indigo-900/50 shadow-inner">
+						<div class="mb-2 h-3 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-900 shadow-inner">
 							<div
-								class="h-3 rounded-full bg-gradient-to-r from-amber-300 to-amber-500 transition-all duration-1000"
+								class="h-3 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-600 transition-all duration-1000"
 								style="width: {wishPct}%"
 							></div>
 						</div>
-						<div class="flex justify-between text-[10px] font-bold text-indigo-200">
+						<div class="flex justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500">
 							<span>0 DKK</span>
 							<span>{formatCur(data.topWish.price)}</span>
 						</div>
