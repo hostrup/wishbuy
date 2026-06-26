@@ -178,8 +178,8 @@
 	let searchQuery = $state('');
 	let showOnlyUncategorized = $state(false);
 
-	let sortColumn = $state<'date' | 'text' | 'category' | 'amount'>('date');
-	let sortDirection = $state<'asc' | 'desc'>('desc');
+	let sortColumn = $derived(data.currentFilter.sort as 'date' | 'text' | 'category' | 'amount');
+	let sortDirection = $derived(data.currentFilter.dir as 'asc' | 'desc');
 
 	let isCategoryEditorOpen = $state(false);
 	let editingCategory = $state<{ id?: string; name: string; icon: string | null } | null>(null);
@@ -193,12 +193,24 @@
 	}
 
 	function toggleSort(col: typeof sortColumn) {
+		let dir: 'asc' | 'desc';
 		if (sortColumn === col) {
-			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+			dir = sortDirection === 'asc' ? 'desc' : 'asc';
 		} else {
-			sortColumn = col;
-			sortDirection = col === 'date' || col === 'amount' ? 'desc' : 'asc';
+			dir = col === 'date' || col === 'amount' ? 'desc' : 'asc';
 		}
+
+		const params = new URLSearchParams($page.url.searchParams);
+		params.set('sort', col);
+		params.set('dir', dir);
+		params.set('page', '1');
+		goto(`?${params.toString()}`, { keepFocus: true, noScroll: true });
+	}
+
+	function goToPage(p: number) {
+		const params = new URLSearchParams($page.url.searchParams);
+		params.set('page', p.toString());
+		goto(`?${params.toString()}`, { keepFocus: true, noScroll: true });
 	}
 
 	let filteredTransactions = $derived.by(() => {
@@ -225,26 +237,7 @@
 			);
 		}
 
-		return [...result].sort((a, b) => {
-			let valA, valB;
-			if (sortColumn === 'date') {
-				valA = new Date(a.date).getTime();
-				valB = new Date(b.date).getTime();
-			} else if (sortColumn === 'text') {
-				valA = a.text;
-				valB = b.text;
-			} else if (sortColumn === 'category') {
-				valA = a.category?.name || 'Ukategoriseret';
-				valB = b.category?.name || 'Ukategoriseret';
-			} else if (sortColumn === 'amount') {
-				valA = Math.abs(a.amount);
-				valB = Math.abs(b.amount);
-			} else return 0;
-
-			if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-			if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-			return 0;
-		});
+		return result;
 	});
 
 	let fromDate = $state(data.currentFilter.from);
@@ -951,7 +944,9 @@
 						</span>
 					{/if}
 					<p class="text-xs text-slate-500 dark:text-slate-400">
-						Viser og søger i hele den valgte periode ({data.recentTransactions.length} poster).
+						Viser {filteredTransactions.length} poster (side {data.currentFilter.page} af {Math.ceil(
+							data.currentFilter.totalCount / data.currentFilter.pageSize
+						)} — i alt {data.currentFilter.totalCount} poster i perioden).
 					</p>
 				</div>
 
@@ -1233,6 +1228,54 @@
 						{/if}
 					</tbody>
 				</table>
+
+				<!-- Pagineringsknapper -->
+				{#if data.currentFilter.totalCount > data.currentFilter.pageSize}
+					<div
+						class="mt-4 flex flex-col items-center justify-between gap-4 border-t border-slate-200/50 pt-4 md:flex-row dark:border-white/10"
+					>
+						<div class="text-xs font-medium text-slate-500 dark:text-slate-400">
+							Viser side {data.currentFilter.page} af {Math.ceil(
+								data.currentFilter.totalCount / data.currentFilter.pageSize
+							)}
+						</div>
+						<div class="flex flex-wrap gap-1.5">
+							<button
+								onclick={() => goToPage(data.currentFilter.page - 1)}
+								disabled={data.currentFilter.page <= 1}
+								class="cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+							>
+								← Forrige
+							</button>
+
+							{#each Array.from( { length: Math.ceil(data.currentFilter.totalCount / data.currentFilter.pageSize) } ) as _, i}
+								{#if i + 1 === 1 || i + 1 === Math.ceil(data.currentFilter.totalCount / data.currentFilter.pageSize) || Math.abs(i + 1 - data.currentFilter.page) <= 1}
+									<button
+										onclick={() => goToPage(i + 1)}
+										class="cursor-pointer rounded-xl px-3 py-1.5 text-xs font-bold transition-all {data
+											.currentFilter.page ===
+										i + 1
+											? 'bg-indigo-600 text-white shadow-md'
+											: 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'}"
+									>
+										{i + 1}
+									</button>
+								{:else if i + 1 === 2 || i + 1 === Math.ceil(data.currentFilter.totalCount / data.currentFilter.pageSize) - 1}
+									<span class="self-center px-1 text-slate-400">...</span>
+								{/if}
+							{/each}
+
+							<button
+								onclick={() => goToPage(data.currentFilter.page + 1)}
+								disabled={data.currentFilter.page >=
+									Math.ceil(data.currentFilter.totalCount / data.currentFilter.pageSize)}
+								class="cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+							>
+								Næste →
+							</button>
+						</div>
+					</div>
+				{/if}
 			</div>
 		</section>
 

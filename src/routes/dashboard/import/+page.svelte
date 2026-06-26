@@ -32,6 +32,7 @@
 			categoryName: string;
 			isExisting: boolean;
 			status: string;
+			aiKeyword?: string;
 		}>
 	>([]);
 
@@ -40,6 +41,8 @@
 	let showOnlyNew = $state(false);
 	let showOnlyUnmapped = $state(false);
 	let resultMessage = $state('');
+	let isAiSuggesting = $state(false);
+	let aiSuggestionCount = $state(0);
 
 	// Category name → ID map from server
 	let categoryMap = $state<Record<string, string>>(data.categoryMap || {});
@@ -263,10 +266,86 @@
 					>
 						<input type="checkbox" bind:checked={showOnlyUnmapped} class="rounded" /> Kun umappede
 					</label>
+
+					{#if previewRows.some((r) => r.categoryName === 'Ukendt' || !r.categoryId)}
+						<form
+							method="POST"
+							action="?/suggestCategories"
+							use:enhance={({ formData }) => {
+								isAiSuggesting = true;
+								const unknowns = previewRows.filter(
+									(r) => r.categoryName === 'Ukendt' || !r.categoryId
+								);
+								formData.append(
+									'transactionTexts',
+									JSON.stringify(unknowns.map((u) => ({ text: u.text, amount: u.amount })))
+								);
+								return async ({ result }) => {
+									isAiSuggesting = false;
+									if (result.type === 'success' && (result.data as any)?.success) {
+										const suggestions = ((result.data as any).suggestions as any[]) || [];
+										previewRows = previewRows.map((row) => {
+											const match = suggestions.find((s: any) => s.transactionText === row.text);
+											if (match && (row.categoryName === 'Ukendt' || !row.categoryId)) {
+												return {
+													...row,
+													categoryId: match.suggestedCategoryId,
+													categoryName: match.suggestedCategory,
+													aiKeyword: match.keyword,
+													status: 'AI_SUGGESTED'
+												};
+											}
+											return row;
+										});
+										// Opdater editedCategories
+										previewRows.forEach((r) => {
+											editedCategories[r.hash] = { name: r.categoryName, id: r.categoryId };
+										});
+										aiSuggestionCount = suggestions.filter(
+											(s: any) => s.suggestedCategoryId
+										).length;
+									} else {
+										alert(
+											(result as any).data?.error || 'Der opstod en fejl under AI-kategoriseringen.'
+										);
+									}
+								};
+							}}
+							class="inline-block md:ml-4"
+						>
+							<button
+								type="submit"
+								disabled={isAiSuggesting}
+								class="flex cursor-pointer items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-md transition-all hover:bg-indigo-500 disabled:opacity-50"
+							>
+								{#if isAiSuggesting}
+									<span>⏳ Analyserer...</span>
+								{:else}
+									<span>🤖 Kategorisér med AI</span>
+								{/if}
+							</button>
+						</form>
+					{/if}
+
 					<span class="ml-auto text-xs text-slate-400"
 						>Viser {filteredRows.length} af {previewRows.length} transaktioner</span
 					>
 				</div>
+
+				{#if aiSuggestionCount > 0}
+					<div
+						class="flex items-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-xs font-bold text-indigo-700 dark:text-indigo-300"
+					>
+						<span
+							>🤖 AI foreslog kategorier for {aiSuggestionCount} transaktioner (markeret med lilla). Gennemse
+							og juster dem inden du gemmer.</span
+						>
+						<button
+							onclick={() => (aiSuggestionCount = 0)}
+							class="ml-auto cursor-pointer hover:opacity-80">✕</button
+						>
+					</div>
+				{/if}
 
 				<!-- Data Table -->
 				<div
@@ -296,8 +375,11 @@
 						<tbody>
 							{#each filteredRows as row (row.hash)}
 								<tr
-									class="border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-white/5 dark:hover:bg-slate-700/50"
-									class:opacity-50={row.isExisting}
+									class="border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-white/5 dark:hover:bg-slate-700/50 {row.isExisting
+										? 'opacity-50'
+										: ''} {row.status === 'AI_SUGGESTED'
+										? 'bg-indigo-50/50 dark:bg-indigo-900/10'
+										: ''}"
 								>
 									<td
 										class="p-3 text-xs font-medium whitespace-nowrap text-slate-600 dark:text-slate-300"
@@ -347,17 +429,26 @@
 										{/if}
 									</td>
 									<td class="p-3">
-										<select
-											value={editedCategories[row.hash]?.name || 'Ukendt'}
-											onchange={(e) =>
-												onCategoryChange(row.hash, (e.target as HTMLSelectElement).value)}
-											class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-bold text-slate-700 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
-										>
-											<option value="Ukendt">Ukendt</option>
-											{#each categoryOptions as cat}
-												<option value={cat}>{cat}</option>
-											{/each}
-										</select>
+										<div class="flex items-center gap-1.5">
+											{#if row.status === 'AI_SUGGESTED'}
+												<span
+													title="AI foreslået kategori: {editedCategories[row.hash]
+														?.name} (Nøgleord: {row.aiKeyword})"
+													class="text-xs">🤖</span
+												>
+											{/if}
+											<select
+												value={editedCategories[row.hash]?.name || 'Ukendt'}
+												onchange={(e) =>
+													onCategoryChange(row.hash, (e.target as HTMLSelectElement).value)}
+												class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-bold text-slate-700 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
+											>
+												<option value="Ukendt">Ukendt</option>
+												{#each categoryOptions as cat}
+													<option value={cat}>{cat}</option>
+												{/each}
+											</select>
+										</div>
 									</td>
 								</tr>
 							{/each}
@@ -417,7 +508,8 @@
 										transferType: r.transferType,
 										supplementalText: r.supplementalText,
 										balance: r.balance,
-										paidBy: r.paidBy
+										paidBy: r.paidBy,
+										aiKeyword: (r as any).aiKeyword
 									}))
 							)}
 						/>

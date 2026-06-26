@@ -46,10 +46,13 @@
 	},
 	"dependencies": {
 		"@google/generative-ai": "^0.24.1",
+		"@lucide/svelte": "^1.21.0",
 		"@prisma/adapter-pg": "^7.7.0",
 		"@prisma/client": "^7.7.0",
 		"apexcharts": "^5.10.6",
+		"date-fns": "^4.4.0",
 		"dotenv": "^17.4.2",
+		"ical-generator": "^11.0.0",
 		"isomorphic-dompurify": "^3.18.0",
 		"marked": "^18.0.3",
 		"papaparse": "^5.5.4",

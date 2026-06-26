@@ -140,3 +140,61 @@ model Transaction {
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 }
+
+model Person {
+  id                    String          @id @default(uuid())
+  name                  String
+  emoji                 String?         @default("👤")
+  default_presence_days String          // Kommasepareret: "1,2,3,4,5" (1=Man, 7=Søn)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  dayPlans              DayPlanPerson[]
+}
+
+model Recipe {
+  id        String    @id @default(uuid())
+  name      String
+  note      String?
+  last_used DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  dayPlans  DayPlan[]
+}
+
+model WeekPlan {
+  id          String    @id @default(uuid())
+  year        Int
+  week_number Int
+  note        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  dayPlans    DayPlan[]
+
+  @@unique([year, week_number])
+}
+
+model DayPlan {
+  id          String          @id @default(uuid())
+  date        DateTime
+  note        String?
+  guests_note String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  weekPlanId  String
+  weekPlan    WeekPlan        @relation(fields: [weekPlanId], references: [id], onDelete: Cascade)
+  recipeId    String?
+  recipe      Recipe?         @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  persons     DayPlanPerson[]
+
+  @@unique([date])
+}
+
+model DayPlanPerson {
+  dayPlanId String
+  personId  String
+  dayPlan   DayPlan @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
+  person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@id([dayPlanId, personId])
+}
+

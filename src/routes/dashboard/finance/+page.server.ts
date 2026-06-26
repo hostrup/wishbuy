@@ -44,9 +44,23 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const daysInPeriod = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 	const periodKey = `${formatDateLocal(fromDate)}_${formatDateLocal(toDate)}`;
 
+	// 1. Sortering og paginering parametre
+	const sortParam = url.searchParams.get('sort') || 'date';
+	const dirParam = url.searchParams.get('dir') || 'desc';
+	const pageParam = url.searchParams.get('page') || '1';
+
+	const page = Math.max(1, parseInt(pageParam) || 1);
+	const pageSize = 100;
+
+	const validSortFields = ['date', 'amount', 'text'];
+	const sortField = validSortFields.includes(sortParam) ? sortParam : 'date';
+	const sortDir = dirParam === 'asc' ? 'asc' : 'desc';
+
 	// Fetch Data
 	const [
-		transactions,
+		chartTransactions,
+		recentTransactions,
+		totalTransactionsCount,
 		expensesAgg,
 		allWishes,
 		transactionCategories,
@@ -54,6 +68,26 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		realizedWishes,
 		ignoredTransactions
 	] = await Promise.all([
+		// Hent letvægtsdata til grafer for hele perioden
+		prisma.transaction.findMany({
+			where: {
+				date: { gte: fromDate, lte: toDate },
+				amount: { lt: 0 },
+				isIgnored: false
+			},
+			select: {
+				date: true,
+				amount: true,
+				categoryId: true,
+				category: {
+					select: {
+						name: true,
+						color: true
+					}
+				}
+			}
+		}),
+		// Hent paginerede og sorterede transaktioner til listen
 		prisma.transaction.findMany({
 			where: {
 				date: { gte: fromDate, lte: toDate },
@@ -61,7 +95,18 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				isIgnored: false
 			},
 			include: { category: true, item: true },
-			orderBy: { date: 'desc' }
+			orderBy:
+				sortField === 'category' ? { category: { name: sortDir } } : { [sortField]: sortDir },
+			take: pageSize,
+			skip: (page - 1) * pageSize
+		}),
+		// Tæl det samlede antal transaktioner i perioden
+		prisma.transaction.count({
+			where: {
+				date: { gte: fromDate, lte: toDate },
+				amount: { lt: 0 },
+				isIgnored: false
+			}
 		}),
 		prisma.transaction.aggregate({
 			where: {
@@ -102,10 +147,56 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		})
 	]);
 
-	// Calculate KPIs
+	// Calculate KPIs via database aggregates
 	const periodExpenses = Math.abs(expensesAgg._sum.amount || 0);
-	let unmappedTransactionsCount = 0;
-	let largestTransaction = { text: 'Ingen', amount: 0, date: new Date() };
+
+	const unmappedTransactionsCount = await prisma.transaction.count({
+		where: {
+			date: { gte: fromDate, lte: toDate },
+			amount: { lt: 0 },
+			isIgnored: false,
+			categoryId: null
+		}
+	});
+
+	const largestTx = await prisma.transaction.findFirst({
+		where: {
+			date: { gte: fromDate, lte: toDate },
+			amount: { lt: 0 },
+			isIgnored: false
+		},
+		orderBy: { amount: 'asc' } // most negative is the largest expense
+	});
+
+	const largestTransaction = largestTx
+		? { text: largestTx.text, amount: Math.abs(largestTx.amount), date: largestTx.date }
+		: { text: 'Ingen', amount: 0, date: new Date() };
+
+	const topCategoryGroup = await prisma.transaction.groupBy({
+		by: ['categoryId'],
+		where: {
+			date: { gte: fromDate, lte: toDate },
+			amount: { lt: 0 },
+			isIgnored: false,
+			categoryId: { not: null }
+		},
+		_sum: { amount: true },
+		orderBy: { _sum: { amount: 'asc' } },
+		take: 1
+	});
+
+	let topCategoryName = 'Ingen';
+	let topCategoryAmount = 0;
+
+	if (topCategoryGroup.length > 0 && topCategoryGroup[0].categoryId) {
+		const cat = await prisma.transactionCategory.findUnique({
+			where: { id: topCategoryGroup[0].categoryId }
+		});
+		if (cat) {
+			topCategoryName = cat.name;
+			topCategoryAmount = Math.abs(topCategoryGroup[0]._sum.amount || 0);
+		}
+	}
 
 	const categorySpending: Record<string, { name: string; amount: number; color: string }> = {};
 	const timeSeries: Record<string, number> = {};
@@ -156,7 +247,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		fillDate.setDate(fillDate.getDate() + 1);
 	}
 
-	const processedTransactions = transactions.map((tx) => {
+	const processedChartTransactions = chartTransactions.map((tx) => {
 		let timeKey;
 		if (daysInPeriod <= 31) {
 			timeKey = formatDateLocal(tx.date);
@@ -172,14 +263,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		return { ...tx, timeKey };
 	});
 
-	processedTransactions.forEach((tx) => {
+	processedChartTransactions.forEach((tx) => {
 		const expense = Math.abs(tx.amount);
-
-		if (!tx.categoryId) unmappedTransactionsCount++;
-
-		if (expense > largestTransaction.amount) {
-			largestTransaction = { text: tx.text, amount: expense, date: tx.date };
-		}
 
 		const catId = tx.categoryId || 'unmapped';
 		if (!categorySpending[catId]) {
@@ -255,10 +340,26 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const guiltyPleasureSpending = topCategory.amount;
 	const guiltyPleasureName = topCategory.name !== 'Ingen' ? topCategory.name : 'Diverse';
 
+	const processedRecentTransactions = recentTransactions.map((tx) => {
+		let timeKey;
+		if (daysInPeriod <= 31) {
+			timeKey = formatDateLocal(tx.date);
+		} else if (daysInPeriod <= 90) {
+			const d = new Date(Date.UTC(tx.date.getFullYear(), tx.date.getMonth(), tx.date.getDate()));
+			d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+			const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+			const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+			timeKey = `Uge ${weekNo}, ${d.getUTCFullYear()}`;
+		} else {
+			timeKey = `${tx.date.getFullYear()}-${String(tx.date.getMonth() + 1).padStart(2, '0')}`;
+		}
+		return { ...tx, timeKey };
+	});
+
 	return {
 		kpis: {
 			periodExpenses,
-			topCategoryName: topCategory.name,
+			topCategoryName,
 			unmappedTransactionsCount,
 			guiltyPleasureSpending,
 			guiltyPleasureName,
@@ -279,7 +380,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		},
 		topWish,
 		top3Categories,
-		recentTransactions: processedTransactions,
+		recentTransactions: processedRecentTransactions,
 		ignoredTransactions,
 		realizedWishes,
 		transactionCategories,
@@ -288,7 +389,12 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		currentFilter: {
 			from: formatDateLocal(fromDate),
 			to: formatDateLocal(toDate),
-			daysInPeriod
+			daysInPeriod,
+			sort: sortField,
+			dir: sortDir,
+			page,
+			pageSize,
+			totalCount: totalTransactionsCount
 		}
 	};
 };

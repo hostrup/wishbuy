@@ -282,7 +282,7 @@ Commit: `70fe8f4`, 26. juni 2026.
 
 ---
 
-## 🟡 Sprint 5: AI Kategorisering i Import
+## ✅ Sprint 5: AI Kategorisering i Import — GENNEMFØRT
 
 ### AI-5.1: `suggestCategories` server action
 
@@ -309,10 +309,10 @@ Brug `responseMimeType: 'application/json'` og `responseSchema` i Gemini API-kal
 
 **Acceptkriterier:**
 
-- [ ] Action returnerer korrekt JSON-struktur
-- [ ] Kun transaktioner med `categoryName === 'Ukendt'` sendes
-- [ ] Timeout håndteres med brugervenlig fejlbesked
-- [ ] `npm run lint` passerer
+- [x] Action returnerer korrekt JSON-struktur
+- [x] Kun transaktioner med `categoryName === 'Ukendt'` sendes
+- [x] Timeout håndteres med brugervenlig fejlbesked
+- [x] `npm run lint` passerer
 
 - **Prioritet:** 🟡 Medium
 - **Kompleksitet:** Lav-medium
@@ -343,10 +343,10 @@ let aiSuggestionCount = $state(0);
 
 **Acceptkriterier:**
 
-- [ ] Knap er synlig og korrekt disabled/hidden
-- [ ] Loading-state under AI-analyse
-- [ ] Forslag vises tydeligt markeret i tabellen
-- [ ] Bruger kan override forslag inden gem
+- [x] Knap er synlig og korrekt disabled/hidden
+- [x] Loading-state under AI-analyse
+- [x] Forslag vises tydeligt markeret i tabellen
+- [x] Bruger kan override forslag inden gem
 
 - **Prioritet:** 🟡 Medium
 - **Kompleksitet:** Medium
@@ -376,16 +376,16 @@ Brug `upsert` — hvis keyword allerede eksisterer med anden kategori, opdateres
 
 **Acceptkriterier:**
 
-- [ ] `MappingRule` oprettes kun for transaktioner der faktisk gemmes
-- [ ] `upsert` bruges — ingen uniq-fejl ved duplikat keyword
-- [ ] `npm run lint` passerer
+- [x] `MappingRule` oprettes kun for transaktioner der faktisk gemmes
+- [x] `upsert` bruges — ingen uniq-fejl ved duplikat keyword
+- [x] `npm run lint` passerer
 
 - **Prioritet:** 🟡 Medium
 - **Kompleksitet:** Lav
 
 ---
 
-## 🟢 Sprint 6: Performance & Afvikling
+## ✅ Sprint 6: Performance & Afvikling — GENNEMFØRT
 
 ### PERF-6.1: Database-aggregationer i Finance load
 
@@ -420,9 +420,9 @@ const largest = await prisma.transaction.findFirst({
 
 **Acceptkriterier:**
 
-- [ ] Ingen in-memory aggregering af KPI-data
-- [ ] Siden loader mærkbart hurtigere ved >200 transaktioner
-- [ ] `npm run build` passerer
+- [x] Ingen in-memory aggregering af KPI-data
+- [x] Siden loader mærkbart hurtigere ved >200 transaktioner
+- [x] `npm run build` passerer
 
 - **Prioritet:** 🟢 Lav-medium
 - **Kompleksitet:** Medium
@@ -439,9 +439,9 @@ const largest = await prisma.transaction.findFirst({
 
 **Acceptkriterier:**
 
-- [ ] Default: Henter max 100 transaktioner sorteret by date desc
-- [ ] URL-parametre styrer sortering
-- [ ] Paginerings-UI i tabellen
+- [x] Default: Henter max 100 transaktioner sorteret by date desc
+- [x] URL-parametre styrer sortering
+- [x] Paginerings-UI i tabellen
 
 - **Prioritet:** 🟢 Lav
 - **Kompleksitet:** Medium
@@ -459,7 +459,7 @@ const largest = await prisma.transaction.findFirst({
 3. Fjern service fra `projects.yml` (eller hvad docker-compose-filen hedder på serveren)
 4. Verificér at port 8501 er fri: `ss -tlnp | grep 8501`
 
-**Acceptkriterium:** `wishbuy_analytics`-containeren kører ikke, port 8501 er fri.
+**Acceptkriterium:** [x] `wishbuy_analytics`-containeren kører ikke, port 8501 er fri.
 
 - **Prioritet:** 🟢 Lav
 - **Kompleksitet:** Meget lav
@@ -506,7 +506,7 @@ npm install ical-generator date-fns @lucide/svelte
 
 **OBS:** `shadcn-svelte`, `clsx`, `tailwind-merge`, `tailwind-variants` fra ugeplan installeres **ikke** — disse er shadcn-infrastruktur der droppes ved portering.
 
-**Acceptkriterium:** `npm install` kører uden fejl, `npm run build` passerer.
+**Acceptkriterium:** [x] `npm install` kører uden fejl, `npm run build` passerer.
 
 ---
 
@@ -584,9 +584,9 @@ npx prisma db push
 
 **Acceptkriterier:**
 
-- [ ] `npx prisma db push` kører uden fejl
-- [ ] De 5 nye tabeller eksisterer i PostgreSQL
-- [ ] Eksisterende tabeller er uændrede
+- [x] `npx prisma db push` kører uden fejl
+- [x] De 5 nye tabeller eksisterer i PostgreSQL
+- [x] Eksisterende tabeller er uændrede
 
 ---
 
@@ -637,10 +637,10 @@ Slet `migrate_ugeplan.ts` efter vellykket kørsel.
 
 **Acceptkriterier:**
 
-- [ ] Alle `Person`-records eksisterer i wishbuy-DB
-- [ ] Alle `Recipe`-records eksisterer i wishbuy-DB
-- [ ] Alle `WeekPlan` + `DayPlan` + `DayPlanPerson`-records eksisterer med korrekte relationer
-- [ ] Migreringsscript er slettet
+- [x] Alle `Person`-records eksisterer i wishbuy-DB
+- [x] Alle `Recipe`-records eksisterer i wishbuy-DB
+- [x] Alle `WeekPlan` + `DayPlan` + `DayPlanPerson`-records eksisterer med korrekte relationer
+- [x] Migreringsscript er slettet
 
 ---
 
@@ -672,9 +672,9 @@ Kopier `+server.ts` fra ugeplan (`/hostrup/docker/projects/ugeplan/src/routes/ap
 
 **Acceptkriterier:**
 
-- [ ] `GET /api/calendar/feed.ics` returnerer gyldig `.ics` uden auth-header
-- [ ] Home Assistant kan hente feedet (test med: `curl http://localhost:PORT/api/calendar/feed.ics`)
-- [ ] Autentificerede routes er stadig beskyttede
+- [x] `GET /api/calendar/feed.ics` returnerer gyldig `.ics` uden auth-header
+- [x] Home Assistant kan hente feedet (test med: `curl http://localhost:PORT/api/calendar/feed.ics`)
+- [x] Autentificerede routes er stadig beskyttede
 
 ---
 
@@ -722,11 +722,11 @@ Brug klasse-mappingen fra Sprint 7-indledningen. Specifikke punkter:
 
 **Acceptkriterier:**
 
-- [ ] `/dashboard/weekly` redirecter til aktuel uge
-- [ ] `/dashboard/weekly/2026/26` viser ugevisning med DayCard-komponenter
-- [ ] `/dashboard/weekly/settings` viser person-admin
-- [ ] Ingen `teal-*`, shadcn-tokens eller `rgba(...)`-literals i porteret kode
-- [ ] `npm run build` passerer
+- [x] `/dashboard/weekly` redirecter til aktuel uge
+- [x] `/dashboard/weekly/2026/26` viser ugevisning med DayCard-komponenter
+- [x] `/dashboard/weekly/settings` viser person-admin
+- [x] Ingen `teal-*`, shadcn-tokens eller `rgba(...)`-literals i porteret kode
+- [x] `npm run build` passerer
 
 ---
 
@@ -770,9 +770,9 @@ Kortstruktur skal følge Hostrup Hub glassmorphism:
 
 **Acceptkriterier:**
 
-- [ ] DayCard renderer korrekt i lys og mørk tilstand
-- [ ] Ingen `teal-*`-klasser i komponenten
-- [ ] Ingen `any`-typer (prop-interfaces skal typedefineres)
+- [x] DayCard renderer korrekt i lys og mørk tilstand
+- [x] Ingen `teal-*`-klasser i komponenten
+- [x] Ingen `any`-typer (prop-interfaces skal typedefineres)
 
 ---
 

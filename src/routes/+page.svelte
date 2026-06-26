@@ -82,23 +82,15 @@
 			</a>
 
 			<a
-				href="https://ugeplan.hostrup.org"
-				target="_blank"
-				rel="noopener noreferrer"
+				href="/dashboard/weekly"
 				class="group relative flex flex-col items-center gap-3 overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-8 shadow-sm backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] hover:border-rose-500/50 dark:border-white/10 dark:bg-slate-800/80"
 			>
 				<span class="relative text-5xl">📅</span>
-				<h2 class="relative text-xl font-bold text-slate-800 dark:text-white">
-					Ugeplan
-					<span
-						class="ml-2 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-bold text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
-						>↗</span
-					>
-				</h2>
+				<h2 class="relative text-xl font-bold text-slate-800 dark:text-white">Ugeplan</h2>
 				<p
 					class="relative text-center text-sm text-slate-500 transition-colors group-hover:text-slate-900 dark:text-slate-400 dark:group-hover:text-white"
 				>
-					Madplan, fremmøde og dagens noter — åbner i nyt vindue
+					Madplan, fremmøde og dagens noter for hele familien
 				</p>
 			</a>
 		</div>
