@@ -466,7 +466,11 @@ const largest = await prisma.transaction.findFirst({
 
 ---
 
-## 🔵 Sprint 7: Ugeplan Migration
+## ✅ Sprint 7: Ugeplan Migration — GENNEMFØRT
+
+Alle UP-7.1–UP-7.7 tasks implementeret og deployed 26. juni 2026. Wishbuy kører allerede på port 3005 (10.0.0.2:3005) — samme port som ugeplan — så HA-kalenderintegrationen er uændret. UP-7.9 (fjern standalone container) er en manuel opgave.
+
+## 🔵 Sprint 7 (arkiv): Ugeplan Migration
 
 **Kontekst:** `ugeplan` er en standalone SvelteKit-app på `ugeplan.hostrup.org` (lokalt: port 3005). Den har sin egen PostgreSQL-database og sit eget Docker-container. Målet er at porterere al funktionalitet ind i Hostrup Hub og lukke den standalone app.
 
