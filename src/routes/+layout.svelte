@@ -33,6 +33,25 @@
 
 <svelte:head>
 	<title>Hostrup Hub</title>
+	<meta
+		name="description"
+		content="Fælles husholdnings- og kommandocentral for familien Hostrup."
+	/>
+	<link rel="icon" type="image/svg+xml" href="/icon.svg" />
+	<link rel="apple-touch-icon" href="/icon.svg" />
+	<link rel="manifest" href="/manifest.json" />
+	<meta name="theme-color" content="#6c5ce7" />
+
+	<!-- OpenGraph -->
+	<meta property="og:title" content="Hostrup Hub" />
+	<meta
+		property="og:description"
+		content="Fælles husholdnings- og kommandocentral for familien Hostrup."
+	/>
+	<meta property="og:type" content="website" />
+	<meta property="og:image" content="/icon.svg" />
+	<meta property="og:site_name" content="Hostrup Hub" />
+
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
 	<link

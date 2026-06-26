@@ -67,7 +67,7 @@ export const GET: RequestHandler = async () => {
 			end: end,
 			summary: `🍽️ ${plan.recipe.name}`,
 			description: description,
-			url: 'https://wishbuy.hostrup.org'
+			url: 'https://wish.hostrup.org'
 		});
 	}
 

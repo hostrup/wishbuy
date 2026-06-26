@@ -1,13 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6366f1" /> <stop offset="100%" stop-color="#0ea5e9" /> </linearGradient>
+      <stop offset="0%" stop-color="#6c5ce7" />
+      <stop offset="100%" stop-color="#e8879e" />
+    </linearGradient>
   </defs>
   
   <rect width="512" height="512" rx="112" fill="url(#bg)"/>
   
-  <path d="M160 220 h192 v140 a20 20 0 0 1 -20 20 H180 a20 20 0 0 1 -20 -20 z" fill="none" stroke="#ffffff" stroke-width="32" stroke-linejoin="round"/>
-  <path d="M160 220 s0 -60 96 -60 96 60 96 60" fill="none" stroke="#ffffff" stroke-width="32" stroke-linecap="round"/>
+  <!-- Sleek, premium house outline -->
+  <path d="M130 260 L256 134 L382 260" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M170 260 V368 C170 379 179 388 190 388 H322 C333 388 342 379 342 368 V260" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
   
-  <circle cx="256" cy="290" r="28" fill="#ffffff"/>
+  <!-- A central heart representing the home/family -->
+  <path d="M256 320 C256 320 216 285 216 255 C216 235 231 220 250 220 C259 220 268 225 272 232 C276 225 285 220 294 220 C313 220 328 235 328 255 C328 285 288 320 288 320 Z" fill="#ffffff" stroke="#ffffff" stroke-width="4" stroke-linejoin="round"/>
 </svg>

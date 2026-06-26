@@ -468,7 +468,7 @@ const largest = await prisma.transaction.findFirst({
 
 ## ✅ Sprint 7: Ugeplan Migration — GENNEMFØRT
 
-Alle UP-7.1–UP-7.7 tasks implementeret og deployed 26. juni 2026. Wishbuy kører allerede på port 3005 (10.0.0.2:3005) — samme port som ugeplan — så HA-kalenderintegrationen er uændret. UP-7.9 (fjern standalone container) er en manuel opgave.
+Alle UP-7.1–UP-7.9 tasks er fuldt implementeret, udrullet og verificeret 26. juni 2026. Den standalone ugeplan-container samt dens kildekode-filer er slettet, og ugeplanen er 100% konsolideret på Hostrup Hub. Port 3005 på host-IP 10.0.0.2 er mappet til wishbuy-containeren, så Home Assistant kalender-feedet fungerer uafbrudt.
 
 ## 🔵 Sprint 7 (arkiv): Ugeplan Migration
 
