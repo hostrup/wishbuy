@@ -1,5 +1,59 @@
 <script lang="ts">
-	let { data } = $props();
+	import { enhance } from '$app/forms';
+
+	let { data, form } = $props();
+
+	let showProfileModal = $state(false);
+	let profileEmoji = $state('👤');
+
+	$effect(() => {
+		if (data.user?.emoji) {
+			profileEmoji = data.user.emoji;
+		}
+	});
+
+	const commonEmojis = [
+		'👤',
+		'👶',
+		'👩',
+		'👨',
+		'👧',
+		'👦',
+		'🐶',
+		'🐱',
+		'📱',
+		'💻',
+		'🎧',
+		'⌚',
+		'🚗',
+		'🏡',
+		'🪑',
+		'👕',
+		'👗',
+		'👟',
+		'💍',
+		'💄',
+		'⚽',
+		'🎮',
+		'📚',
+		'🎁',
+		'🛠️',
+		'✈️',
+		'🥂',
+		'🍔',
+		'🍕',
+		'💡',
+		'🔥',
+		'💰',
+		'💳',
+		'🛒',
+		'🛍️',
+		'🎀',
+		'🎈',
+		'🎉',
+		'❤️',
+		'⭐'
+	];
 </script>
 
 <svelte:head>
@@ -47,7 +101,7 @@
 				class="group relative flex flex-col items-center gap-3 overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-8 shadow-sm backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] hover:border-indigo-500/50 dark:border-white/10 dark:bg-slate-800/80"
 			>
 				<span class="relative text-5xl">🎁</span>
-				<h2 class="relative text-xl font-bold text-slate-800 dark:text-white">Ønskebrønden</h2>
+				<h2 class="relative text-xl font-bold text-slate-800 dark:text-white">Ønsker</h2>
 				<p
 					class="relative text-center text-sm text-slate-500 transition-colors group-hover:text-slate-900 dark:text-slate-400 dark:group-hover:text-white"
 				>
@@ -98,13 +152,105 @@
 		<!-- Footer -->
 		<div class="text-center text-sm text-slate-400 dark:text-slate-500">
 			{#if data.user}
-				Logget ind som <span class="font-bold text-slate-600 dark:text-slate-400"
-					>{data.user.displayName || data.user.username}</span
+				Logget ind som
+				<button
+					onclick={() => {
+						profileEmoji = data.user?.emoji || '👤';
+						showProfileModal = true;
+					}}
+					class="inline-flex cursor-pointer items-center gap-1 font-bold text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+					title="Klik for at redigere din profil"
 				>
+					<span>{data.user.emoji || '👤'}</span>
+					<span class="underline decoration-dotted"
+						>{data.user.displayName || data.user.username}</span
+					>
+					<span class="text-xs opacity-60">✎</span>
+				</button>
 			{/if}
 		</div>
 	</div>
 </div>
+
+{#if showProfileModal}
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+	>
+		<div
+			class="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-800"
+		>
+			<button
+				onclick={() => (showProfileModal = false)}
+				class="absolute top-4 right-4 text-xl font-bold text-slate-400 hover:text-slate-600 dark:text-slate-300"
+				>✕</button
+			>
+			<h3 class="mb-6 text-xl font-bold text-slate-800 dark:text-white">Rediger Din Profil</h3>
+
+			<form
+				method="POST"
+				action="?/updateProfile"
+				use:enhance={() => {
+					return async ({ update }) => {
+						await update();
+						showProfileModal = false;
+					};
+				}}
+				class="space-y-5"
+			>
+				<input type="hidden" name="emoji" value={profileEmoji} />
+
+				<div>
+					<label
+						class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+						>Din Personlige Emoji</label
+					>
+					<div
+						class="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-slate-900/50"
+					>
+						{#each commonEmojis as emoji}
+							<button
+								type="button"
+								onclick={() => (profileEmoji = emoji)}
+								class="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-all hover:bg-slate-200 dark:hover:bg-slate-600 {profileEmoji ===
+								emoji
+									? 'bg-indigo-200 shadow-sm ring-2 ring-indigo-500'
+									: ''}"
+							>
+								{emoji}
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				<div>
+					<label
+						for="displayName"
+						class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+						>Dit Viste Navn</label
+					>
+					<input
+						type="text"
+						id="displayName"
+						name="displayName"
+						value={data.user?.displayName || data.user?.username || ''}
+						required
+						class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium transition-all outline-none focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-900/50"
+						placeholder="Fx Ronni Hostrup"
+					/>
+				</div>
+
+				<div class="pt-2">
+					<button
+						type="submit"
+						class="w-full rounded-xl bg-indigo-600 py-3.5 font-bold text-white shadow-md transition-all hover:bg-indigo-700 active:scale-[0.98]"
+					>
+						Gem Profil
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
 
 <style>
 	@keyframes pulse {

@@ -2,9 +2,6 @@
 	import { enhance } from '$app/forms';
 	let { data, form } = $props();
 
-	let showProfileModal = $state(false);
-	let profileEmoji = $state(data.user?.emoji || '👤');
-
 	let showCategoryModal = $state(false);
 	let isCreatingCat = $state(false);
 	let editCatId = $state<number | null>(null);
@@ -327,86 +324,6 @@
 	</div>
 {/if}
 
-{#if showProfileModal}
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
-	>
-		<div
-			class="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-800"
-		>
-			<button
-				onclick={() => (showProfileModal = false)}
-				class="absolute top-4 right-4 text-xl font-bold text-slate-400 hover:text-slate-600 dark:text-slate-300"
-				>✕</button
-			>
-			<h3 class="mb-6 text-xl font-bold text-slate-800 dark:text-white">Rediger Din Profil</h3>
-
-			<form
-				method="POST"
-				action="?/updateProfile"
-				use:enhance={() => {
-					return async ({ update }) => {
-						await update();
-						showProfileModal = false;
-					};
-				}}
-				class="space-y-5"
-			>
-				<input type="hidden" name="emoji" value={profileEmoji} />
-
-				<div>
-					<label
-						class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
-						>Din Personlige Emoji</label
-					>
-					<div
-						class="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-slate-900/50"
-					>
-						{#each commonEmojis as emoji}
-							<button
-								type="button"
-								onclick={() => (profileEmoji = emoji)}
-								class="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-all hover:bg-slate-200 dark:hover:bg-slate-600 {profileEmoji ===
-								emoji
-									? 'bg-indigo-200 shadow-sm ring-2 ring-indigo-500'
-									: ''}"
-							>
-								{emoji}
-							</button>
-						{/each}
-					</div>
-				</div>
-
-				<div>
-					<label
-						for="displayName"
-						class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
-						>Dit Viste Navn</label
-					>
-					<input
-						type="text"
-						id="displayName"
-						name="displayName"
-						value={data.user?.displayName || data.user?.username || ''}
-						required
-						class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium transition-all outline-none focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-900/50"
-						placeholder="Fx Ronni Hostrup"
-					/>
-				</div>
-
-				<div class="pt-2">
-					<button
-						type="submit"
-						class="w-full rounded-xl bg-indigo-600 py-3.5 font-bold text-white shadow-md transition-all hover:bg-indigo-700 active:scale-[0.98]"
-					>
-						Gem Profil
-					</button>
-				</div>
-			</form>
-		</div>
-	</div>
-{/if}
-
 <div
 	class="min-h-screen bg-slate-50 p-4 font-sans text-slate-900 transition-colors duration-300 md:p-12 dark:bg-slate-950 dark:text-slate-100"
 >
@@ -416,25 +333,13 @@
 		>
 			<div>
 				<h1
-					class="bg-gradient-to-r from-indigo-600 to-sky-500 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent md:text-4xl"
+					class="bg-gradient-to-r from-indigo-600 to-rose-500 bg-clip-text text-3xl font-black tracking-tight text-transparent md:text-5xl dark:from-indigo-400 dark:to-rose-300"
 				>
-					Ønskebrønden
+					Ønsker
 				</h1>
-				{#if data.user}
-					<div class="mt-2 flex items-center gap-3 text-sm md:text-base">
-						<button
-							onclick={() => {
-								profileEmoji = data.user?.emoji || '👤';
-								showProfileModal = true;
-							}}
-							class="py-2.0 flex items-center gap-2 rounded-xl border border-indigo-100/30 bg-indigo-500/10 px-3.5 font-bold text-indigo-600 shadow-sm transition-colors hover:bg-indigo-100/50 hover:text-indigo-800 active:scale-95 dark:border-indigo-500/20 dark:bg-indigo-500/15 dark:text-indigo-400 dark:hover:bg-indigo-500/30"
-						>
-							<span class="text-lg">{data.user.emoji || '👤'}</span>
-							<span>Rediger Profil</span>
-							<span class="ml-1 text-[10px] opacity-60">✎</span>
-						</button>
-					</div>
-				{/if}
+				<p class="mt-2 font-medium text-slate-500 dark:text-slate-400">
+					Delt ønskeliste med cooldown, ratings og reality-check for hele familien.
+				</p>
 			</div>
 		</header>
 

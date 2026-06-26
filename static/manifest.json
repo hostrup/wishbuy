@@ -1,11 +1,11 @@
 {
-  "name": "Ønskebrønden",
-  "short_name": "Ønskebrønden",
-  "description": "Vores psyko-økonomiske ønskeseddel og budget tracker.",
+  "name": "Hostrup Hub",
+  "short_name": "Hostrup Hub",
+  "description": "Fælles husholdnings- og kommandocentral for familien Hostrup.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8fafc",
-  "theme_color": "#6366f1",
+  "theme_color": "#6c5ce7",
   "icons": [
     {
       "src": "/icon.svg",
