@@ -14,7 +14,11 @@ const BUYER_RULES: Record<string, string> = {
 	'4571 XXXX XXXX 4931': 'Ronni'
 };
 
-function identifyCardOwner(text: string, receiverName: string | null, supplementalText: string | null): string | null {
+function identifyCardOwner(
+	text: string,
+	receiverName: string | null,
+	supplementalText: string | null
+): string | null {
 	const searchText = `${text || ''} ${receiverName || ''} ${supplementalText || ''}`;
 	for (const [key, buyer] of Object.entries(BUYER_RULES)) {
 		if (searchText.includes(key)) return buyer;
@@ -133,10 +137,18 @@ export const actions: Actions = {
 				return {
 					hash,
 					date: formatDateDK(date),
-					dateFormatted: new Intl.DateTimeFormat('da-DK', { day: '2-digit', month: 'short', year: 'numeric' }).format(date),
+					dateFormatted: new Intl.DateTimeFormat('da-DK', {
+						day: '2-digit',
+						month: 'short',
+						year: 'numeric'
+					}).format(date),
 					text: row['Tekst'],
 					amount,
-					amountFormatted: new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', maximumFractionDigits: 0 }).format(Math.abs(amount)),
+					amountFormatted: new Intl.NumberFormat('da-DK', {
+						style: 'currency',
+						currency: 'DKK',
+						maximumFractionDigits: 0
+					}).format(Math.abs(amount)),
 					receiverName,
 					supplementalText,
 					senderAccount: row['Afsenderkonto'] || null,

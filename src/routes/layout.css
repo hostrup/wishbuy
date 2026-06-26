@@ -10,17 +10,17 @@
 
 @theme {
 	/* ── Slate → Surface/Text palette ── */
-	--color-slate-50: #f5f6f2;   /* light page bg */
-	--color-slate-100: #ffffff;  /* light card */
-	--color-slate-200: #e8eae5;  /* light border */
-	--color-slate-300: #d0d3ce;  /* light divider */
-	--color-slate-400: #a0a5a0;  /* subtle text */
-	--color-slate-500: #7a7f79;  /* tertiary text */
-	--color-slate-600: #4a4f49;  /* secondary text */
-	--color-slate-700: #2a2f29;  /* dark secondary text */
-	--color-slate-800: #181c18;  /* dark card bg */
-	--color-slate-900: #0d110d;  /* dark panel bg */
-	--color-slate-950: #080c08;  /* dark root bg */
+	--color-slate-50: #f5f6f2; /* light page bg */
+	--color-slate-100: #ffffff; /* light card */
+	--color-slate-200: #e8eae5; /* light border */
+	--color-slate-300: #d0d3ce; /* light divider */
+	--color-slate-400: #a0a5a0; /* subtle text */
+	--color-slate-500: #7a7f79; /* tertiary text */
+	--color-slate-600: #4a4f49; /* secondary text */
+	--color-slate-700: #2a2f29; /* dark secondary text */
+	--color-slate-800: #181c18; /* dark card bg */
+	--color-slate-900: #0d110d; /* dark panel bg */
+	--color-slate-950: #080c08; /* dark root bg */
 
 	/* ── Indigo → Electric Indigo ⚡ ── */
 	--color-indigo-50: #f3f0ff;
@@ -59,8 +59,6 @@
 	--color-rose-800: #9a4b5c;
 	--color-rose-900: #7d3d4c;
 
-
-
 	/* ── Sky → Indigo (gradients) ── */
 	--color-sky-300: #a59aff;
 	--color-sky-500: #6c5ce7;
@@ -77,7 +75,11 @@
 
 /* Base styling */
 html {
-	font-family: 'Inter', system-ui, -apple-system, sans-serif;
+	font-family:
+		'Inter',
+		system-ui,
+		-apple-system,
+		sans-serif;
 }
 
 html.dark {

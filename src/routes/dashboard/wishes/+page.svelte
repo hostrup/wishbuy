@@ -408,7 +408,7 @@
 {/if}
 
 <div
-	class="min-h-screen bg-slate-50 p-4 font-sans text-slate-900 transition-colors duration-300 md:p-12 dark:bg-slate-900 dark:text-slate-100"
+	class="min-h-screen bg-slate-50 p-4 font-sans text-slate-900 transition-colors duration-300 md:p-12 dark:bg-slate-950 dark:text-slate-100"
 >
 	<div class="mx-auto max-w-7xl space-y-6 md:space-y-8">
 		<header
@@ -427,7 +427,7 @@
 								profileEmoji = data.user?.emoji || '👤';
 								showProfileModal = true;
 							}}
-							class="flex items-center gap-2 rounded-xl border border-indigo-100/30 bg-indigo-500/10 px-3.5 py-2.0 font-bold text-indigo-600 shadow-sm transition-colors hover:bg-indigo-100/50 hover:text-indigo-800 active:scale-95 dark:border-indigo-500/20 dark:bg-indigo-500/15 dark:text-indigo-400 dark:hover:bg-indigo-500/30"
+							class="py-2.0 flex items-center gap-2 rounded-xl border border-indigo-100/30 bg-indigo-500/10 px-3.5 font-bold text-indigo-600 shadow-sm transition-colors hover:bg-indigo-100/50 hover:text-indigo-800 active:scale-95 dark:border-indigo-500/20 dark:bg-indigo-500/15 dark:text-indigo-400 dark:hover:bg-indigo-500/30"
 						>
 							<span class="text-lg">{data.user.emoji || '👤'}</span>
 							<span>Rediger Profil</span>
@@ -443,7 +443,7 @@
 				class="flex snap-x snap-mandatory gap-4 overflow-x-auto pt-1 pb-4 [-ms-overflow-style:none] [scrollbar-width:none] md:grid md:grid-cols-3 md:overflow-visible lg:grid-cols-5 [&::-webkit-scrollbar]:hidden"
 			>
 				<div
-					class="flex w-[85vw] flex-shrink-0 snap-center flex-col justify-center rounded-2xl border border-indigo-100/50 bg-white/80 backdrop-blur-xl bg-gradient-to-br from-white/80 to-indigo-50/30 p-5 shadow-sm md:w-auto md:p-6 dark:border-indigo-500/20 dark:bg-slate-800/80"
+					class="flex w-[85vw] flex-shrink-0 snap-center flex-col justify-center rounded-2xl border border-indigo-100/50 bg-white/80 bg-gradient-to-br from-white/80 to-indigo-50/30 p-5 shadow-sm backdrop-blur-xl md:w-auto md:p-6 dark:border-indigo-500/20 dark:bg-slate-800/80"
 				>
 					<p class="mb-1 text-[10px] font-bold tracking-widest text-indigo-400 uppercase">
 						Værdi af Drømme
@@ -1009,7 +1009,7 @@
 					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 						{#each data.purchases as item}
 							<div
-								class="group relative flex flex-col rounded-2xl border border-slate-200 bg-slate-100 p-4 md:p-5 dark:border-white/10 dark:bg-slate-700/70"
+								class="group relative flex flex-col rounded-2xl border border-slate-200/50 bg-slate-100/80 p-4 backdrop-blur-md md:p-5 dark:border-white/5 dark:bg-slate-700/50"
 							>
 								<div
 									class="absolute -top-2 -right-2 z-10 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"

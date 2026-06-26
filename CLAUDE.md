@@ -7,6 +7,7 @@ Dette er den autoritative guide til AI-agenter der arbejder på dette projekt. L
 ## Projektets formål
 
 **Hostrup Hub** er et samlet husholdningssystem for familien Hostrup. Det kombinerer:
+
 - 🎁 **Ønskebrønden** — delt ønskeseddel med cooldown, ratings og reality-check
 - 📊 **Cockpit** — forbrugsanalyse med AI-rådgivning (Gemini 2.5 Flash)
 - 🏦 **Bankimport** — CSV-import med MD5-deduplication, mapping-regler og kategori-forslag
@@ -14,18 +15,20 @@ Dette er den autoritative guide til AI-agenter der arbejder på dette projekt. L
 
 Kører som Docker-container bag Nginx + Authelia på `wishbuy.hostrup.org`. Navn og URL skifter til `hub.hostrup.org` i Sprint 8.
 
+Se `BACKLOG.md` for prioriterede opgaver. Sprint 0 (tema-fejl) har højeste prioritet og skal løses inden nyt UI-arbejde.
+
 ---
 
 ## Teknologistack
 
-| Lag | Teknologi |
-|---|---|
-| Frontend + API | SvelteKit (Vite/Node.js), Svelte 5 |
-| Database | PostgreSQL |
-| ORM | Prisma (`prisma/schema.prisma`) |
-| AI-rådgivning | `@google/generative-ai` — Gemini 2.5 Flash |
-| Styling | Tailwind CSS v4 |
-| Deployment | Docker + `deploy.sh` |
+| Lag            | Teknologi                                  |
+| -------------- | ------------------------------------------ |
+| Frontend + API | SvelteKit (Vite/Node.js), Svelte 5         |
+| Database       | PostgreSQL                                 |
+| ORM            | Prisma (`prisma/schema.prisma`)            |
+| AI-rådgivning  | `@google/generative-ai` — Gemini 2.5 Flash |
+| Styling        | Tailwind CSS v4                            |
+| Deployment     | Docker + `deploy.sh`                       |
 
 ---
 
@@ -98,6 +101,7 @@ onMount(() => {
 ### 5. Tema-system — ALDRIG hardkodede hex-farver
 
 `layout.css` definerer det centrale 2026-design-system via `@theme`. Det overstyrer Tailwind's built-in farver:
+
 - `slate-*` → Deep Forest Surface-palette
 - `indigo-*` → Electric Indigo (#6c5ce7)
 - `rose-*` → Editorial Pink
@@ -110,13 +114,16 @@ Alle farvehenvisninger skal bruge Tailwind-klasser, **aldrig** hardkodede hex-v�
 <div class="bg-indigo-500 text-rose-400"></div>
 
 <!-- ✅ Korrekt til inline style -->
-<div style="background: conic-gradient(var(--color-indigo-500) 0% {pct}%, var(--color-slate-200) {pct}% 100%)"></div>
+<div
+	style="background: conic-gradient(var(--color-indigo-500) 0% {pct}%, var(--color-slate-200) {pct}% 100%)"
+></div>
 
 <!-- ❌ Forbudt -->
 <div style="background: conic-gradient(#6366f1 0% {pct}%, #cbd5e1 {pct}% 100%)"></div>
 ```
 
 For ApexCharts — brug CSS custom properties hentet via `getComputedStyle`:
+
 ```typescript
 const root = document.documentElement;
 const indigoColor = getComputedStyle(root).getPropertyValue('--color-indigo-500').trim();
@@ -125,8 +132,11 @@ const indigoColor = getComputedStyle(root).getPropertyValue('--color-indigo-500'
 ### 6. Kortstruktur — ét ensartet designsprog
 
 Alle dashboardkort bruger **glassmorphism**-mønsteret:
+
 ```html
-<div class="rounded-3xl border border-slate-200/50 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-800/80">
+<div
+	class="rounded-3xl border border-slate-200/50 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-800/80"
+></div>
 ```
 
 Brug **ikke** tunge shadows (`shadow-2xl`) på almindelige kort — reserver dem til modaler og flydende elementer.
@@ -136,24 +146,24 @@ Brug **ikke** tunge shadows (`shadow-2xl`) på almindelige kort — reserver dem
 ```html
 <!-- ✅ Korrekt — bruger tema -->
 <div class="dark:bg-slate-950">
-
-<!-- ❌ Forbudt — omgår temaet -->
-<div class="dark:bg-[#0b1120]">
+	<!-- ❌ Forbudt — omgår temaet -->
+	<div class="dark:bg-[#0b1120]"></div>
+</div>
 ```
 
 ---
 
 ## Design-system oversigt (2026-palette)
 
-| Token | Tailwind-klasse | Brug |
-|---|---|---|
-| Deep Forest Surface | `slate-50` / `slate-950` | Sidebaggr. lys/mørk |
-| Deep Forest Card | `slate-100` / `slate-900` | Kort-baggr. lys/mørk |
-| Electric Indigo | `indigo-500` (#6c5ce7) | Primær accent, CTA-knapper |
-| Editorial Pink | `rose-500` (#e8879e) | Sekundær accent, ego-items |
-| Fælles/Shared | `violet-500` | Shared expense type |
-| Success | `emerald-500` | Positive tal, købt-status |
-| Gradient heading | `from-indigo-600 to-indigo-400` | Alle sideoverskrifter |
+| Token               | Tailwind-klasse                 | Brug                       |
+| ------------------- | ------------------------------- | -------------------------- |
+| Deep Forest Surface | `slate-50` / `slate-950`        | Sidebaggr. lys/mørk        |
+| Deep Forest Card    | `slate-100` / `slate-900`       | Kort-baggr. lys/mørk       |
+| Electric Indigo     | `indigo-500` (#6c5ce7)          | Primær accent, CTA-knapper |
+| Editorial Pink      | `rose-500` (#e8879e)            | Sekundær accent, ego-items |
+| Fælles/Shared       | `violet-500`                    | Shared expense type        |
+| Success             | `emerald-500`                   | Positive tal, købt-status  |
+| Gradient heading    | `from-indigo-600 to-indigo-400` | Alle sideoverskrifter      |
 
 Dark mode aktiveres ved `.dark`-klasse på `<html>`. Toggle-knappen i `+layout.svelte` styrer dette via `localStorage`.
 
@@ -161,17 +171,17 @@ Dark mode aktiveres ved `.dark`-klasse på `<html>`. Toggle-knappen i `+layout.s
 
 ## Databaseschema (nøgletabeller)
 
-| Tabel | Indhold |
-|---|---|
-| `User` | Brugere (username, displayName, emoji) |
-| `Item` | Ønsker og køb (title, price, expenseType, status, desireLevel) |
-| `Category` | Ønskekategorier (til Item) |
-| `Rating` | Thumbs up/down pr. bruger pr. Item |
-| `AiInsight` | Gemte AI-analyser pr. bruger og periode |
-| `Account` | Bankkonti til import |
-| `Transaction` | Bankposteringer (hash, date, text, amount, paidBy, ...) |
-| `TransactionCategory` | Udgiftskategorier (til Transaction) |
-| `MappingRule` | Keyword → kategori auto-mapping ved import |
+| Tabel                 | Indhold                                                        |
+| --------------------- | -------------------------------------------------------------- |
+| `User`                | Brugere (username, displayName, emoji)                         |
+| `Item`                | Ønsker og køb (title, price, expenseType, status, desireLevel) |
+| `Category`            | Ønskekategorier (til Item)                                     |
+| `Rating`              | Thumbs up/down pr. bruger pr. Item                             |
+| `AiInsight`           | Gemte AI-analyser pr. bruger og periode                        |
+| `Account`             | Bankkonti til import                                           |
+| `Transaction`         | Bankposteringer (hash, date, text, amount, paidBy, ...)        |
+| `TransactionCategory` | Udgiftskategorier (til Transaction)                            |
+| `MappingRule`         | Keyword → kategori auto-mapping ved import                     |
 
 `Item.expenseType` er enten `PERSONAL` eller `SHARED`. `Item.status` er `WISH`, `PURCHASED` eller `ABANDONED`.
 
@@ -186,6 +196,7 @@ Dark mode aktiveres ved `.dark`-klasse på `<html>`. Toggle-knappen i `+layout.s
 ```
 
 Scriptet kører i rækkefølge og stopper ved første fejl:
+
 1. `npm run lint` — ingen lint-fejl tilladt
 2. `npx prisma generate` — opdaterer Prisma Client
 3. `npx prisma db push` — synkroniserer schema til PostgreSQL
@@ -199,20 +210,20 @@ Scriptet kører i rækkefølge og stopper ved første fejl:
 
 ## Nøglefiler
 
-| Fil | Rolle |
-|---|---|
-| `src/routes/layout.css` | Centralt tema (Tailwind @theme, 2026-palette) |
-| `src/routes/+layout.svelte` | Root layout, dark mode toggle |
-| `src/routes/+page.svelte` | Landing page (tile-menu) |
-| `src/routes/dashboard/wishes/+page.svelte` | Ønskebrønden UI |
-| `src/routes/dashboard/wishes/+page.server.ts` | Brønd load + actions |
-| `src/routes/dashboard/finance/+page.svelte` | Cockpit UI (ApexCharts) |
-| `src/routes/dashboard/finance/+page.server.ts` | Finance load + AI actions |
-| `src/routes/dashboard/import/+page.svelte` | Import UI |
-| `src/routes/dashboard/import/+page.server.ts` | CSV parse + DB actions |
-| `src/lib/server/` | Server-only hjælpefunktioner |
-| `prisma/schema.prisma` | Database-schema |
-| `deploy.sh` | Deploy-script |
+| Fil                                            | Rolle                                         |
+| ---------------------------------------------- | --------------------------------------------- |
+| `src/routes/layout.css`                        | Centralt tema (Tailwind @theme, 2026-palette) |
+| `src/routes/+layout.svelte`                    | Root layout, dark mode toggle                 |
+| `src/routes/+page.svelte`                      | Landing page (tile-menu)                      |
+| `src/routes/dashboard/wishes/+page.svelte`     | Ønskebrønden UI                               |
+| `src/routes/dashboard/wishes/+page.server.ts`  | Brønd load + actions                          |
+| `src/routes/dashboard/finance/+page.svelte`    | Cockpit UI (ApexCharts)                       |
+| `src/routes/dashboard/finance/+page.server.ts` | Finance load + AI actions                     |
+| `src/routes/dashboard/import/+page.svelte`     | Import UI                                     |
+| `src/routes/dashboard/import/+page.server.ts`  | CSV parse + DB actions                        |
+| `src/lib/server/`                              | Server-only hjælpefunktioner                  |
+| `prisma/schema.prisma`                         | Database-schema                               |
+| `deploy.sh`                                    | Deploy-script                                 |
 
 ---
 

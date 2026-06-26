@@ -14,7 +14,9 @@
 
 	function getThemeColor(variableName: string, fallback: string): string {
 		if (typeof window === 'undefined') return fallback;
-		return getComputedStyle(document.documentElement).getPropertyValue(variableName).trim() || fallback;
+		return (
+			getComputedStyle(document.documentElement).getPropertyValue(variableName).trim() || fallback
+		);
 	}
 
 	// ApexCharts configs
@@ -64,7 +66,11 @@
 				}
 			}
 		},
-		stroke: { show: true, colors: [isDarkMode ? getThemeColor('--color-slate-800', '#181c18') : '#ffffff'], width: 2 },
+		stroke: {
+			show: true,
+			colors: [isDarkMode ? getThemeColor('--color-slate-800', '#181c18') : '#ffffff'],
+			width: 2
+		},
 		theme: { mode: isDarkMode ? 'dark' : 'light' }
 	});
 
@@ -96,7 +102,12 @@
 				}
 			}
 		},
-		grid: { borderColor: isDarkMode ? getThemeColor('--color-slate-700', '#2a2f29') : getThemeColor('--color-slate-200', '#e8eae5'), strokeDashArray: 4 },
+		grid: {
+			borderColor: isDarkMode
+				? getThemeColor('--color-slate-700', '#2a2f29')
+				: getThemeColor('--color-slate-200', '#e8eae5'),
+			strokeDashArray: 4
+		},
 		theme: { mode: isDarkMode ? 'dark' : 'light' }
 	});
 
@@ -134,7 +145,12 @@
 				}
 			}
 		},
-		grid: { borderColor: isDarkMode ? getThemeColor('--color-slate-700', '#2a2f29') : getThemeColor('--color-slate-200', '#e8eae5'), strokeDashArray: 4 },
+		grid: {
+			borderColor: isDarkMode
+				? getThemeColor('--color-slate-700', '#2a2f29')
+				: getThemeColor('--color-slate-200', '#e8eae5'),
+			strokeDashArray: 4
+		},
 		theme: { mode: isDarkMode ? 'dark' : 'light' }
 	});
 
@@ -601,7 +617,7 @@
 		<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 			<!-- AI Advisor -->
 			<section
-				class="relative flex flex-col overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-800/80 lg:col-span-2 md:p-8"
+				class="relative flex flex-col overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-6 shadow-sm backdrop-blur-xl md:p-8 lg:col-span-2 dark:border-white/10 dark:bg-slate-800/80"
 			>
 				<div
 					class="pointer-events-none absolute -top-20 -right-20 h-80 w-80 rounded-full bg-emerald-500/5 opacity-20 blur-3xl dark:bg-emerald-500/5"
@@ -611,7 +627,9 @@
 					class="relative z-10 mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center"
 				>
 					<div>
-						<h2 class="flex items-center gap-3 text-xl font-bold md:text-2xl text-slate-800 dark:text-white">
+						<h2
+							class="flex items-center gap-3 text-xl font-bold text-slate-800 md:text-2xl dark:text-white"
+						>
 							<span class="text-3xl">🤖</span> Din Formuerådgiver
 						</h2>
 					</div>
@@ -632,7 +650,9 @@
 						>
 							{@html DOMPurify.sanitize(marked(data.aiInsight.content) as string)}
 						</div>
-						<div class="mt-8 flex items-center justify-between border-t border-slate-200/50 dark:border-white/10 pt-4">
+						<div
+							class="mt-8 flex items-center justify-between border-t border-slate-200/50 pt-4 dark:border-white/10"
+						>
 							<span class="text-xs text-slate-400 dark:text-slate-500"
 								>Opdateret: {new Intl.DateTimeFormat('da-DK', {
 									dateStyle: 'medium',
@@ -709,25 +729,38 @@
 						(data.kpis.guiltyPleasureSpending / data.topWish.price) * 100
 					)}
 					<section
-						class="relative flex-1 overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-800/80 md:p-8"
+						class="relative flex-1 overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-6 shadow-sm backdrop-blur-xl md:p-8 dark:border-white/10 dark:bg-slate-800/80"
 					>
-						<h2 class="mb-4 flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-white">🎯 Reality Check</h2>
+						<h2
+							class="mb-4 flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-white"
+						>
+							🎯 Reality Check
+						</h2>
 						<p class="mb-6 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
 							Du har brugt <strong>{formatCur(data.kpis.guiltyPleasureSpending)}</strong> på
-							<span class="rounded bg-slate-100 dark:bg-slate-700/50 px-1.5 py-0.5 font-bold text-slate-800 dark:text-slate-200"
+							<span
+								class="rounded bg-slate-100 px-1.5 py-0.5 font-bold text-slate-800 dark:bg-slate-700/50 dark:text-slate-200"
 								>{data.kpis.guiltyPleasureName}</span
 							>.<br /><br />
-							Det er <strong class="text-xl text-indigo-600 dark:text-indigo-400">{Math.round(wishPct)}%</strong> af:
+							Det er
+							<strong class="text-xl text-indigo-600 dark:text-indigo-400"
+								>{Math.round(wishPct)}%</strong
+							>
+							af:
 							<br /><strong class="text-slate-800 dark:text-white">{data.topWish.title}</strong>!
 						</p>
 
-						<div class="mb-2 h-3 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-900 shadow-inner">
+						<div
+							class="mb-2 h-3 w-full overflow-hidden rounded-full bg-slate-100 shadow-inner dark:bg-slate-900"
+						>
 							<div
 								class="h-3 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-600 transition-all duration-1000"
 								style="width: {wishPct}%"
 							></div>
 						</div>
-						<div class="flex justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500">
+						<div
+							class="flex justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500"
+						>
 							<span>0 DKK</span>
 							<span>{formatCur(data.topWish.price)}</span>
 						</div>
@@ -810,7 +843,6 @@
 								chart: {
 									...donutOptions.chart,
 									events: {
-										// eslint-disable-next-line @typescript-eslint/no-explicit-any
 										dataPointSelection: (event: any, chartContext: any, config: any) => {
 											const clickedCategoryName = config.w.globals.labels[config.dataPointIndex];
 											selectedCategory =
