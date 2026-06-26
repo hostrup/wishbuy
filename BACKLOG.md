@@ -832,29 +832,24 @@ Alternativt: Konfigurér Nginx til at sende `http://10.0.0.6:3005/api/calendar/f
 
 ---
 
-## ⚪ Sprint 8: Branding & Finpudsning
+## ✅ Sprint 8: Branding & Finpudsning — GENNEMFØRT
 
-### BRAND-8.1: Opdatér app-identitet
+### BRAND-8.1: Opdatér app-identitet — GENNEMFØRT
 
 **Filer:**
-
-- `src/routes/+layout.svelte`: `<title>` og `<meta name="description">`
-- `static/favicon.png` (eller `.ico`): Erstat med Hostrup Hub-favicon
+- `src/routes/+layout.svelte`: `<title>` og `<meta name="description">` ✅
+- `static/favicon.png` (eller `.ico`): Erstat med Hostrup Hub-favicon (nyt premium SVG-ikon indført) ✅
 - `package.json`: `"name": "hostrup-hub"` er allerede sat ✅
-
-**Nuværende `<title>`:** `Hostrup Hub` (allerede korrekt ✅)
-**Hvad der mangler:** OpenGraph meta-tags, PWA-manifest (`static/manifest.json`), app-ikon
+- OpenGraph meta-tags, PWA-manifest (`static/manifest.json`), app-ikon fully set up ✅
 
 ---
 
-### BRAND-8.2: Nyt domæne `hub.hostrup.org`
+### BRAND-8.2: Nyt domæne hub.hostrup.org — UDSKUDT / BEHOLDT EKSISTERENDE DOMÆNER
 
-**Hvad der skal gøres:**
+**Status:** Udskudt efter brugerønske for at give tid til at lære de nye navne at kende. De eksisterende domæner (`wish.hostrup.org` og `ugeplan.hostrup.org`) bevares og peger begge 100% konsolideret på Hostrup Hub-containeren. 
 
-1. Opdatér Nginx/Authelia-konfiguration med nyt domæne
-2. Opdatér `cal.createEvent`-URL i `src/routes/api/calendar/feed.ics/+server.ts`
-3. Opdatér eventuelle hardkodede URL-referencer i kodebasen: `grep -r "wishbuy.hostrup.org" src/`
-4. SSL-certifikat til nyt domæne (Let's Encrypt via Nginx Proxy Manager)
+**Udførte delopgaver:**
+- Opdateret eventuelle hardkodede URL-referencer i kalender-feedet (`src/routes/api/calendar/feed.ics/+server.ts`) til den aktive `wish.hostrup.org` i stedet for legacy `wishbuy.hostrup.org`. ✅
 
 ---
 
