@@ -88,12 +88,14 @@
 						<span>🏦</span> Bankimport
 					</a>
 					<a
-						href="https://ugeplan.hostrup.org"
-						target="_blank"
-						rel="noopener noreferrer"
-						class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white"
+						href="/dashboard/weekly"
+						class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors {$page.url.pathname.startsWith(
+							'/dashboard/weekly'
+						)
+							? 'bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400'
+							: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white'}"
 					>
-						<span>📅</span> Ugeplan <span class="text-[10px] opacity-55">↗</span>
+						<span>📅</span> Ugeplan
 					</a>
 				</div>
 
@@ -155,6 +157,17 @@
 			>
 				<span class="text-xl">📊</span>
 				<span class="text-[9px] font-bold">Økonomi</span>
+			</a>
+			<a
+				href="/dashboard/weekly"
+				class="flex flex-col items-center gap-0.5 p-2 transition-colors {$page.url.pathname.startsWith(
+					'/dashboard/weekly'
+				)
+					? 'text-indigo-500 dark:text-indigo-400'
+					: 'text-slate-500 dark:text-slate-400'}"
+			>
+				<span class="text-xl">📅</span>
+				<span class="text-[9px] font-bold">Ugeplan</span>
 			</a>
 			<a
 				href="/dashboard/import"
