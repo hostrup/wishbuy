@@ -14,7 +14,7 @@
 >
 	<!-- Ambient Background Glows -->
 	<div
-		class="pointer-events-none absolute top-0 left-1/4 h-[500px] w-[500px] rounded-full bg-indigo-500/10 blur-3xl dark:bg-indigo-600/10"
+		class="pointer-events-none absolute top-0 left-1/4 h-[500px] w-[500px] rounded-full bg-amber-500/10 blur-3xl dark:bg-amber-600/10"
 	></div>
 	<div
 		class="pointer-events-none absolute right-1/4 bottom-1/4 h-[400px] w-[400px] rounded-full bg-rose-500/10 blur-3xl dark:bg-rose-500/10"
@@ -25,7 +25,7 @@
 		<div class="flex items-center">
 			<a
 				href="/dashboard/weekly"
-				class="flex items-center gap-2 text-sm font-semibold text-slate-500 transition-colors hover:text-indigo-500 dark:text-slate-400 dark:hover:text-indigo-400"
+				class="flex items-center gap-2 text-sm font-semibold text-slate-500 transition-colors hover:text-amber-500 dark:text-slate-400 dark:hover:text-amber-400"
 			>
 				<ArrowLeft size={16} />
 				Tilbage til planen
@@ -39,7 +39,7 @@
 			<div
 				class="mb-5 flex items-center gap-2.5 border-b border-slate-200/50 pb-3 dark:border-white/5"
 			>
-				<User class="text-indigo-500 dark:text-indigo-400" size={20} />
+				<User class="text-amber-500 dark:text-amber-400" size={20} />
 				<h2 class="text-lg font-bold tracking-tight text-slate-800 dark:text-white">Min Profil</h2>
 			</div>
 
@@ -55,7 +55,7 @@
 							id="emoji"
 							name="emoji"
 							value={data.user?.emoji}
-							class="w-16 rounded-2xl border border-slate-200 bg-white p-3 text-center text-2xl text-slate-900 transition-all outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-indigo-500"
+							class="w-16 rounded-2xl border border-slate-200 bg-white p-3 text-center text-2xl text-slate-900 transition-all outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-amber-500"
 						/>
 					</div>
 					<div>
@@ -68,7 +68,7 @@
 							id="displayName"
 							name="displayName"
 							value={data.user?.displayName}
-							class="w-full rounded-2xl border border-slate-200 bg-white p-3 text-base text-slate-900 transition-all outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-indigo-500"
+							class="w-full rounded-2xl border border-slate-200 bg-white p-3 text-base text-slate-900 transition-all outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-amber-500"
 						/>
 					</div>
 				</div>
@@ -77,7 +77,7 @@
 				</div>
 				<button
 					type="submit"
-					class="w-full cursor-pointer rounded-2xl bg-indigo-600 py-3.5 font-bold text-white shadow-lg transition-all hover:bg-indigo-500 active:scale-98"
+					class="w-full cursor-pointer rounded-2xl bg-amber-600 py-3.5 font-bold text-white shadow-lg transition-all hover:bg-amber-500 active:scale-98"
 				>
 					Gem Profil
 				</button>
@@ -91,7 +91,7 @@
 			<div
 				class="mb-5 flex items-center gap-2.5 border-b border-slate-200/50 pb-3 dark:border-white/5"
 			>
-				<Users class="text-indigo-500 dark:text-indigo-400" size={20} />
+				<Users class="text-amber-500 dark:text-amber-400" size={20} />
 				<h2 class="text-lg font-bold tracking-tight text-slate-800 dark:text-white">Husstanden</h2>
 			</div>
 
@@ -125,7 +125,7 @@
 											id="edit_emoji_{person.id}"
 											name="emoji"
 											value={person.emoji || '👤'}
-											class="w-16 rounded-2xl border border-slate-200 bg-white p-3 text-center text-2xl text-slate-900 transition-all outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-indigo-500"
+											class="w-16 rounded-2xl border border-slate-200 bg-white p-3 text-center text-2xl text-slate-900 transition-all outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-amber-500"
 										/>
 									</div>
 									<div>
@@ -139,7 +139,7 @@
 											name="name"
 											value={person.name}
 											required
-											class="w-full rounded-2xl border border-slate-200 bg-white p-3 text-base text-slate-900 transition-all outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-indigo-500"
+											class="w-full rounded-2xl border border-slate-200 bg-white p-3 text-base text-slate-900 transition-all outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-amber-500"
 										/>
 									</div>
 								</div>
@@ -153,13 +153,13 @@
 										id="edit_presence_{person.id}"
 										name="defaultPresence"
 										value={person.default_presence_days}
-										class="w-full rounded-2xl border border-slate-200 bg-white p-3 text-base text-slate-900 transition-all outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-indigo-500"
+										class="w-full rounded-2xl border border-slate-200 bg-white p-3 text-base text-slate-900 transition-all outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-amber-500"
 									/>
 								</div>
 								<div class="flex gap-3">
 									<button
 										type="submit"
-										class="flex-1 cursor-pointer rounded-2xl bg-indigo-600 py-3 font-bold text-white shadow-lg transition-all hover:bg-indigo-500 active:scale-98"
+										class="flex-1 cursor-pointer rounded-2xl bg-amber-600 py-3 font-bold text-white shadow-lg transition-all hover:bg-amber-500 active:scale-98"
 									>
 										Gem ændringer
 									</button>
@@ -186,7 +186,7 @@
 											{person.name}
 										</div>
 										<div class="text-xs font-semibold text-slate-400">
-											Standarddage: <span class="font-bold text-indigo-600 dark:text-indigo-400"
+											Standarddage: <span class="font-bold text-amber-600 dark:text-amber-400"
 												>{person.default_presence_days || 'Ingen'}</span
 											>
 										</div>
@@ -196,7 +196,7 @@
 									<button
 										type="button"
 										onclick={() => (editingPersonId = person.id)}
-										class="cursor-pointer rounded-xl border border-indigo-200/50 bg-indigo-50/50 p-2.5 text-indigo-600 transition-all hover:bg-indigo-100/50 active:scale-95 dark:border-indigo-900/30 dark:bg-indigo-950/10 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
+										class="cursor-pointer rounded-xl border border-amber-200/50 bg-amber-50/50 p-2.5 text-amber-600 transition-all hover:bg-amber-100/50 active:scale-95 dark:border-amber-900/30 dark:bg-amber-950/10 dark:text-amber-400 dark:hover:bg-amber-900/20"
 										title="Rediger person"
 									>
 										<Pencil size={16} />
@@ -252,7 +252,7 @@
 								id="new_emoji"
 								name="emoji"
 								value="👤"
-								class="w-16 rounded-2xl border border-slate-200 bg-white p-3 text-center text-2xl text-slate-900 transition-all outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-indigo-500"
+								class="w-16 rounded-2xl border border-slate-200 bg-white p-3 text-center text-2xl text-slate-900 transition-all outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-amber-500"
 							/>
 						</div>
 						<div>
@@ -266,7 +266,7 @@
 								name="name"
 								placeholder="F.eks. Emil"
 								required
-								class="w-full rounded-2xl border border-slate-200 bg-white p-3 text-base text-slate-900 transition-all outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-indigo-500"
+								class="w-full rounded-2xl border border-slate-200 bg-white p-3 text-base text-slate-900 transition-all outline-none placeholder:text-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-amber-500"
 							/>
 						</div>
 					</div>
@@ -280,7 +280,7 @@
 							id="defaultPresence"
 							name="defaultPresence"
 							value="1,2,3,4,5,6,7"
-							class="w-full rounded-2xl border border-slate-200 bg-white p-3 text-base text-slate-900 transition-all outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-indigo-500"
+							class="w-full rounded-2xl border border-slate-200 bg-white p-3 text-base text-slate-900 transition-all outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:focus:border-amber-500"
 						/>
 					</div>
 					<button

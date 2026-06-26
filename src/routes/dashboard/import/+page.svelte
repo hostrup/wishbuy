@@ -241,14 +241,14 @@
 						<p class="text-2xl font-black text-amber-800 dark:text-amber-300">{stats.existing}</p>
 					</div>
 					<div
-						class="rounded-2xl border border-indigo-200/50 bg-indigo-50/80 p-4 shadow-sm backdrop-blur-xl dark:border-indigo-500/20 dark:bg-indigo-900/20"
+						class="rounded-2xl border border-emerald-200/50 bg-emerald-50/80 p-4 shadow-sm backdrop-blur-xl dark:border-emerald-500/20 dark:bg-emerald-950/20"
 					>
 						<p
-							class="text-[10px] font-bold tracking-widest text-indigo-600 uppercase dark:text-indigo-400"
+							class="text-[10px] font-bold tracking-widest text-emerald-600 uppercase dark:text-emerald-400"
 						>
 							Auto-mappet
 						</p>
-						<p class="text-2xl font-black text-indigo-800 dark:text-indigo-300">{stats.mapped}</p>
+						<p class="text-2xl font-black text-emerald-800 dark:text-emerald-300">{stats.mapped}</p>
 					</div>
 				</div>
 
@@ -316,7 +316,7 @@
 							<button
 								type="submit"
 								disabled={isAiSuggesting}
-								class="flex cursor-pointer items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-md transition-all hover:bg-indigo-500 disabled:opacity-50"
+								class="flex cursor-pointer items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-md transition-all hover:bg-emerald-500 disabled:opacity-50"
 							>
 								{#if isAiSuggesting}
 									<span>⏳ Analyserer...</span>
@@ -334,10 +334,10 @@
 
 				{#if aiSuggestionCount > 0}
 					<div
-						class="flex items-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-xs font-bold text-indigo-700 dark:text-indigo-300"
+						class="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs font-bold text-emerald-700 dark:text-emerald-300"
 					>
 						<span
-							>🤖 AI foreslog kategorier for {aiSuggestionCount} transaktioner (markeret med lilla). Gennemse
+							>🤖 AI foreslog kategorier for {aiSuggestionCount} transaktioner (markeret med grøn). Gennemse
 							og juster dem inden du gemmer.</span
 						>
 						<button
@@ -378,7 +378,7 @@
 									class="border-b border-slate-100 transition-colors hover:bg-slate-50 dark:border-white/5 dark:hover:bg-slate-700/50 {row.isExisting
 										? 'opacity-50'
 										: ''} {row.status === 'AI_SUGGESTED'
-										? 'bg-indigo-50/50 dark:bg-indigo-900/10'
+										? 'bg-emerald-50/50 dark:bg-emerald-950/10'
 										: ''}"
 								>
 									<td

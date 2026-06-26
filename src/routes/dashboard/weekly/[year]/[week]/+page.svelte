@@ -43,7 +43,7 @@
 >
 	<!-- Ambient Background Glows -->
 	<div
-		class="pointer-events-none absolute top-0 left-1/4 h-[500px] w-[500px] rounded-full bg-indigo-500/10 blur-3xl dark:bg-indigo-600/10"
+		class="pointer-events-none absolute top-0 left-1/4 h-[500px] w-[500px] rounded-full bg-amber-500/10 blur-3xl dark:bg-amber-600/10"
 	></div>
 	<div
 		class="pointer-events-none absolute right-1/4 bottom-1/4 h-[400px] w-[400px] rounded-full bg-rose-500/10 blur-3xl dark:bg-rose-500/10"
@@ -58,13 +58,13 @@
 				<div class="flex items-center gap-2">
 					<a
 						href="/"
-						class="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+						class="flex items-center gap-1 text-xs font-bold text-amber-600 hover:text-amber-500 dark:text-amber-400 dark:hover:text-amber-300"
 					>
 						<ArrowLeft size={12} /> Tilbage til Hubben
 					</a>
 				</div>
 				<h1
-					class="mt-1 bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-3xl font-black tracking-tight text-transparent md:text-5xl dark:from-indigo-400 dark:to-indigo-300"
+					class="mt-1 bg-gradient-to-r from-amber-600 to-amber-400 bg-clip-text text-3xl font-black tracking-tight text-transparent md:text-5xl dark:from-amber-400 dark:to-amber-300"
 				>
 					Ugeplan & Madplan
 				</h1>
@@ -86,7 +86,7 @@
 		<div class="flex items-center justify-between">
 			<a
 				href="/dashboard/weekly/{prevYear}/{prevWeek}"
-				class="group flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200/50 bg-white/80 px-4 py-3 text-sm font-bold text-slate-500 shadow-sm backdrop-blur-md transition-all hover:bg-slate-50 hover:text-indigo-500 dark:border-white/10 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-indigo-400"
+				class="group flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200/50 bg-white/80 px-4 py-3 text-sm font-bold text-slate-500 shadow-sm backdrop-blur-md transition-all hover:bg-slate-50 hover:text-amber-500 dark:border-white/10 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-amber-400"
 			>
 				<svg
 					width="18"
@@ -111,7 +111,7 @@
 						>ÅR {currentYear}</span
 					>
 					<span
-						class="bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-3xl font-black text-transparent md:text-4xl"
+						class="bg-gradient-to-r from-amber-600 to-amber-400 bg-clip-text text-3xl font-black text-transparent md:text-4xl"
 					>
 						Uge {currentWeek}
 					</span>
@@ -122,7 +122,7 @@
 							<div
 								class="h-1.5 w-1.5 rounded-full transition-all duration-500
 								{hasRecipe
-									? 'bg-indigo-500 shadow-[0_0_6px_rgba(108,92,231,0.5)]'
+									? 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.5)]'
 									: 'bg-slate-200 dark:bg-slate-700'}"
 							></div>
 						{/each}
@@ -132,7 +132,7 @@
 
 			<a
 				href="/dashboard/weekly/{nextYear}/{nextWeek}"
-				class="group flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200/50 bg-white/80 px-4 py-3 text-sm font-bold text-slate-500 shadow-sm backdrop-blur-md transition-all hover:bg-slate-50 hover:text-indigo-500 dark:border-white/10 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-indigo-400"
+				class="group flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200/50 bg-white/80 px-4 py-3 text-sm font-bold text-slate-500 shadow-sm backdrop-blur-md transition-all hover:bg-slate-50 hover:text-amber-500 dark:border-white/10 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-amber-400"
 			>
 				<span class="hidden sm:inline">Uge {nextWeek}</span>
 				<svg
@@ -182,7 +182,7 @@
 						class="col-span-1 flex flex-col items-center rounded-2xl border border-slate-200/50 bg-white/80 p-4 text-center shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-slate-800/80"
 					>
 						<svg
-							class="mb-2 h-5 w-5 text-indigo-500 dark:text-indigo-400"
+							class="mb-2 h-5 w-5 text-amber-500 dark:text-amber-400"
 							viewBox="0 0 24 24"
 							fill="none"
 							stroke="currentColor"
@@ -194,7 +194,7 @@
 								d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"
 							/>
 						</svg>
-						<span class="text-2xl font-black text-indigo-600 dark:text-indigo-400"
+						<span class="text-2xl font-black text-amber-600 dark:text-amber-400"
 							>{stats.totalDinners}</span
 						>
 						<span class="mt-1 text-[9px] font-bold tracking-wider text-slate-400 uppercase"
@@ -259,14 +259,14 @@
 						<span class="text-xs font-black tracking-wider text-slate-400 uppercase"
 							>Ugens måltider</span
 						>
-						<span class="text-sm font-black text-indigo-600 dark:text-indigo-400"
+						<span class="text-sm font-black text-amber-600 dark:text-amber-400"
 							>{stats.totalDinners}/7</span
 						>
 					</div>
 					<div class="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-900">
 						<div
-							class="relative h-full overflow-hidden rounded-full bg-indigo-500 transition-all duration-1000 ease-out dark:bg-indigo-400"
-							style="width: {mealProgress}%; shadow: 0 0 12px rgba(108,92,231,0.4);"
+							class="relative h-full overflow-hidden rounded-full bg-amber-500 transition-all duration-1000 ease-out dark:bg-amber-400"
+							style="width: {mealProgress}%; shadow: 0 0 12px rgba(245,158,11,0.4);"
 						></div>
 					</div>
 					<!-- Day dots below bar -->
@@ -276,7 +276,7 @@
 							<div class="flex flex-col items-center gap-1">
 								<div
 									class="h-1.5 w-1.5 rounded-full {hasRecipe
-										? 'bg-indigo-500 dark:bg-indigo-400'
+										? 'bg-amber-500 dark:bg-amber-400'
 										: 'bg-slate-200 dark:bg-slate-700'}"
 								></div>
 								<span class="text-[8px] font-bold text-slate-400">{label}</span>
@@ -292,7 +292,7 @@
 					<div class="mb-4 flex items-center justify-between">
 						<div class="flex items-center gap-2">
 							<div
-								class="flex h-8 w-8 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10"
+								class="flex h-8 w-8 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10"
 							>
 								<svg
 									width="14"
@@ -303,7 +303,7 @@
 									stroke-width="2"
 									stroke-linecap="round"
 									stroke-linejoin="round"
-									class="text-indigo-500 dark:text-indigo-400"
+									class="text-amber-500 dark:text-amber-400"
 								>
 									<circle cx="12" cy="12" r="5" /><path
 										d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
@@ -315,7 +315,7 @@
 							</h3>
 						</div>
 						{#if isSavingWeekNote}
-							<Loader2 size={12} class="animate-spin text-indigo-500" />
+							<Loader2 size={12} class="animate-spin text-amber-500" />
 						{:else}
 							<CheckCircle2
 								size={12}
@@ -348,14 +348,14 @@
 						<textarea
 							name="note"
 							placeholder="Hvem henter hvem? Hvad skal vi huske?"
-							class="h-32 w-full resize-none rounded-2xl border border-slate-200 bg-white/50 p-4 text-sm leading-relaxed text-slate-900 outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white dark:border-white/10 dark:bg-slate-900/50 dark:text-white dark:placeholder:text-slate-500 dark:focus:bg-slate-900"
+							class="h-32 w-full resize-none rounded-2xl border border-slate-200 bg-white/50 p-4 text-sm leading-relaxed text-slate-900 outline-none placeholder:text-slate-400 focus:border-amber-500 focus:bg-white dark:border-white/10 dark:bg-slate-900/50 dark:text-white dark:placeholder:text-slate-500 dark:focus:bg-slate-900"
 							onblur={(e) => {
 								e.currentTarget.closest('form')?.requestSubmit();
 							}}>{data.weekPlan?.note || ''}</textarea
 						>
 						<button
 							type="submit"
-							class="mt-3 w-full cursor-pointer rounded-2xl bg-indigo-600 py-2.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-indigo-500"
+							class="mt-3 w-full cursor-pointer rounded-2xl bg-amber-600 py-2.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-amber-500"
 						>
 							Gem noter
 						</button>
@@ -364,7 +364,7 @@
 
 				<!-- SHOPPING TEASER -->
 				<div
-					class="relative overflow-hidden rounded-3xl border border-dashed border-indigo-200 bg-indigo-50/50 p-5 dark:border-indigo-900/30 dark:bg-indigo-950/10"
+					class="relative overflow-hidden rounded-3xl border border-dashed border-amber-200 bg-amber-50/50 p-5 dark:border-amber-900/30 dark:bg-amber-950/10"
 				>
 					<div class="mb-2 flex items-center gap-2">
 						<svg
@@ -376,21 +376,21 @@
 							stroke-width="2"
 							stroke-linecap="round"
 							stroke-linejoin="round"
-							class="text-indigo-500 dark:text-indigo-400"
+							class="text-amber-500 dark:text-amber-400"
 						>
 							<circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path
 								d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
 							/>
 						</svg>
 						<h3
-							class="text-xs font-black tracking-wider text-indigo-700 uppercase dark:text-indigo-300"
+							class="text-xs font-black tracking-wider text-amber-700 uppercase dark:text-amber-300"
 						>
 							Indkøbsliste
 						</h3>
 					</div>
 					<p class="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
 						Automatisk indkøbsliste fra ugens opskrifter. <span
-							class="font-bold text-indigo-600 dark:text-indigo-400">Coming soon</span
+							class="font-bold text-amber-600 dark:text-amber-400">Coming soon</span
 						>
 					</p>
 				</div>

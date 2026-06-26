@@ -140,13 +140,13 @@
 					{#each data.categories as cat}
 						<button
 							onclick={() => openCategoryEdit(cat)}
-							class="group flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition-colors hover:bg-indigo-50 dark:border-white/10 dark:bg-slate-900/50"
+							class="group flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition-colors hover:bg-rose-50 dark:border-white/10 dark:bg-slate-900/50 dark:hover:bg-rose-950/20"
 						>
 							<span class="font-medium text-slate-700 dark:text-slate-200"
 								>{cat.icon} {cat.name}</span
 							>
 							<span
-								class="text-xs font-bold text-indigo-500 opacity-0 transition-opacity group-hover:opacity-100"
+								class="text-xs font-bold text-rose-500 opacity-0 transition-opacity group-hover:opacity-100"
 								>Rediger</span
 							>
 						</button>
@@ -187,7 +187,7 @@
 									onclick={() => (editCatIcon = emoji)}
 									class="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-all hover:bg-slate-200 dark:hover:bg-slate-600 {editCatIcon ===
 									emoji
-										? 'bg-indigo-200 shadow-sm ring-2 ring-indigo-500'
+										? 'bg-rose-200 shadow-sm ring-2 ring-rose-500 dark:bg-rose-950'
 										: ''}"
 								>
 									{emoji}
@@ -208,7 +208,7 @@
 							name="name"
 							bind:value={editCatName}
 							required
-							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium transition-all outline-none focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-900/50"
+							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium transition-all outline-none focus:ring-2 focus:ring-rose-500 dark:border-white/10 dark:bg-slate-900/50"
 						/>
 					</div>
 				</form>
@@ -222,7 +222,7 @@
 					<button
 						type="submit"
 						form="createCatForm"
-						class="flex-1 rounded-xl bg-indigo-600 py-3.5 font-bold text-white shadow-md transition-all hover:bg-indigo-700"
+						class="flex-1 rounded-xl bg-rose-600 py-3.5 font-bold text-white shadow-md transition-all hover:bg-rose-700"
 						>Opret</button
 					>
 				</div>
@@ -256,7 +256,7 @@
 									onclick={() => (editCatIcon = emoji)}
 									class="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition-all hover:bg-slate-200 dark:hover:bg-slate-600 {editCatIcon ===
 									emoji
-										? 'bg-indigo-200 shadow-sm ring-2 ring-indigo-500'
+										? 'bg-rose-200 shadow-sm ring-2 ring-rose-500 dark:bg-rose-950'
 										: ''}"
 								>
 									{emoji}
@@ -277,7 +277,7 @@
 							name="name"
 							bind:value={editCatName}
 							required
-							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium transition-all outline-none focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-900/50"
+							class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium transition-all outline-none focus:ring-2 focus:ring-rose-500 dark:border-white/10 dark:bg-slate-900/50"
 						/>
 					</div>
 				</form>
@@ -315,7 +315,7 @@
 					<button
 						type="submit"
 						form="updateCatForm"
-						class="flex-1 rounded-xl bg-indigo-600 py-3.5 font-bold text-white shadow-md transition-all hover:bg-indigo-700"
+						class="flex-1 rounded-xl bg-rose-600 py-3.5 font-bold text-white shadow-md transition-all hover:bg-rose-700"
 						>Gem</button
 					>
 				</div>
@@ -333,7 +333,7 @@
 		>
 			<div>
 				<h1
-					class="bg-gradient-to-r from-indigo-600 to-rose-500 bg-clip-text text-3xl font-black tracking-tight text-transparent md:text-5xl dark:from-indigo-400 dark:to-rose-300"
+					class="bg-gradient-to-r from-rose-600 to-pink-500 bg-clip-text text-3xl font-black tracking-tight text-transparent md:text-5xl dark:from-rose-400 dark:to-pink-300"
 				>
 					Ønsker
 				</h1>
@@ -348,13 +348,15 @@
 				class="flex snap-x snap-mandatory gap-4 overflow-x-auto pt-1 pb-4 [-ms-overflow-style:none] [scrollbar-width:none] md:grid md:grid-cols-3 md:overflow-visible lg:grid-cols-5 [&::-webkit-scrollbar]:hidden"
 			>
 				<div
-					class="flex w-[85vw] flex-shrink-0 snap-center flex-col justify-center rounded-2xl border border-indigo-100/50 bg-white/80 bg-gradient-to-br from-white/80 to-indigo-50/30 p-5 shadow-sm backdrop-blur-xl md:w-auto md:p-6 dark:border-indigo-500/20 dark:bg-slate-800/80"
+					class="flex w-[85vw] flex-shrink-0 snap-center flex-col justify-center rounded-2xl border border-rose-100/50 bg-white/80 bg-gradient-to-br from-white/80 to-rose-50/30 p-5 shadow-sm backdrop-blur-xl md:w-auto md:p-6 dark:border-rose-500/20 dark:bg-slate-800/80"
 				>
-					<p class="mb-1 text-[10px] font-bold tracking-widest text-indigo-400 uppercase">
+					<p class="mb-1 text-[10px] font-bold tracking-widest text-rose-500 uppercase">
 						Værdi af Drømme
 					</p>
-					<p class="text-3xl font-black text-indigo-900">{formatCur(data.kpis.wishTotal)}</p>
-					<p class="mt-1 text-xs font-medium text-indigo-600/70">
+					<p class="text-3xl font-black text-rose-900 dark:text-rose-100">
+						{formatCur(data.kpis.wishTotal)}
+					</p>
+					<p class="mt-1 text-xs font-medium text-rose-600/70 dark:text-rose-400/70">
 						Udsat behov i {data.kpis.wishCount} ønsker
 					</p>
 				</div>
@@ -386,7 +388,7 @@
 				>
 					<div
 						class="h-14 w-14 shrink-0 rounded-full shadow-inner"
-						style="background: conic-gradient(var(--color-indigo-500) 0% {wishVsBuyPct}%, var(--color-slate-300) {wishVsBuyPct}% 100%);"
+						style="background: conic-gradient(var(--color-rose-500) 0% {wishVsBuyPct}%, var(--color-slate-300) {wishVsBuyPct}% 100%);"
 					></div>
 					<div class="flex flex-col justify-center">
 						<p class="mb-1.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
@@ -395,7 +397,7 @@
 						<div
 							class="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-300"
 						>
-							<span class="h-2 w-2 rounded-full bg-indigo-500"></span> Drømme ({Math.round(
+							<span class="h-2 w-2 rounded-full bg-rose-500"></span> Drømme ({Math.round(
 								wishVsBuyPct
 							)}%)
 						</div>
@@ -533,7 +535,7 @@
 								id="title"
 								name="title"
 								required
-								class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-base font-medium transition-all outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-800 dark:bg-slate-900/50 dark:focus:bg-slate-900"
+								class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-base font-medium transition-all outline-none focus:bg-white focus:ring-2 focus:ring-rose-500 dark:border-white/10 dark:bg-slate-800 dark:bg-slate-900/50 dark:focus:bg-slate-900"
 							/>
 						</div>
 
@@ -547,7 +549,7 @@
 								type="url"
 								id="url"
 								name="url"
-								class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm transition-all outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-800 dark:bg-slate-900/50 dark:focus:bg-slate-900"
+								class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm transition-all outline-none focus:bg-white focus:ring-2 focus:ring-rose-500 dark:border-white/10 dark:bg-slate-800 dark:bg-slate-900/50 dark:focus:bg-slate-900"
 								placeholder="https://..."
 							/>
 						</div>
@@ -564,7 +566,7 @@
 								id="price"
 								name="price"
 								required
-								class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-lg font-bold transition-all outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-800 dark:bg-slate-900/50 dark:focus:bg-slate-900"
+								class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-lg font-bold transition-all outline-none focus:bg-white focus:ring-2 focus:ring-rose-500 dark:border-white/10 dark:bg-slate-800 dark:bg-slate-900/50 dark:focus:bg-slate-900"
 								placeholder="0"
 							/>
 						</div>
@@ -584,7 +586,7 @@
 											editCatId = null;
 											isCreatingCat = false;
 										}}
-										class="rounded px-1 text-[10px] font-bold text-indigo-500 transition-colors hover:bg-indigo-50 hover:text-indigo-700"
+										class="rounded px-1 text-[10px] font-bold text-rose-500 transition-colors hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/20"
 										>✎ Ret</button
 									>
 								</div>
@@ -592,7 +594,7 @@
 									id="categoryId"
 									name="categoryId"
 									required
-									class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-900/50"
+									class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-rose-500 dark:border-white/10 dark:bg-slate-900/50"
 								>
 									{#each data.categories as category}
 										<option value={category.id}>{category.icon} {category.name}</option>
@@ -609,7 +611,7 @@
 									id="expenseType"
 									name="expenseType"
 									required
-									class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-900/50"
+									class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium outline-none focus:ring-2 focus:ring-rose-500 dark:border-white/10 dark:bg-slate-900/50"
 								>
 									<option value="SHARED">Fælles</option>
 									<option value="PERSONAL">Ego</option>
@@ -650,7 +652,7 @@
 								type="submit"
 								name="targetStatus"
 								value="WISH"
-								class="w-full rounded-xl bg-indigo-600 py-3.5 text-base font-bold text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-[0.98]"
+								class="w-full rounded-xl bg-rose-600 py-3.5 text-base font-bold text-white shadow-sm transition-all hover:bg-rose-700 active:scale-[0.98]"
 							>
 								✨ Gem i Brønden
 							</button>
@@ -671,7 +673,7 @@
 				<div>
 					<h2 class="mb-4 flex items-center gap-2 text-xl font-bold text-slate-800 dark:text-white">
 						✨ I Brønden <span
-							class="rounded-full bg-indigo-100 px-2 py-0.5 text-sm font-medium text-indigo-700"
+							class="rounded-full bg-rose-100 px-2 py-0.5 text-sm font-medium text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
 							>{data.wishes.length}</span
 						>
 					</h2>
@@ -691,7 +693,7 @@
 							{@const daysLeft = Math.ceil(7 - itemDaysOld)}
 
 							<div
-								class="group relative flex flex-col rounded-3xl border border-slate-200/50 bg-white/80 p-5 shadow-sm backdrop-blur-xl transition-colors hover:border-indigo-500/50 dark:border-white/10 dark:bg-slate-800/80"
+								class="group relative flex flex-col rounded-3xl border border-slate-200/50 bg-white/80 p-5 shadow-sm backdrop-blur-xl transition-colors hover:border-rose-500/50 dark:border-white/10 dark:bg-slate-800/80"
 							>
 								<div
 									class="absolute -top-3 -right-3 z-10 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
@@ -721,7 +723,7 @@
 												<select
 													name="categoryId"
 													onchange={(e) => e.currentTarget.form?.requestSubmit()}
-													class="cursor-pointer appearance-none border-none bg-transparent p-0 pr-3.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-colors outline-none group-hover/cat:text-indigo-500 focus:ring-0"
+													class="cursor-pointer appearance-none border-none bg-transparent p-0 pr-3.5 text-[10px] font-bold tracking-widest text-slate-400 uppercase transition-colors outline-none group-hover/cat:text-rose-500 focus:ring-0"
 												>
 													{#each data.categories as cat}
 														<option value={cat.id} selected={cat.id === item.categoryId}>
@@ -731,7 +733,7 @@
 													{/each}
 												</select>
 												<span
-													class="pointer-events-none absolute right-0 text-[8px] text-slate-300 transition-colors group-hover/cat:text-indigo-400"
+													class="pointer-events-none absolute right-0 text-[8px] text-slate-300 transition-colors group-hover/cat:text-rose-400"
 													>▼</span
 												>
 											</div>
@@ -835,7 +837,7 @@
 												{/each}
 											</select>
 											<span
-												class="pointer-events-none absolute top-1 right-1 text-[8px] text-slate-400 group-hover/user:text-indigo-500"
+												class="pointer-events-none absolute top-1 right-1 text-[8px] text-slate-400 group-hover/user:text-rose-500"
 												>▼</span
 											>
 										</form>
@@ -845,7 +847,7 @@
 									</p>
 								</div>
 
-								<p class="mt-auto mb-4 text-2xl font-black text-indigo-900">
+								<p class="mt-auto mb-4 text-2xl font-black text-rose-900 dark:text-rose-100">
 									{formatCur(item.price)}
 								</p>
 
@@ -855,7 +857,7 @@
 											href={item.url}
 											target="_blank"
 											rel="noopener noreferrer"
-											class="flex-shrink-0 rounded-xl bg-slate-50 p-3 text-center text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600 md:rounded-lg md:p-2 dark:bg-slate-900/50"
+											class="flex-shrink-0 rounded-xl bg-slate-50 p-3 text-center text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 md:rounded-lg md:p-2 dark:bg-slate-900/50 dark:hover:bg-rose-950/20 dark:hover:text-rose-400"
 											>🔗</a
 										>
 									{/if}
@@ -958,7 +960,7 @@
 													>
 												</select>
 												<span
-													class="pointer-events-none absolute right-1 text-[8px] text-slate-300 opacity-50 group-hover/expense:text-indigo-400 group-hover/expense:opacity-100"
+													class="pointer-events-none absolute right-1 text-[8px] text-slate-300 opacity-50 group-hover/expense:text-rose-400 group-hover/expense:opacity-100"
 													>▼</span
 												>
 											</div>
@@ -970,7 +972,7 @@
 												<select
 													name="categoryId"
 													onchange={(e) => e.currentTarget.form?.requestSubmit()}
-													class="cursor-pointer appearance-none border-none bg-transparent p-0 pr-3.5 text-[9px] font-bold tracking-widest text-slate-400 uppercase transition-colors outline-none group-hover/cat:text-indigo-500 focus:ring-0"
+													class="cursor-pointer appearance-none border-none bg-transparent p-0 pr-3.5 text-[9px] font-bold tracking-widest text-slate-400 uppercase transition-colors outline-none group-hover/cat:text-rose-500 focus:ring-0"
 												>
 													{#each data.categories as cat}
 														<option value={cat.id} selected={cat.id === item.categoryId}>
@@ -980,7 +982,7 @@
 													{/each}
 												</select>
 												<span
-													class="pointer-events-none absolute right-0 text-[8px] text-slate-300 transition-colors group-hover/cat:text-indigo-400"
+													class="pointer-events-none absolute right-0 text-[8px] text-slate-300 transition-colors group-hover/cat:text-rose-400"
 													>▼</span
 												>
 											</div>
@@ -1019,7 +1021,7 @@
 												{/each}
 											</select>
 											<span
-												class="pointer-events-none absolute top-1 right-1 text-[8px] text-slate-400 group-hover/user:text-indigo-500"
+												class="pointer-events-none absolute top-1 right-1 text-[8px] text-slate-400 group-hover/user:text-rose-500"
 												>▼</span
 											>
 										</form>
@@ -1034,7 +1036,7 @@
 								<form method="POST" action="?/toggleStatus" use:enhance class="mt-4">
 									<input type="hidden" name="itemId" value={item.id} />
 									<button
-										class="py-1 text-[11px] font-bold text-indigo-500 underline decoration-indigo-200 underline-offset-2 transition-colors hover:text-indigo-700 active:opacity-70"
+										class="py-1 text-[11px] font-bold text-rose-500 underline decoration-rose-200 underline-offset-2 transition-colors hover:text-rose-700 active:opacity-70"
 									>
 										Fortryd køb (Send til brønd)
 									</button>
