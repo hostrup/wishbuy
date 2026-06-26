@@ -21,7 +21,7 @@ export const load: PageServerLoad = async ({ params }) => {
 			{ name: 'Mathilde', emoji: '👩', default_presence_days: '1,2,3,4,5,6,7' },
 			{ name: 'Ronni', emoji: '👨', default_presence_days: '1,2,3,4,5,6,7' },
 			{ name: 'Rasmus', emoji: '👦', default_presence_days: '1,2,3,4,5,6,7' },
-			{ name: 'Emil', emoji: '🧒', default_presence_days: '5,6,7' },
+			{ name: 'Emil', emoji: '🧒', default_presence_days: '1,2,3,4,5,6,7' },
 			{ name: 'Sara', emoji: '👱‍♀️', default_presence_days: '' }
 		];
 		for (const p of defaultPersons) {
