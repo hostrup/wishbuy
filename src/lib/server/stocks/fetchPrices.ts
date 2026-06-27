@@ -2,8 +2,11 @@
 // Eksterne kald sker KUN herfra (via sync-endpoint/cron) — aldrig i load-funktioner.
 // Resultater caches i databasen.
 
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
 import { prisma } from '$lib/server/prisma';
+
+// yahoo-finance2 v3 eksporterer en klasse der skal instantieres (modsat v2).
+const yahooFinance = new YahooFinance();
 
 export interface SyncResult {
 	updated: string[];
