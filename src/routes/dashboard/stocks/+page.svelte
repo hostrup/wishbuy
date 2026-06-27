@@ -1,10 +1,55 @@
 <script lang="ts">
 	import { chart } from '$lib/actions/apexcharts';
-	import type { PageData } from './$types';
+	import { enhance } from '$app/forms';
 
-	let { data }: { data: PageData } = $props();
+	let { data, form } = $props();
 
 	let isDarkMode = $state(false);
+
+	// CRUD-modaler (Sprint 9.5)
+	let showAddTx = $state(false);
+	let showAddStock = $state(false);
+	let showHistory = $state(false);
+
+	const today = new Date().toISOString().slice(0, 10);
+	let txStockId = $state('');
+	let txType = $state<'BUY' | 'SELL'>('BUY');
+	let txDate = $state(today);
+	let txShares = $state('');
+	let txPrice = $state('');
+	let txRate = $state('');
+	let txBrokerage = $state('25');
+	let txExchangeFee = $state('');
+
+	const toNum = (s: string) => Number((s || '').replace(',', '.'));
+
+	// Live forhåndsvisning af kostpris i modalen
+	let previewCost = $derived.by(() => {
+		const s = toNum(txShares);
+		const p = toNum(txPrice);
+		const r = toNum(txRate);
+		if (!(s > 0 && p > 0 && r > 0)) return null;
+		const amount = s * p * r;
+		const feeInput = toNum(txExchangeFee);
+		const fee =
+			txExchangeFee.trim() !== '' && !isNaN(feeInput)
+				? feeInput
+				: Math.round(amount * 0.0025 * 100) / 100;
+		const brokerage = isNaN(toNum(txBrokerage)) ? 25 : toNum(txBrokerage);
+		return amount + fee + brokerage;
+	});
+
+	function openAddTx() {
+		txStockId = data.stockOptions[0]?.id ?? '';
+		txType = 'BUY';
+		txDate = today;
+		txShares = '';
+		txPrice = '';
+		txRate = data.fxRate ? data.fxRate.toFixed(2) : '';
+		txBrokerage = '25';
+		txExchangeFee = '';
+		showAddTx = true;
+	}
 
 	function getThemeColor(variableName: string, fallback: string): string {
 		if (typeof window === 'undefined') return fallback;
@@ -172,15 +217,39 @@
 					Jeres fælles AI-modelportefølje — afkast, allokering og analyse.
 				</p>
 			</div>
-			<div class="mt-4 text-right text-xs text-slate-400 md:mt-0 dark:text-slate-500">
-				<div>
-					USD/DKK: <span class="font-bold text-slate-600 dark:text-slate-300"
-						>{data.fxRate.toFixed(2)}</span
+			<div class="mt-4 flex flex-col items-end gap-3 md:mt-0">
+				<div class="flex gap-2">
+					<button
+						onclick={openAddTx}
+						class="rounded-xl bg-indigo-500 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-indigo-600"
 					>
+						+ Tilføj handel
+					</button>
+					<button
+						onclick={() => (showAddStock = true)}
+						class="rounded-xl border border-indigo-200 bg-indigo-500/10 px-4 py-2 text-sm font-bold text-indigo-700 transition-colors hover:bg-indigo-500/20 dark:border-indigo-500/30 dark:text-indigo-300"
+					>
+						Ny aktie
+					</button>
 				</div>
-				<div>Kurser opdateret: {dateFmt(data.lastSyncedAt)}</div>
+				<div class="text-right text-xs text-slate-400 dark:text-slate-500">
+					<div>
+						USD/DKK: <span class="font-bold text-slate-600 dark:text-slate-300"
+							>{data.fxRate.toFixed(2)}</span
+						>
+					</div>
+					<div>Kurser opdateret: {dateFmt(data.lastSyncedAt)}</div>
+				</div>
 			</div>
 		</header>
+
+		{#if form?.error}
+			<div
+				class="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-medium text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
+			>
+				{form.error}
+			</div>
+		{/if}
 
 		{#if !data.hasData}
 			<div
@@ -385,6 +454,315 @@
 					{/if}
 				</section>
 			</div>
+
+			<!-- HANDELSHISTORIK -->
+			<section
+				class="rounded-3xl border border-slate-200/50 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-800/80"
+			>
+				<button
+					onclick={() => (showHistory = !showHistory)}
+					class="flex w-full items-center justify-between text-sm font-bold text-slate-800 dark:text-white"
+				>
+					<span>Handelshistorik ({data.transactions.length})</span>
+					<span class="text-slate-400">{showHistory ? '▲' : '▼'}</span>
+				</button>
+				{#if showHistory}
+					<div class="mt-4 overflow-x-auto">
+						<table class="w-full text-left text-sm">
+							<thead
+								class="border-b border-slate-200/50 text-xs tracking-wider text-slate-400 uppercase dark:border-white/10"
+							>
+								<tr>
+									<th class="px-3 py-2">Dato</th>
+									<th class="px-3 py-2">Aktie</th>
+									<th class="px-3 py-2">Type</th>
+									<th class="px-3 py-2 text-right">Antal</th>
+									<th class="px-3 py-2 text-right">Kurs (USD)</th>
+									<th class="px-3 py-2 text-right">FX</th>
+									<th class="px-3 py-2 text-right">Gebyrer</th>
+									<th class="px-3 py-2"></th>
+								</tr>
+							</thead>
+							<tbody class="divide-y divide-slate-100 dark:divide-white/5">
+								{#each data.transactions as t}
+									<tr>
+										<td class="px-3 py-2 tabular-nums">{dateFmt(t.date)}</td>
+										<td class="px-3 py-2 font-bold text-slate-800 dark:text-white">{t.ticker}</td>
+										<td class="px-3 py-2">
+											<span
+												class="rounded px-1.5 py-0.5 text-xs font-bold {t.type === 'BUY'
+													? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+													: 'bg-rose-500/10 text-rose-600 dark:text-rose-400'}"
+												>{t.type === 'BUY' ? 'Køb' : 'Salg'}</span
+											>
+										</td>
+										<td class="px-3 py-2 text-right tabular-nums">{t.shares}</td>
+										<td class="px-3 py-2 text-right tabular-nums">{usd(t.priceUsd)}</td>
+										<td class="px-3 py-2 text-right tabular-nums">{t.rateDkkUsd.toFixed(2)}</td>
+										<td class="px-3 py-2 text-right text-slate-400 tabular-nums">
+											{dkk(t.brokerageDkk + t.exchangeFeeDkk)}
+										</td>
+										<td class="px-3 py-2 text-right">
+											<form method="POST" action="?/deleteTransaction" use:enhance>
+												<input type="hidden" name="id" value={t.id} />
+												<button
+													type="submit"
+													class="text-xs text-slate-400 transition-colors hover:text-rose-500"
+													title="Slet handel">✕</button
+												>
+											</form>
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				{/if}
+			</section>
 		{/if}
 	</div>
+
+	<!-- MODAL: TILFØJ HANDEL -->
+	{#if showAddTx}
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+		>
+			<div
+				class="w-full max-w-lg rounded-3xl border border-slate-200/50 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-slate-800"
+			>
+				<h2 class="mb-4 text-lg font-bold text-slate-800 dark:text-white">Tilføj handel</h2>
+				<form
+					method="POST"
+					action="?/addTransaction"
+					use:enhance={() =>
+						async ({ result, update }) => {
+							await update();
+							if (result.type === 'success') showAddTx = false;
+						}}
+					class="space-y-4"
+				>
+					<div class="grid grid-cols-2 gap-4">
+						<label class="block text-sm">
+							<span class="mb-1 block font-medium text-slate-600 dark:text-slate-300">Aktie</span>
+							<select
+								name="stockId"
+								bind:value={txStockId}
+								class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-700"
+							>
+								{#each data.stockOptions as opt}
+									<option value={opt.id}>{opt.ticker} — {opt.name}</option>
+								{/each}
+							</select>
+						</label>
+						<label class="block text-sm">
+							<span class="mb-1 block font-medium text-slate-600 dark:text-slate-300">Type</span>
+							<select
+								name="type"
+								bind:value={txType}
+								class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-700"
+							>
+								<option value="BUY">Køb</option>
+								<option value="SELL">Salg</option>
+							</select>
+						</label>
+					</div>
+					<div class="grid grid-cols-2 gap-4">
+						<label class="block text-sm">
+							<span class="mb-1 block font-medium text-slate-600 dark:text-slate-300">Dato</span>
+							<input
+								type="date"
+								name="date"
+								bind:value={txDate}
+								max={today}
+								class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-700"
+							/>
+						</label>
+						<label class="block text-sm">
+							<span class="mb-1 block font-medium text-slate-600 dark:text-slate-300">Antal</span>
+							<input
+								type="text"
+								name="shares"
+								bind:value={txShares}
+								inputmode="decimal"
+								placeholder="2"
+								class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-700"
+							/>
+						</label>
+					</div>
+					<div class="grid grid-cols-2 gap-4">
+						<label class="block text-sm">
+							<span class="mb-1 block font-medium text-slate-600 dark:text-slate-300"
+								>Kurs (USD)</span
+							>
+							<input
+								type="text"
+								name="priceUsd"
+								bind:value={txPrice}
+								inputmode="decimal"
+								placeholder="146,09"
+								class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-700"
+							/>
+						</label>
+						<label class="block text-sm">
+							<span class="mb-1 block font-medium text-slate-600 dark:text-slate-300">USD/DKK</span>
+							<input
+								type="text"
+								name="rateDkkUsd"
+								bind:value={txRate}
+								inputmode="decimal"
+								placeholder="6,44"
+								class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-700"
+							/>
+						</label>
+					</div>
+					<div class="grid grid-cols-2 gap-4">
+						<label class="block text-sm">
+							<span class="mb-1 block font-medium text-slate-600 dark:text-slate-300"
+								>Kurtage (DKK)</span
+							>
+							<input
+								type="text"
+								name="brokerageDkk"
+								bind:value={txBrokerage}
+								inputmode="decimal"
+								class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-700"
+							/>
+						</label>
+						<label class="block text-sm">
+							<span class="mb-1 block font-medium text-slate-600 dark:text-slate-300"
+								>Valutaveksling (DKK)</span
+							>
+							<input
+								type="text"
+								name="exchangeFeeDkk"
+								bind:value={txExchangeFee}
+								inputmode="decimal"
+								placeholder="auto: 0,25 %"
+								class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-700"
+							/>
+						</label>
+					</div>
+					{#if previewCost !== null}
+						<p class="text-sm text-slate-500 dark:text-slate-400">
+							Beregnet {txType === 'BUY' ? 'kostpris' : 'handelssum'}:
+							<span class="font-bold text-slate-800 dark:text-white">{dkk(previewCost)}</span>
+						</p>
+					{/if}
+					<div class="flex justify-end gap-2 pt-2">
+						<button
+							type="button"
+							onclick={() => (showAddTx = false)}
+							class="rounded-xl px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 dark:hover:text-white"
+							>Annullér</button
+						>
+						<button
+							type="submit"
+							class="rounded-xl bg-indigo-500 px-5 py-2 text-sm font-bold text-white hover:bg-indigo-600"
+							>Gem handel</button
+						>
+					</div>
+				</form>
+			</div>
+		</div>
+	{/if}
+
+	<!-- MODAL: NY AKTIE -->
+	{#if showAddStock}
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+		>
+			<div
+				class="w-full max-w-lg rounded-3xl border border-slate-200/50 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-slate-800"
+			>
+				<h2 class="mb-1 text-lg font-bold text-slate-800 dark:text-white">Ny aktie</h2>
+				<p class="mb-4 text-xs text-slate-400">
+					Kurser og nøgletal hentes automatisk ved næste synkronisering.
+				</p>
+				<form
+					method="POST"
+					action="?/addStock"
+					use:enhance={() =>
+						async ({ result, update }) => {
+							await update();
+							if (result.type === 'success') showAddStock = false;
+						}}
+					class="space-y-4"
+				>
+					<div class="grid grid-cols-2 gap-4">
+						<label class="block text-sm">
+							<span class="mb-1 block font-medium text-slate-600 dark:text-slate-300">Ticker</span>
+							<input
+								type="text"
+								name="ticker"
+								placeholder="ALAB"
+								class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 uppercase dark:border-white/10 dark:bg-slate-700"
+							/>
+						</label>
+						<label class="block text-sm">
+							<span class="mb-1 block font-medium text-slate-600 dark:text-slate-300">Navn</span>
+							<input
+								type="text"
+								name="name"
+								placeholder="Astera Labs"
+								class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-700"
+							/>
+						</label>
+					</div>
+					<div class="grid grid-cols-2 gap-4">
+						<label class="block text-sm">
+							<span class="mb-1 block font-medium text-slate-600 dark:text-slate-300">Sektor</span>
+							<input
+								type="text"
+								name="sector"
+								placeholder="Semiconductors"
+								class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-700"
+							/>
+						</label>
+						<label class="block text-sm">
+							<span class="mb-1 block font-medium text-slate-600 dark:text-slate-300">Tema</span>
+							<input
+								type="text"
+								name="theme"
+								placeholder="AI Connectivity"
+								class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-700"
+							/>
+						</label>
+					</div>
+					<label class="block text-sm">
+						<span class="mb-1 block font-medium text-slate-600 dark:text-slate-300"
+							>Investeringstese</span
+						>
+						<textarea
+							name="investmentThesis"
+							rows="2"
+							class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-700"
+						></textarea>
+					</label>
+					<label class="block text-sm">
+						<span class="mb-1 block font-medium text-slate-600 dark:text-slate-300"
+							>Tesebrud-signal (sælg hvis…)</span
+						>
+						<textarea
+							name="breakThesisSignal"
+							rows="2"
+							class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 dark:border-white/10 dark:bg-slate-700"
+						></textarea>
+					</label>
+					<div class="flex justify-end gap-2 pt-2">
+						<button
+							type="button"
+							onclick={() => (showAddStock = false)}
+							class="rounded-xl px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 dark:hover:text-white"
+							>Annullér</button
+						>
+						<button
+							type="submit"
+							class="rounded-xl bg-indigo-500 px-5 py-2 text-sm font-bold text-white hover:bg-indigo-600"
+							>Opret aktie</button
+						>
+					</div>
+				</form>
+			</div>
+		</div>
+	{/if}
 </div>

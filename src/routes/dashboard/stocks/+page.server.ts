@@ -1,3 +1,4 @@
+import { fail } from '@sveltejs/kit';
 import { prisma } from '$lib/server/prisma';
 import {
 	positionFromTransactions,
@@ -7,7 +8,7 @@ import {
 	scenarioBands,
 	type TransactionInput
 } from '$lib/server/stocks/calc';
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 // Kurser ældre end dette markeres som "stale" i UI'et.
 const STALE_AFTER_MS = 26 * 60 * 60 * 1000; // ~26 timer (dækker en weekend-pause + lidt slæk)
@@ -139,6 +140,27 @@ export const load: PageServerLoad = async () => {
 		.filter((d): d is Date => d !== null)
 		.sort((a, b) => b.getTime() - a.getTime())[0];
 
+	// Flad handelshistorik (nyeste først) til CRUD-sektionen
+	const transactions = stocks
+		.flatMap((s) =>
+			s.transactions.map((t) => ({
+				id: t.id,
+				ticker: s.ticker,
+				type: t.type,
+				date: t.date,
+				shares: t.shares,
+				priceUsd: t.priceUsd,
+				rateDkkUsd: t.rateDkkUsd,
+				brokerageDkk: t.brokerageDkk,
+				exchangeFeeDkk: t.exchangeFeeDkk,
+				comment: t.comment
+			}))
+		)
+		.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+	// Aktievalg til "tilføj handel"-dropdown (kun aktive, ikke-benchmark)
+	const stockOptions = stocks.map((s) => ({ id: s.id, ticker: s.ticker, name: s.name }));
+
 	return {
 		fxRate,
 		fxDate: latestFx?.date ?? null,
@@ -150,7 +172,9 @@ export const load: PageServerLoad = async () => {
 		concentration: { hhi, largestTicker: largest.ticker, largestWeight: largest.weight },
 		allocation: totals.allocation,
 		history,
-		lastSyncedAt: lastSyncedAt ?? null
+		lastSyncedAt: lastSyncedAt ?? null,
+		transactions,
+		stockOptions
 	};
 };
 
@@ -232,3 +256,127 @@ async function buildHistory(
 
 	return { dates, valueSeries, costSeries };
 }
+
+function num(v: FormDataEntryValue | null): number {
+	if (v === null) return NaN;
+	// Accepter både komma og punktum som decimalseparator
+	return Number(v.toString().trim().replace(',', '.'));
+}
+
+export const actions: Actions = {
+	addTransaction: async ({ request }) => {
+		const data = await request.formData();
+		const stockId = data.get('stockId')?.toString();
+		const type = data.get('type')?.toString();
+		const dateStr = data.get('date')?.toString();
+		const shares = num(data.get('shares'));
+		const priceUsd = num(data.get('priceUsd'));
+		const rateDkkUsd = num(data.get('rateDkkUsd'));
+		const brokerageDkk = num(data.get('brokerageDkk'));
+		const exchangeFeeRaw = data.get('exchangeFeeDkk');
+		const comment = data.get('comment')?.toString() || null;
+
+		if (!stockId || (type !== 'BUY' && type !== 'SELL')) {
+			return fail(400, { error: 'Vælg aktie og handelstype.' });
+		}
+		if (!dateStr) return fail(400, { error: 'Angiv en dato.' });
+		const date = new Date(dateStr);
+		if (isNaN(date.getTime())) return fail(400, { error: 'Ugyldig dato.' });
+		if (date.getTime() > Date.now())
+			return fail(400, { error: 'Datoen kan ikke ligge i fremtiden.' });
+		if (!(shares > 0)) return fail(400, { error: 'Antal skal være større end 0.' });
+		if (!(priceUsd > 0)) return fail(400, { error: 'Kurs skal være større end 0.' });
+		if (!(rateDkkUsd > 0)) return fail(400, { error: 'Valutakurs skal være større end 0.' });
+
+		const stock = await prisma.stock.findUnique({
+			where: { id: stockId },
+			include: { transactions: true }
+		});
+		if (!stock) return fail(404, { error: 'Aktien findes ikke.' });
+
+		const shareAmountDkk = shares * priceUsd * rateDkkUsd;
+		// Hvis valutaveksling ikke er udfyldt, beregn den som 0,25% af handelssummen
+		let exchangeFeeDkk = num(exchangeFeeRaw);
+		if (
+			exchangeFeeRaw === null ||
+			exchangeFeeRaw.toString().trim() === '' ||
+			isNaN(exchangeFeeDkk)
+		) {
+			exchangeFeeDkk = Math.round(shareAmountDkk * 0.0025 * 100) / 100;
+		}
+		const brokerage = isNaN(brokerageDkk) ? 25 : brokerageDkk;
+
+		if (type === 'SELL') {
+			const txs: TransactionInput[] = stock.transactions.map((t) => ({
+				type: t.type,
+				date: t.date,
+				shares: t.shares,
+				priceUsd: t.priceUsd,
+				rateDkkUsd: t.rateDkkUsd,
+				brokerageDkk: t.brokerageDkk,
+				exchangeFeeDkk: t.exchangeFeeDkk
+			}));
+			const owned = positionFromTransactions(txs).shares;
+			if (shares > owned + 1e-9) {
+				return fail(400, {
+					error: `Du kan ikke sælge ${shares} aktier — du ejer kun ${owned} ${stock.ticker}.`
+				});
+			}
+		}
+
+		await prisma.stockTransaction.create({
+			data: {
+				stockId,
+				type,
+				date,
+				shares,
+				priceUsd,
+				rateDkkUsd,
+				brokerageDkk: brokerage,
+				exchangeFeeDkk,
+				comment
+			}
+		});
+
+		return { success: true };
+	},
+
+	addStock: async ({ request }) => {
+		const data = await request.formData();
+		const ticker = data.get('ticker')?.toString().trim().toUpperCase();
+		const name = data.get('name')?.toString().trim();
+		const investmentThesis = data.get('investmentThesis')?.toString() || '';
+		const breakThesisSignal = data.get('breakThesisSignal')?.toString() || '';
+		const sector = data.get('sector')?.toString() || null;
+		const theme = data.get('theme')?.toString() || null;
+
+		if (!ticker) return fail(400, { error: 'Angiv en ticker.' });
+		if (!name) return fail(400, { error: 'Angiv et selskabsnavn.' });
+
+		const existing = await prisma.stock.findUnique({ where: { ticker } });
+		if (existing) return fail(409, { error: `Aktien ${ticker} findes allerede.` });
+
+		await prisma.stock.create({
+			data: {
+				ticker,
+				name,
+				description: name,
+				investmentThesis,
+				breakThesisSignal,
+				sector,
+				theme
+			}
+		});
+
+		// Kurser udfyldes ved næste sync-kørsel (eller via /api/stocks/sync?mode=quotes).
+		return { success: true, createdTicker: ticker };
+	},
+
+	deleteTransaction: async ({ request }) => {
+		const data = await request.formData();
+		const id = data.get('id')?.toString();
+		if (!id) return fail(400, { error: 'Mangler transaktions-id.' });
+		await prisma.stockTransaction.delete({ where: { id } });
+		return { success: true };
+	}
+};
