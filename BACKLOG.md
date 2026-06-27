@@ -877,7 +877,15 @@ Ny, fuldt integreret side i Hostrup Hub der giver Ronni og Mathilde et visuelt, 
 > - **9.2 Sync & cron** ✅ kode færdig — `src/lib/server/stocks/fetchPrices.ts` (yahoo-finance2 + Frankfurter), `src/routes/api/stocks/sync/+server.ts` (Bearer-beskyttet), bypass i `hooks.server.ts`, `CRON_SECRET` i `.env`. **Mangler ops:** tilføj `CRON_SECRET` til `/hostrup/docker/.env` (runtime-env til containeren) + host-crontab + Authelia-regel (9.9).
 > - **9.4 Hovedside & UI** ✅ kode færdig — `src/routes/dashboard/stocks/+page.server.ts` (load fra DB-cache via beregningskernen, inkl. historik der beregner position som-af-dagen) + `+page.svelte` (KPI-bjælke, performance-bar mod scenarier, porteføljetabel med tese-status + stale-badge, allokerings-donut + værdi/kostpris-area, tom-tilstand). Aktie-tile tilføjet på landing. **Mangler:** visuel verifikation i browser med rigtige kurser (kræver deploy + seed + sync).
 > - **9.5 CRUD-transaktioner** ✅ kode færdig — actions `addTransaction` (validering: oversalg blokeret via beregningskernen, ingen fremtidig dato, positive tal, auto 0,25 % valutaveksling), `addStock`, `deleteTransaction`. Modal med live kostpris-preview, handelshistorik med slet, fejl-banner. `npm run build` + `check` + `lint` + `test` grønne.
-> - **Næste:** 9.8 (AI-analyse gemt i DB) eller 9.7 (avanceret analyse). Anbefalet: deploy fundamentet → 9.8.
+>
+> **🚀 LIVE i produktion (27. juni 2026):** 9.1–9.5 udrullet og verificeret med rigtige data.
+>
+> - `prisma db push` kørt mod produktions-DB; seed indlæst (4 aktier + benchmarks + ALAB-reference + fx). Container rebuilt fra `main`.
+> - Siden renderer HTTP 200 med rigtige kurser: porteføljeværdi **8.610 kr.**, urealiseret **−1.102 kr. (−11,35 %)**, kostpris 9.713 kr.
+> - **Bugfix fundet ved go-live:** `yahoo-finance2` v3 kræver `new YahooFinance()` (commit `c0d7052`).
+> - **Infra:** `CRON_SECRET` tilføjet til `/hostrup/docker/.env` + `stacks/projects.yml`. Host-crontab installeret (kurser hver time i markedstid + nat-job), cron-dæmon aktiv. Initial sync OK (6/6 tickers).
+> - **Resterer for fuld sikkerhed (9.9):** Authelia `two_factor`-regel for `^/dashboard/stocks` + `^/api/stocks/(?!sync)` — ligger i Authelia `configuration.yml` uden for repoet; ikke ændret endnu.
+> - **Næste:** 9.8 (AI-analyse gemt i DB).
 
 ## 🎯 Designprincipper (gælder hele Sprint 9)
 

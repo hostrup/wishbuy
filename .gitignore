@@ -23,3 +23,6 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 /../generated/prisma
+
+# Aktie-sync cron-log (Sprint 9.2)
+cron-sync.log
