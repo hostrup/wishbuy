@@ -147,6 +147,19 @@
 					Madplan, fremmøde og dagens noter for hele familien
 				</p>
 			</a>
+
+			<a
+				href="/dashboard/stocks"
+				class="group relative flex flex-col items-center gap-3 overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-8 shadow-sm backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] hover:border-violet-500/50 dark:border-white/10 dark:bg-slate-800/80"
+			>
+				<span class="relative text-5xl">📈</span>
+				<h2 class="relative text-xl font-bold text-slate-800 dark:text-white">Aktier</h2>
+				<p
+					class="relative text-center text-sm text-slate-500 transition-colors group-hover:text-slate-900 dark:text-slate-400 dark:group-hover:text-white"
+				>
+					Porteføljeoverblik, afkast og AI-analyse
+				</p>
+			</a>
 		</div>
 
 		<!-- Footer -->

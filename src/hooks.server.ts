@@ -5,13 +5,15 @@ import type { Handle } from '@sveltejs/kit';
 export const handle: Handle = async ({ event, resolve }) => {
 	const isBypassedPath =
 		event.url.pathname === '/api/calendar/feed.ics' ||
+		event.url.pathname === '/api/stocks/sync' ||
 		event.url.pathname === '/manifest.json' ||
 		event.url.pathname.startsWith('/favicon') ||
 		event.url.pathname.startsWith('/_app');
 
 	if (isBypassedPath) {
 		// SIKKERHEDSNOTAT: /api/calendar/feed.ics tilgås lokalt af Home Assistant (uden om Authelia-proxy).
-		// Offentlig adgang er blokeret i Authelia's configuration.yml. Fjern ALDRIG denne bypass.
+		// /api/stocks/sync kaldes af host-cron uden om proxyen og beskytter sig selv med CRON_SECRET (Bearer-token).
+		// Offentlig adgang til begge er blokeret i Authelia's configuration.yml. Fjern ALDRIG disse bypasses.
 		return resolve(event);
 	}
 

@@ -26,6 +26,7 @@ model User {
   items       Item[]
   ratings     Rating[]
   aiInsights  AiInsight[]
+  stockAnalyses StockAnalysis[]
 }
 
 model AiInsight {
@@ -196,5 +197,100 @@ model DayPlanPerson {
   person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
 
   @@id([dayPlanId, personId])
+}
+
+// ── Aktiemonitorering (Sprint 9) ──────────────────────────────────────────
+
+model Stock {
+  id                String   @id @default(cuid())
+  ticker            String   @unique
+  name              String
+  currency          String   @default("USD")
+  description       String   @db.Text
+  investmentThesis  String   @db.Text
+  breakThesisSignal String   @db.Text
+  sector            String?
+  theme             String?
+  isActive          Boolean  @default(true)
+  isBenchmark       Boolean  @default(false)
+
+  // Nøgletal-cache (opdateres af sync-job, se fetchPrices.ts)
+  currentPrice      Float?
+  previousClose     Float?
+  peTrailing        Float?
+  peForward         Float?
+  epsTTM            Float?
+  epsCAGR5Year      Float?
+  targetPriceUsd    Float?
+  marketCap         Float?
+  lastPriceSyncedAt DateTime?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  transactions StockTransaction[]
+  dailyPrices  StockPriceDaily[]
+  analyses     StockAnalysis[]
+}
+
+model StockTransaction {
+  id             String         @id @default(cuid())
+  stockId        String
+  stock          Stock          @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  type           StockTransType
+  date           DateTime
+  shares         Float
+  priceUsd       Float
+  rateDkkUsd     Float
+  brokerageDkk   Float          @default(25.0)
+  exchangeFeeDkk Float          @default(0.0)
+  comment        String?        @db.Text
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([stockId, date])
+}
+
+enum StockTransType {
+  BUY
+  SELL
+}
+
+model StockPriceDaily {
+  id         String   @id @default(cuid())
+  stockId    String
+  stock      Stock    @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  date       DateTime
+  closePrice Float
+
+  @@unique([stockId, date])
+  @@index([stockId, date])
+}
+
+model ExchangeRateDaily {
+  id     String   @id @default(cuid())
+  base   String   @default("USD")
+  target String   @default("DKK")
+  date   DateTime
+  rate   Float
+
+  @@unique([base, target, date])
+}
+
+model StockAnalysis {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  scope            String // 'PORTFOLIO' | 'STOCK'
+  stockId          String?
+  stock            Stock?   @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  model            String   @default("gemini-2.5-flash")
+  verdict          String? // 'HOLD' | 'REDUCE' | 'ADD' | 'SELL' | 'MIXED'
+  content          String   @db.Text
+  data             Json?
+  snapshotValueDkk Float?
+  createdAt        DateTime @default(now())
+
+  @@index([userId, scope, createdAt])
 }
 

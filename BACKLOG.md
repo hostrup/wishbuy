@@ -837,6 +837,7 @@ Alternativt: Konfigurér Nginx til at sende `http://10.0.0.6:3005/api/calendar/f
 ### BRAND-8.1: Opdatér app-identitet — GENNEMFØRT
 
 **Filer:**
+
 - `src/routes/+layout.svelte`: `<title>` og `<meta name="description">` ✅
 - `static/favicon.png` (eller `.ico`): Erstat med Hostrup Hub-favicon (nyt premium SVG-ikon indført) ✅
 - `package.json`: `"name": "hostrup-hub"` er allerede sat ✅
@@ -846,9 +847,10 @@ Alternativt: Konfigurér Nginx til at sende `http://10.0.0.6:3005/api/calendar/f
 
 ### BRAND-8.2: Nyt domæne hub.hostrup.org — UDSKUDT / BEHOLDT EKSISTERENDE DOMÆNER
 
-**Status:** Udskudt efter brugerønske for at give tid til at lære de nye navne at kende. De eksisterende domæner (`wish.hostrup.org` og `ugeplan.hostrup.org`) bevares og peger begge 100% konsolideret på Hostrup Hub-containeren. 
+**Status:** Udskudt efter brugerønske for at give tid til at lære de nye navne at kende. De eksisterende domæner (`wish.hostrup.org` og `ugeplan.hostrup.org`) bevares og peger begge 100% konsolideret på Hostrup Hub-containeren.
 
 **Udførte delopgaver:**
+
 - Opdateret eventuelle hardkodede URL-referencer i kalender-feedet (`src/routes/api/calendar/feed.ics/+server.ts`) til den aktive `wish.hostrup.org` i stedet for legacy `wishbuy.hostrup.org`. ✅
 
 ---
@@ -859,3 +861,475 @@ Alternativt: Konfigurér Nginx til at sende `http://10.0.0.6:3005/api/calendar/f
 | ---------- | --------------------------------------------------------------------------- | ------------- |
 | Sprint 1–3 | Hardening (7 fixes), Python-oprydning, bankimport med CSV/MD5/mapping rules | 25. juni 2026 |
 | Sprint 4   | Navngivning (Hostrup Hub), tile-velkomstside, navigation harmoniseret       | 26. juni 2026 |
+
+---
+
+# 📈 Sprint 9: Aktiemonitorering (`/dashboard/stocks`)
+
+Ny, fuldt integreret side i Hostrup Hub der giver Ronni og Mathilde et visuelt, pædagogisk overblik over deres fælles AI-modelportefølje (købt **4. juni 2026**). Understøtter løbende køb/salg, automatisk kurssynkronisering, scenarie-simulering og **AI-drevet porteføljeanalyse gemt i databasen**.
+
+> **Kilde:** Denne sprint er den berigede, implementeringsklare migrering af `stock_backlog.md`. Den oprindelige fil er slettet efter migrering.
+
+> **🚧 Status (27. juni 2026):** Backend-fundamentet er bygget og verificeret lokalt (`npm run check`, `npm run lint`, `npm run test` — alle grønne):
+>
+> - **9.1 Datamodel** ✅ kode færdig — 5 modeller + `StockTransType` + `User.stockAnalyses` i `prisma/schema.prisma`; `prisma validate`/`generate` OK. Seed-script `prisma/seed-stocks.ts` (`npm run db:seed:stocks`) klar. **Mangler:** `prisma db push` + seed køres ved deploy (DB-host `postgresql` nås kun i Docker-netværket).
+> - **9.3 Beregningskerne** ✅ færdig — `src/lib/server/stocks/calc.ts` + `calc.test.ts` (12 tests, vitest tilføjet, `npm run test`).
+> - **9.2 Sync & cron** ✅ kode færdig — `src/lib/server/stocks/fetchPrices.ts` (yahoo-finance2 + Frankfurter), `src/routes/api/stocks/sync/+server.ts` (Bearer-beskyttet), bypass i `hooks.server.ts`, `CRON_SECRET` i `.env`. **Mangler ops:** tilføj `CRON_SECRET` til `/hostrup/docker/.env` (runtime-env til containeren) + host-crontab + Authelia-regel (9.9).
+> - **9.4 Hovedside & UI** ✅ kode færdig — `src/routes/dashboard/stocks/+page.server.ts` (load fra DB-cache via beregningskernen, inkl. historik der beregner position som-af-dagen) + `+page.svelte` (KPI-bjælke, performance-bar mod scenarier, porteføljetabel med tese-status + stale-badge, allokerings-donut + værdi/kostpris-area, tom-tilstand). Aktie-tile tilføjet på landing. `npm run build` + `check` + `lint` grønne. **Mangler:** visuel verifikation i browser med rigtige kurser (kræver deploy + seed + sync).
+> - **Næste:** 9.5 (CRUD-transaktioner) eller 9.8 (AI-analyse). Foreslået rækkefølge: deploy fundamentet → 9.5 → 9.8.
+
+## 🎯 Designprincipper (gælder hele Sprint 9)
+
+1. **Følg Hostrup Hubs arkitektur 100%** — Prisma (aldrig rå SQL), ad-hoc `+page.server.ts` (intet service-lag), Svelte 5 runes, glassmorphism, temafarver via CSS custom properties (aldrig hardkodet hex), dansk UI / engelske identifiers. Se `AGENTS.md`.
+2. **Eksterne API-kald sker ALDRIG synkront i `load`** — alle kurser/nøgletal læses fra DB-cache; opdatering sker via baggrunds-endpoint (9.2).
+3. **Al beregningslogik samles i `src/lib/server/stocks/`** — `load`-funktioner og MCP-tools (Sprint 10) deler præcis samme udregningskerne, så DKK-tal aldrig divergerer mellem UI og agent.
+4. **Dansk talformatering overalt** — `Intl.NumberFormat('da-DK')`: `9.715 kr.`, `-3,24 %`, komma som decimalseparator, punktum som tusindtalsseparator.
+5. **Robuste tilstande** — hver visning håndterer tom portefølje, manglende kurser (stale-badge), API-fejl og loading.
+
+## 🎨 Farve-semantik (temaklasser, ikke hex)
+
+| Betydning          | Klasse                                    | Brug                        |
+| ------------------ | ----------------------------------------- | --------------------------- |
+| Gevinst / positivt | `emerald-500` / `emerald-400`             | Positivt afkast, tese OK    |
+| Tab / negativt     | `rose-500` / `rose-400`                   | Negativt afkast, tesebrud   |
+| Neutral / kostpris | `slate-400` / `slate-500`                 | Nullinje, kostpris-markør   |
+| Primær accent      | `indigo-500`                              | KPI-fremhævning, CTA        |
+| Sekundære serier   | `violet-500`, `indigo-400`, `rose-400`    | Donut-segmenter pr. ticker  |
+| Advarsel           | `amber-500` (**ægte orange** — IKKE pink) | Tese under pres, stale kurs |
+
+> ⚠️ **Husk TEMA-0.5:** `amber-*` er IKKE længere remappet til pink (fixet i Sprint 0). Brug `amber-*` til ægte advarsels-orange og `rose-*` til tab/negativt.
+
+---
+
+## 📖 9.0 Reference: Pædagogisk aktie-matematik
+
+Denne viden driver UI-tekst, tooltips og den pædagogiske AI-prompt (9.8). Implementér som genbrugelige tooltip-tekster i en konstant-fil `src/lib/stocks/glossary.ts` (klient-sikker, ingen secrets).
+
+| Begreb                     | Kernepointe til UI/tooltip                                                                                          | Formel                                      |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| **Kostpris (cost basis)**  | Aktiepris + valutaveksling (0,25 %) + kurtage (min. 25 kr./handel). Små portioner straffes af den flade kurtage.    | `aktiepris_dkk + aktiepris_dkk·0,0025 + 25` |
+| **Urealiseret afkast**     | Papir-gevinst; først skattepligtig ved salg.                                                                        | `(kurs_nu·antal·fx_nu) − kostpris`          |
+| **Valuta-stødpude**        | Afkast i DKK = aktieafkast (USD) × valutaafkast. Stærkere dollar afbøder kursfald.                                  | `(1+r_usd)·(1+r_fx)−1`                      |
+| **P/E (trailing/forward)** | År af indtjening man betaler. Forward = forventet næste 12 mdr. Stor trail>forward-forskel = forventet vækstspring. | `kurs / EPS`                                |
+| **EPS / EPS CAGR**         | Overskud pr. aktie; CAGR = årlig vækstrate (rentes rente).                                                          | `EPS_slut/EPS_start)^(1/n)−1`               |
+| **Multipel-kompression**   | God indtjeningsvækst kan give 0 % afkast hvis markedet sænker P/E.                                                  | Kerneformel i simulatoren (9.6)             |
+
+**Pædagogiske billeder der genbruges i tooltips og AI-output:**
+
+- _To pizzeriaer_ (P/E): Google P/E 27 = stabilt veletableret pizzeria; Palantir P/E 160 = robot-pizzeria man betaler for fremtidig eksplosiv vækst (joker-position).
+- _Multipel-kompression_ (PLTR-eksempel): EPS firedobles ($0,91→$4,09) men hvis P/E falder 160x→35x bliver kursen $146→$143 = **+349 % indtjening, ~0 % kursafkast**.
+
+---
+
+## 🏁 Sprint 9.1: Datamodel & Database (Prisma)
+
+**Fil:** `prisma/schema.prisma` (tilføj i slutningen, bevar alt eksisterende uændret).
+
+Udvid den oprindelige spec med: `isBenchmark`-flag (til indeks-sammenligning), `targetPriceUsd` (analytiker-kursmål), `sector`/`theme` (allokerings-grupperinger), `lastPriceSyncedAt` (stale-detektion), og en ny **`StockAnalysis`-model** der gemmer AI-analyser som historik-log (ikke upsert — vi vil se udviklingen i rådgivningen over tid).
+
+```prisma
+model Stock {
+  id                 String             @id @default(cuid())
+  ticker             String             @unique
+  name               String
+  currency           String             @default("USD")
+  description        String             @db.Text
+  investmentThesis   String             @db.Text
+  breakThesisSignal  String             @db.Text
+  sector             String?            // "Semiconductors", "Software", ...
+  theme              String?            // "AI Compute", "AI Software", ...
+  isActive           Boolean            @default(true)
+  isBenchmark        Boolean            @default(false) // S&P500 / Nasdaq-100 til sammenligning
+
+  // Nøgletal (cache — opdateres via sync-job 9.2)
+  currentPrice       Float?
+  previousClose      Float?             // til dagsændring i %
+  peTrailing         Float?
+  peForward          Float?
+  epsTTM             Float?
+  epsCAGR5Year       Float?
+  targetPriceUsd     Float?             // analytiker-konsensus kursmål
+  marketCap          Float?
+  lastPriceSyncedAt  DateTime?          // stale-badge hvis > 24t / markedet lukket
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  transactions       StockTransaction[]
+  dailyPrices        StockPriceDaily[]
+  analyses           StockAnalysis[]
+}
+
+model StockTransaction {
+  id             String          @id @default(cuid())
+  stockId        String
+  stock          Stock           @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  type           StockTransType
+  date           DateTime
+  shares         Float
+  priceUsd       Float
+  rateDkkUsd     Float
+  brokerageDkk   Float           @default(25.0)
+  exchangeFeeDkk Float           @default(0.0)
+  comment        String?         @db.Text
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([stockId, date])
+}
+
+enum StockTransType {
+  BUY
+  SELL
+}
+
+model StockPriceDaily {
+  id         String   @id @default(cuid())
+  stockId    String
+  stock      Stock    @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  date       DateTime
+  closePrice Float
+
+  @@unique([stockId, date])
+  @@index([stockId, date])
+}
+
+model ExchangeRateDaily {
+  id     String   @id @default(cuid())
+  base   String   @default("USD")
+  target String   @default("DKK")
+  date   DateTime
+  rate   Float
+
+  @@unique([base, target, date])
+}
+
+model StockAnalysis {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  scope            String   // 'PORTFOLIO' | 'STOCK'
+  stockId          String?  // sat når scope == 'STOCK'
+  stock            Stock?   @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  model            String   @default("gemini-2.5-flash")
+  verdict          String?  // 'HOLD' | 'REDUCE' | 'ADD' | 'SELL' | 'MIXED'
+  content          String   @db.Text  // markdown til visning
+  data             Json?    // struktureret output (per-position-domme, risici) — se 9.8
+  snapshotValueDkk Float?   // porteføljeværdi (DKK) på analysetidspunktet
+  createdAt        DateTime @default(now())
+
+  @@index([userId, scope, createdAt])
+}
+```
+
+> **`User`-modellen** skal have tilføjet `analyses StockAnalysis[]` i sin relations-blok (modsvarende `aiInsight`-mønsteret).
+
+**Seed-data** (`prisma/seed-stocks.ts`, idempotent via `upsert` på `ticker`) — de 4 købte aktier + benchmark. Kurser sættes til `null` (fyldes af første sync) men transaktioner indlæses præcist:
+
+| Ticker | Navn           | Antal | Købskurs USD | Kostpris DKK | Sektor / Tema                  | Tesebrud-signal                            |
+| ------ | -------------- | ----- | ------------ | ------------ | ------------------------------ | ------------------------------------------ |
+| NVDA   | NVIDIA Corp.   | 2     | 212,297      | 2.766        | Semiconductors / AI Compute    | Markedsandel < 75 % el. vækst < 30 % y/y   |
+| AVGO   | Broadcom Inc.  | 1     | 406,140      | 2.647        | Semiconductors / Custom ASIC   | AI-vækst < 50 % y/y el. mister Google/Meta |
+| GOOGL  | Alphabet Inc.  | 1     | 366,025      | 2.387        | Software / Cloud+Modeller      | Cloud-vækst < 30 % y/y                     |
+| PLTR   | Palantir Tech. | 2     | 146,093      | 1.915        | Software / AI Software (joker) | Vækst < 40 % y/y el. GAAP-margin < 30 %    |
+
+Total: 6 aktier, **9.715 kr.** investeret (= $1.488,95 ved fx 6,44). Benchmark: seed `^GSPC` (S&P 500) og evt. `QQQ` (Nasdaq-100) med `isBenchmark = true`, `isActive = false`.
+
+Valutakurs `USD→DKK = 6,44` for 4. juni 2026 seedes i `ExchangeRateDaily`.
+
+**Acceptkriterier:**
+
+- [ ] `npx prisma db push` kører fejlfrit; 5 nye tabeller + `StockTransType`-enum eksisterer
+- [ ] Eksisterende tabeller uændrede; `User.analyses`-relation tilføjet
+- [ ] `npm run db:seed:stocks` (eller `tsx prisma/seed-stocks.ts`) indlæser de 4 aktier + 5 transaktioner + benchmark idempotent
+- [ ] Kostpris pr. transaktion matcher tabellen ± 1 kr.
+- **Prioritet:** 🔴 Høj · **Kompleksitet:** Lav-medium
+
+---
+
+## 🔌 Sprint 9.2: Datakilder, sync & cron
+
+**Mål:** Cache kurser, nøgletal og valuta i DB. Ingen eksterne kald i `load`.
+
+**Datakilder (gratis):**
+
+- Aktiekurser + nøgletal (P/E, EPS, previousClose, marketCap): **`yahoo-finance2`** npm-pakke (`quote` + `quoteSummary` for `defaultKeyStatistics`/`financialData` til targetPrice). Tilføj via `npm install yahoo-finance2`.
+- Valutakurs USD/DKK: **Frankfurter API** (`https://api.frankfurter.app/latest?from=USD&to=DKK`, ECB-data, 100 % gratis, ingen nøgle). Fallback: Open Exchange Rates.
+
+**Filer:**
+
+- `src/lib/server/stocks/fetchPrices.ts` — `updateStockQuotes()`, `updateDailyCloses()`, `updateExchangeRate()`. Hver wrappet i try/catch pr. ticker (én fejlende ticker må ikke vælte resten). Logger fejl, fortsætter.
+- `src/routes/api/stocks/sync/+server.ts` — `POST`-endpoint der kører sync. Beskyttet med `Authorization: Bearer ${CRON_SECRET}`. Query `?mode=quotes|daily|fx|all`.
+
+**Cron-strategi** (projektet har ingen scheduler i dag — vi bruger host-crontab der kalder endpoint, i tråd med Docker-deployment):
+
+- Tilføj `CRON_SECRET` til `.env` + `.env.example`.
+- Tilføj `/api/stocks/sync` til `isBypassedPath` i `src/hooks.server.ts` (bypass Authelia-header-tjek, men kræv selv Bearer-token i endpointet). **Sikkerhedsnote i koden** ligesom calendar-feed.
+- Host-crontab (dokumentér i denne task, opsættes på serveren):
+  ```cron
+  # Kurser hver time i US-markedstid (15:30–22:00 dansk, man-fre)
+  0 16-22 * * 1-5  curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" http://localhost:PORT/api/stocks/sync?mode=quotes
+  # Nat-job 23:05: dagsslutkurser + nøgletal + valutakurs
+  5 23 * * 1-5     curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" http://localhost:PORT/api/stocks/sync?mode=all
+  ```
+- **Markedslukke-detektion:** spring quote-sync over hvis `quote.marketState !== 'REGULAR'` og kursen allerede er frisk (< 1t) — undgå unødige kald.
+
+**Acceptkriterier:**
+
+- [ ] `POST /api/stocks/sync?mode=all` opdaterer `currentPrice`, `previousClose`, P/E, EPS, `targetPriceUsd`, `lastPriceSyncedAt` for alle aktive aktier + benchmark
+- [ ] Dagens slutkurser skrives til `StockPriceDaily`, valutakurs til `ExchangeRateDaily` (begge upsert på unique-nøgle)
+- [ ] Endpoint afviser kald uden korrekt Bearer-token med 401
+- [ ] Én fejlende ticker afbryder ikke de øvrige
+- [ ] Ingen eksterne API-kald i nogen `load`-funktion
+- **Prioritet:** 🔴 Høj · **Kompleksitet:** Medium
+
+---
+
+## 🧮 Sprint 9.3: Beregningskerne (delt logik)
+
+**Mål:** Én sandhed for alle DKK-/afkast-tal. Bruges af `load` (9.4), CRUD (9.5), AI-analyse (9.8) og MCP-tools (Sprint 10).
+
+**Fil:** `src/lib/server/stocks/calc.ts` — rene funktioner, ingen Prisma-import (tager data ind, returnerer tal), 100 % testbare.
+
+Implementér:
+
+- `costBasis(tx)` → reel kostpris i DKK inkl. gebyrer.
+- `positionFromTransactions(txs)` → `{ shares, avgCostUsd, totalCostDkk, realizedGainDkk }` med **average cost basis** (gennemsnitlig anskaffelsespris ved efterfølgende køb; ved SELL realiseres forholdsmæssig andel).
+- `unrealized(position, currentPrice, fxNow)` → `{ valueDkk, valueUsd, gainDkk, gainPct }`.
+- `currencyDecomposition(...)` → opdel samlet afkast i **aktiekurs-effekt** vs **valuta-effekt** (stødpude-visualisering): `(1+r_usd)·(1+r_fx)−1`.
+- `portfolioTotals(positions)` → samlet værdi, kostpris, urealiseret afkast, allokering pr. ticker (%).
+- `concentrationHHI(weights)` → Herfindahl-indeks (koncentrationsrisiko 0–1; advar ved > 0,4 eller enkeltposition > 35 %).
+- `scenarioBands(costBasis)` → de fem dec-2026-scenarier: Krise (−28 %), Kostpris (0 %), Solidt (+13 %), Base Case (+25 %), Eufori (+55 %) — beregnet relativt til kostpris (afløser de hardkodede tal fra spec'en, så de skalerer med faktiske køb).
+- `futurePrice(epsTTM, cagr, years, terminalPE)` → simulator-kerne (9.6).
+- `benchmarkReturn(...)` → porteføljens tidsvægtede afkast vs indeks i samme periode.
+
+**Acceptkriterier:**
+
+- [ ] Vitest-suite `calc.test.ts` dækker kostpris (AVGO-eksempel = 2.647 kr. ± 1), average cost ved 2 køb, realiseret gevinst ved delsalg, valuta-dekomponering, HHI
+- [ ] Ingen `any`; alle funktioner rent typede med eksplicitte interfaces
+- [ ] `npm run lint` passerer
+- **Prioritet:** 🔴 Høj · **Kompleksitet:** Medium
+
+---
+
+## 🖥️ Sprint 9.4: Hovedside & visuelt design (frontend)
+
+**Filer:** `src/routes/dashboard/stocks/+page.server.ts` (load via beregningskerne) + `+page.svelte`. Tilføj aktie-tile på `src/routes/+page.svelte` (landing). Tilføj navigations-link.
+
+**Layout (glassmorphism, Deep Forest):**
+
+1. **KPI-topbjælke** (4 glassmorphism-kort):
+   - Porteføljeværdi (stor DKK + sekundær USD), dagsændring i % (emerald/rose).
+   - Urealiseret afkast (kr. + %, farvekodet).
+   - Kostpris (samlet investeret inkl. gebyrer).
+   - USD/DKK-kurs med ændringsindikator + lille "valuta-stødpude"-bidrag i kr.
+2. **Visuel performance-bar** — horisontal bar der placerer aktuel værdi mellem `scenarioBands` (Krise → Kostpris → Solidt → Base → Eufori) med "DU ER HER"-markør. Markører og labels via temafarver.
+3. **Porteføljetabel** — Ticker, selskab, antal, gns. kostpris/aktie, aktuel kurs (USD + dagsændring), urealiseret afkast (DKK/USD/%), **tese-status** (🟢 OK / ⚠️ under pres / 🔴 tesebrud — afledt af `breakThesisSignal` + nøgletal hvor muligt), afstand til `targetPriceUsd`. Stale-badge hvis `lastPriceSyncedAt` er gammel.
+4. **Grafer (ApexCharts, CSS-variabel-farver via `getCssVar` + `{#key isDarkMode}`** — følg TEMA-0.1-mønsteret):
+   - **Allokering (donut)** pr. ticker; segmentfarver fra `--color-indigo-500`, `--color-violet-500`, `--color-indigo-400`, `--color-rose-400`.
+   - **Historisk udvikling (area)** — akkumuleret porteføljeværdi (fra `StockPriceDaily` + daglig fx) vs samlet kostpris-linje. Valgfri benchmark-overlay (S&P 500 normaliseret til samme startkapital).
+
+**Acceptkriterier:**
+
+- [ ] `/dashboard/stocks` loader udelukkende fra DB-cache (ingen eksterne kald)
+- [ ] KPI'er, performance-bar, tabel og begge grafer renderer korrekt i lys + mørk tilstand
+- [ ] Ingen hex-literals i chart-configs (kun `'#ffffff'`/`'transparent'`); charts skifter farve ved tema-toggle
+- [ ] Tom-tilstand vises pænt hvis ingen positioner; stale-badge ved gamle kurser
+- [ ] Aktie-tile tilføjet på landing page; `npm run build` passerer
+- **Prioritet:** 🔴 Høj · **Kompleksitet:** Medium-høj
+
+---
+
+## ➕ Sprint 9.5: CRUD-transaktionshåndtering
+
+**Fil:** `src/routes/dashboard/stocks/+page.server.ts` (actions) + modal i `+page.svelte`.
+
+- Modalformular: Dato, Ticker (vælg eksisterende el. opret ny aktie inline), Type (Køb/Salg), Antal (brøkdele tilladt), Kurs USD, Valutakurs USD/DKK (auto-foreslå fra seneste `ExchangeRateDaily`), Kurtage (default 25), Valutaveksling (auto-beregn 0,25 % af summen, redigerbar).
+- Actions: `addTransaction`, `deleteTransaction`, `addStock` (ny ticker → trigger straks en quote-sync for den).
+- **Validering:** kan ikke sælge flere aktier end ejet (brug `positionFromTransactions`); dato ikke i fremtiden; positive tal.
+- Live-preview af beregnet kostpris i modalen (genbrug `costBasis` via lille klient-spejling eller server-roundtrip).
+
+**Acceptkriterier:**
+
+- [ ] Tilføj/slet køb og salg opdaterer portefølje + KPI'er korrekt
+- [ ] Oversalg blokeres med dansk fejlbesked
+- [ ] Gns. anskaffelsespris genberegnes korrekt ved flere køb
+- [ ] Ny ticker kan oprettes og får kurser ved næste/straks-sync
+- [ ] `npm run lint && npm run build` passerer
+- **Prioritet:** 🟡 Medium · **Kompleksitet:** Medium
+
+---
+
+## 🎛️ Sprint 9.6: Simulator & Joker-Duel
+
+**Fil:** Komponenter i `src/lib/components/stocks/` (`ScenarioSimulator.svelte`, `JokerDuel.svelte`).
+
+1. **5-års scenarie-simulator** (juni 2031):
+   - Vælg aktie + to sliders: EPS CAGR (0–60 %) og terminal P/E (15x–200x).
+   - Reaktivt (`$derived`) via `futurePrice` fra beregningskernen; viser fremtidig kurs + samlet afkast %.
+   - Pædagogisk dynamisk tekst ved multipel-kompression (negativt afkast trods høj vækst) — genbrug glossary-tekst.
+   - **Berigelse:** lille følsomheds-heatmap (CAGR × P/E-grid farvelagt grøn→rød efter afkast) så man ser "break-even"-linjen visuelt.
+2. **Joker-Duel: PLTR vs ALAB** — sammenlign seneste kvartalstal (omsætningsvækst, P/E, marginer) side-om-side; rotation-anbefaling. Data hentes via samme quote-mekanik (tilføj ALAB som `isActive = false` reference-stock så den synkroniseres uden at indgå i porteføljen).
+
+**Acceptkriterier:**
+
+- [ ] Simulator opdaterer kurs/afkast øjeblikkeligt ved slider-ændring; viser kompressions-forklaring korrekt
+- [ ] Heatmap renderer med temafarver
+- [ ] Joker-duel viser friske tal for PLTR og ALAB
+- [ ] Ingen direkte mutation af `$derived`; `npm run build` passerer
+- **Prioritet:** 🟢 Lav-medium · **Kompleksitet:** Medium
+
+---
+
+## 📊 Sprint 9.7: Avanceret analyse (benchmark, risiko, allokering)
+
+**Berigelse ud over oprindelig spec** — gør siden til et reelt analyseværktøj.
+
+- **Benchmark-sammenligning:** porteføljens afkast vs S&P 500 (og evt. Nasdaq-100) over valgt periode — "slår vi markedet?" KPI + overlay på historik-grafen.
+- **Risiko-/koncentrationspanel:** HHI-koncentration, største enkeltposition, sektor/tema-fordeling (alle 4 er AI/halvleder/software → eksplicit klyngerisiko-advarsel). Visualisér tema-allokering som stacked bar.
+- **Valuta-eksponering:** hvor stor del af afkastet skyldes USD/DKK vs aktiekurser (fra `currencyDecomposition`).
+- **Tese-overvågning:** automatisk flag pr. position når et `breakThesisSignal`-kriterie kan udledes af nøgletal (fx vækst/margin hvor tilgængeligt); ellers manuelt "tjek"-flag.
+- **(Valgfri/senere) Udbytte:** GOOGL/AVGO betaler udbytte — overvej `StockDividend`-model og udbytte-justeret afkast. Markeret som fremtidig.
+
+**Acceptkriterier:**
+
+- [ ] Benchmark-KPI + overlay virker for valgt periode
+- [ ] Koncentrations-/sektorpanel viser HHI og klyngeadvarsel
+- [ ] Valuta-effekt vises separat fra kurs-effekt
+- [ ] `npm run build` passerer
+- **Prioritet:** 🟢 Lav-medium · **Kompleksitet:** Medium
+
+---
+
+## 🤖 Sprint 9.8: AI-porteføljeanalyse (gemt i DB)
+
+**Mål:** Bruger trykker "Anmod om AI-analyse" og får en gemt, struktureret vurdering. Følg eksisterende `generateInsight`-mønster i `finance/+page.server.ts` (Gemini 2.5 Flash, `@google/generative-ai`, `GEMINI_API_KEY`).
+
+**Fil:** `src/routes/dashboard/stocks/+page.server.ts` — actions `requestPortfolioAnalysis` og `requestStockAnalysis` (scope STOCK).
+
+**Prompt-kontekst** (byg server-side fra beregningskernen — send strukturerede tal, ikke rå tabeller): pr. position {ticker, navn, antal, kostpris, aktuel kurs, urealiseret afkast %, P/E trailing/forward, EPS, targetPrice, investeringstese, tesebrud-signal}, porteføljetotaler, koncentration (HHI), benchmark-afkast, valuta-effekt. Inkludér glossary-tonen ("forklar jordnært for voksne danskere").
+
+**Struktureret output** — brug `responseMimeType: 'application/json'` + `responseSchema`:
+
+```json
+{
+	"overallVerdict": "HOLD | REDUCE | ADD | SELL | MIXED",
+	"summaryMarkdown": "kort pædagogisk dansk opsummering",
+	"positions": [
+		{
+			"ticker": "PLTR",
+			"verdict": "REDUCE",
+			"thesisStatus": "UNDER_PRESSURE",
+			"rationale": "...",
+			"keyRisk": "..."
+		}
+	],
+	"portfolioRisks": ["høj koncentration i AI/halvledere", "..."],
+	"suggestions": ["overvej rotation PLTR→ALAB hvis vækst < 40%", "..."]
+}
+```
+
+**Robusthed:** `AbortSignal.timeout(45000)`; ved timeout returnér `{ error: 'AI-analyse tog for lang tid' }`. Sanitér API-nøgle som i finance (`replace(/^["']|["']$/g, '')`).
+
+**DB-lagring:** gem hver analyse som ny `StockAnalysis`-række (historik, ikke upsert) med `scope`, `stockId?`, `model`, `verdict = overallVerdict`, `content = summaryMarkdown`, `data = hele JSON-objektet`, `snapshotValueDkk`.
+
+**UI:** "Anmod om AI-analyse"-knap (spinner under kald, `use:enhance`); vis seneste analyse som kort med per-position-domme farvekodet; **historik-accordion** ("Tidligere analyser") så man ser, hvordan rådgivningen har ændret sig over tid. Per-aktie kan man anmode om en fokuseret analyse fra porteføljetabellen.
+
+**Acceptkriterier:**
+
+- [ ] `requestPortfolioAnalysis` returnerer valid struktureret JSON og gemmer en `StockAnalysis`-række
+- [ ] Per-aktie-analyse (scope STOCK) virker fra tabellen
+- [ ] Timeout/fejl håndteres med dansk besked uden at crashe siden
+- [ ] Historik vises; seneste analyse fremhæves
+- [ ] Kun `gemini-2.5-flash`; ingen nøgle lækket til klient; `npm run lint` passerer
+- **Prioritet:** 🟡 Medium · **Kompleksitet:** Medium
+
+---
+
+## 🔒 Sprint 9.9: Authelia-sikkerhed
+
+Aktieporteføljen er følsom finansdata → kræv **`two_factor`**.
+
+I Authelia `configuration.yml` (på serveren — dokumentér i denne task):
+
+```yaml
+- domain: wish.hostrup.org
+  resources:
+    - '^/dashboard/stocks.*'
+    - '^/api/stocks/(?!sync).*' # sync beskyttes af Bearer-token, ikke 2FA
+  policy: two_factor
+```
+
+> `/api/stocks/sync` (9.2) tilgås af host-cron uden om Authelia og beskyttes i stedet af `CRON_SECRET`. Sørg for at Authelia-reglen ikke fanger sync-stien (eller at den ekskluderes som vist).
+
+**Acceptkriterier:**
+
+- [ ] `/dashboard/stocks` og `/api/stocks/*` (undtagen sync) kræver 2FA
+- [ ] `/api/stocks/sync` virker for cron med Bearer-token, men afvises uden
+- **Prioritet:** 🔴 Høj · **Kompleksitet:** Lav
+
+---
+
+## ✅ Sprint 9.10: Test & deploy
+
+- [ ] `calc.test.ts` grøn (`npm run test` / vitest)
+- [ ] Manuel verifikation i browser: lys + mørk, tom + fyldt portefølje, AI-analyse, simulator
+- [ ] `npm run lint && npm run build` — zero type-fejl
+- [ ] Deploy: `./deploy.sh "Add stock portfolio monitoring page (Sprint 9)"`
+- [ ] Verificér 2FA + cron-sync i produktion; slet evt. midlertidige scripts
+
+---
+
+# 🔗 Sprint 10: Internt MCP-server interface (projekt-bredt)
+
+**Mål:** Eksponér hele Hostrup Hub (ønsker, finans, **aktier**, ugeplan) via et **internt MCP-server-interface**, så eksterne AI-agenter (Claude m.fl.) nemt kan læse status og udføre afgrænsede handlinger — uden at gå uden om forretningslogikken. Bygger oven på beregningskernen fra 9.3 og de eksisterende Prisma-modeller.
+
+> **Hvorfor projekt-bredt:** MCP-serveren bliver Hubs officielle agent-API. Aktie-domænet er første store forbruger, men interfacet dækker alle domæner fra dag ét, så agenter kan hjælpe på tværs (fx "kategorisér disse bank-transaktioner", "tilføj et ønske", "lav en aktieanalyse").
+
+## 🏗️ Sprint 10.1: MCP-transport & sikkerhed
+
+**Teknik:** `@modelcontextprotocol/sdk` (TypeScript) med **Streamable HTTP-transport** mountet i SvelteKit på `src/routes/api/mcp/+server.ts` (`POST` + `GET`). Genbruger samme Prisma-klient og `src/lib/server/stocks/calc.ts`.
+
+- `npm install @modelcontextprotocol/sdk zod`.
+- **Auth:** Bearer-token (`MCP_TOKEN` i `.env`). Tilføj `/api/mcp` til `isBypassedPath` i `hooks.server.ts` (uden om Authelia-header-tjek), men kræv selv gyldig `Authorization: Bearer`-token i endpointet → ellers 401. Sikkerhedsnote i koden som ved calendar-feed.
+- **Authelia:** bloker offentlig adgang til `^/api/mcp.*` (kun lokalt net / Tailscale + token). Dokumentér regel.
+- **Bruger-kontekst:** MCP-kald kører som en dedikeret agent-bruger (eller bruger sendt i token-claim) for `userId`-bundne data (ønsker, analyser).
+
+**Acceptkriterier:**
+
+- [ ] `POST /api/mcp` taler MCP over Streamable HTTP; `initialize` + `tools/list` virker via MCP-klient
+- [ ] Kald uden gyldig token afvises (401); Authelia blokerer offentlig adgang
+- [ ] Ingen secrets eller rå SQL; al adgang via Prisma/beregningskerne
+- **Prioritet:** 🟡 Medium · **Kompleksitet:** Medium-høj
+
+## 🧰 Sprint 10.2: Tools & resources (read)
+
+Read-only først (lav risiko). Alle tools zod-validerede, dansk-beskrevne.
+
+- **Aktier:** `stocks_get_portfolio` (totaler, positioner, allokering, koncentration), `stocks_list_analyses`, `stocks_get_stock(ticker)`.
+- **Finans:** `finance_get_summary(from,to)`, `finance_list_transactions(filter)`, `finance_list_categories`.
+- **Ønsker:** `wishes_list(status?)`, `wishes_get(id)`.
+- **Ugeplan:** `weekly_get(year,week)`.
+- **Resources:** `hub://schema` (domæne-/feltbeskrivelser), `hub://glossary` (aktie-begreber fra 9.0) så agenter har kontekst.
+
+**Acceptkriterier:**
+
+- [ ] Hvert read-tool returnerer struktureret JSON identisk med tal i UI (delt beregningskerne)
+- [ ] `tools/list` viser alle med danske beskrivelser; zod-validering afviser dårlige args
+- **Prioritet:** 🟡 Medium · **Kompleksitet:** Medium
+
+## ✍️ Sprint 10.3: Tools (afgrænset write) + AI-analyse via MCP
+
+Write-tools med streng validering og **ingen pengeoverførsler/handler** (kun bogføring/registrering — i tråd med Hubs finansregler):
+
+- `stocks_add_transaction` (samme validering som 9.5 — fx oversalg blokeres).
+- `stocks_request_analysis(scope, ticker?)` — kører 9.8-analysen og gemmer i `StockAnalysis`; returnerer struktureret resultat. **Dette er kernen i brugerens ønske: agenter udefra kan anmode om en analyse, og den gemmes i DB.**
+- `finance_categorize_transaction(id, categoryId)` og `wishes_add(...)` — genbrug eksisterende actions-logik.
+- Alle write-tools logger hvem/hvad (audit) og er idempotente hvor muligt.
+
+**Acceptkriterier:**
+
+- [ ] Ekstern agent kan via MCP anmode om en aktieanalyse → række oprettes i `StockAnalysis` og vises i UI'ets historik
+- [ ] Write-tools håndhæver samme valideringer som UI-actions; ingen handels-/overførselsfunktioner eksponeres
+- [ ] `npm run lint && npm run build` passerer; dokumentér tilslutning af MCP-klient i README
+- **Prioritet:** 🟢 Lav-medium · **Kompleksitet:** Medium
