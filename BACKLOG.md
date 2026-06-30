@@ -886,6 +886,8 @@ Ny, fuldt integreret side i Hostrup Hub der giver Ronni og Mathilde et visuelt, 
 > - **Infra:** `CRON_SECRET` tilføjet til `/hostrup/docker/.env` + `stacks/projects.yml`. Host-crontab installeret (kurser hver time i markedstid + nat-job), cron-dæmon aktiv. Initial sync OK (6/6 tickers).
 > - **Resterer for fuld sikkerhed (9.9):** Authelia `two_factor`-regel for `^/dashboard/stocks` + `^/api/stocks/(?!sync)` — ligger i Authelia `configuration.yml` uden for repoet; ikke ændret endnu.
 > - **Næste:** 9.8 (AI-analyse gemt i DB).
+>
+> **📊 Statusaudit (30. juni 2026):** System har kørt i ~4 handelsdage. Cron kører fejlfrit (0 fejl over 8 successive kald), alle 6 tickers opdateres, Yahoo Finance + Frankfurter FX leverer stabilt. Primært problem: kun 2 dage historisk prisdata (25/6 + 29/6) pga. `updateDailyCloses()` kun gemmer seneste dag. Cron-logformat ulæseligt (ingen newlines). Se Sprint 9.11 for hardening-opgaver.
 
 ## 🎯 Designprincipper (gælder hele Sprint 9)
 
@@ -1286,6 +1288,371 @@ I Authelia `configuration.yml` (på serveren — dokumentér i denne task):
 - [ ] `npm run lint && npm run build` — zero type-fejl
 - [ ] Deploy: `./deploy.sh "Add stock portfolio monitoring page (Sprint 9)"`
 - [ ] Verificér 2FA + cron-sync i produktion; slet evt. midlertidige scripts
+
+---
+
+## 🛠️ Sprint 9.11: Post-launch hardening (historisk data + drift)
+
+> **Oprindelse:** Statusaudit 30. juni 2026 afslørede 5 driftsproblemer der skal løses før 9.8 (AI-analyse) giver mening — AI'en har brug for historisk data der endnu ikke findes.
+
+> **Forudsætning:** 9.1–9.5 er LIVE. Cron kører stabilt. Container OK. Ingen kodeændringer i 9.1–9.5 kræves.
+
+> **Deployment:** Alle opgaver i denne sprint deployes samlet via `./deploy.sh "Sprint 9.11: Historical backfill + sync hardening"` efter at alle acceptkriterier er opfyldt.
+
+---
+
+### STOCK-11.1: Backfill historiske priser + FX siden porteføljens start 🔴
+
+**Problem:** `StockPriceDaily` har kun **2 rækker pr. aktie** (25/6 + 29/6) ud af ~18 mulige handelsdage siden porteføljens start 4. juni. Den historiske graf på `/dashboard/stocks` er dermed nærmest tom. AI-analysen (9.8) vil heller ikke have nok data at arbejde med.
+
+**Årsag:** `updateDailyCloses()` i `src/lib/server/stocks/fetchPrices.ts` (linje 98–135) henter kun chart-data med et 5-dages vindue (`period1 = now - 5`) og gemmer **kun den seneste** lukkekurs (`rows.at(-1)`). Dage uden nat-sync er permanent tabt.
+
+**Løsning:** Tilføj en ny funktion `backfillDailyCloses()` i `src/lib/server/stocks/fetchPrices.ts` og eksponér den via sync-endpointet.
+
+**Fil:** `src/lib/server/stocks/fetchPrices.ts`
+
+Tilføj denne funktion (efter `updateDailyCloses`, ca. linje 135):
+
+```typescript
+/**
+ * Backfill af historiske daglige slutkurser fra porteføljens tidligste transaktion
+ * til i dag. Kører kun én gang (idempotent via upsert). Henter chart-data med
+ * interval '1d' fra Yahoo Finance for hele perioden.
+ */
+export async function backfillDailyCloses(): Promise<SyncResult> {
+	const stocks = await prisma.stock.findMany({
+		where: { OR: [{ isActive: true }, { isBenchmark: true }] },
+		include: { transactions: { orderBy: { date: 'asc' }, take: 1 } }
+	});
+	const result: SyncResult = { updated: [], failed: [] };
+
+	// Tidligste transaktion bestemmer startdatoen for hele porteføljen
+	const allFirstDates = stocks.flatMap((s) => s.transactions).map((t) => t.date.getTime());
+	if (allFirstDates.length === 0) return result;
+	const period1 = new Date(Math.min(...allFirstDates));
+
+	for (const stock of stocks) {
+		try {
+			const chart = (await yahooFinance.chart(stock.ticker, {
+				period1,
+				interval: '1d'
+			})) as unknown as YahooChart;
+			const rows = chart.quotes.filter((q) => typeof q.close === 'number');
+			let upserted = 0;
+			for (const row of rows) {
+				if (typeof row.close !== 'number') continue;
+				const date = startOfDayUtc(new Date(row.date));
+				await prisma.stockPriceDaily.upsert({
+					where: { stockId_date: { stockId: stock.id, date } },
+					update: { closePrice: row.close },
+					create: { stockId: stock.id, date, closePrice: row.close }
+				});
+				upserted++;
+			}
+			result.updated.push(`${stock.ticker} (${upserted} dage)`);
+		} catch (error) {
+			result.failed.push({
+				ticker: stock.ticker,
+				error: error instanceof Error ? error.message : 'Ukendt fejl'
+			});
+		}
+	}
+
+	return result;
+}
+```
+
+**Fil:** `src/routes/api/stocks/sync/+server.ts`
+
+Tilføj import af `backfillDailyCloses` (linje 3–7) og en ny mode-gren i POST-handleren (linje 31–39):
+
+```typescript
+// Tilføj til import:
+import { ..., backfillDailyCloses } from '$lib/server/stocks/fetchPrices';
+
+// Tilføj i POST-handleren (efter 'fx'-blokken, ca. linje 38):
+if (mode === 'backfill' || mode === 'all-backfill') {
+  out.backfill = await backfillDailyCloses();
+}
+```
+
+> **Vigtigt:** `mode=backfill` skal IKKE være en del af `mode=all` — det er en engangsoperation der henter mange datapunkter. Kald det manuelt.
+
+**Backfill af FX-kurser:**
+
+Frankfurter API understøtter historiske serier: `https://api.frankfurter.app/2026-06-04..2026-06-30?from=USD&to=DKK`. Tilføj en `backfillExchangeRates()` funktion i `fetchPrices.ts`:
+
+```typescript
+export async function backfillExchangeRates(): Promise<{
+	rates: number;
+	from: string;
+	to: string;
+}> {
+	const firstTx = await prisma.stockTransaction.findFirst({ orderBy: { date: 'asc' } });
+	if (!firstTx) return { rates: 0, from: '', to: '' };
+
+	const from = firstTx.date.toISOString().slice(0, 10);
+	const to = new Date().toISOString().slice(0, 10);
+
+	const res = await fetch(`https://api.frankfurter.app/${from}..${to}?from=USD&to=DKK`);
+	if (!res.ok) throw new Error(`Frankfurter svarede ${res.status}`);
+	const data = (await res.json()) as { rates: Record<string, { DKK: number }> };
+
+	let count = 0;
+	for (const [dateStr, rateObj] of Object.entries(data.rates)) {
+		const date = startOfDayUtc(new Date(dateStr));
+		await prisma.exchangeRateDaily.upsert({
+			where: { base_target_date: { base: 'USD', target: 'DKK', date } },
+			update: { rate: rateObj.DKK },
+			create: { base: 'USD', target: 'DKK', date, rate: rateObj.DKK }
+		});
+		count++;
+	}
+
+	return { rates: count, from, to };
+}
+```
+
+Eksponér den i sync-endpointet under samme `mode=backfill` gren:
+
+```typescript
+if (mode === 'backfill' || mode === 'all-backfill') {
+	out.backfill = await backfillDailyCloses();
+	out.fxBackfill = await backfillExchangeRates();
+}
+```
+
+**Verifikation efter kørsel:**
+
+```bash
+# Kør backfill manuelt
+curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" \
+  "http://10.0.0.2:3005/api/stocks/sync?mode=backfill" | python3 -m json.tool
+
+# Verificer i databasen
+docker exec postgresql psql -U wishbuy_db -d wishbuy_db -c "
+SELECT s.ticker, COUNT(*) as days, MIN(dp.date)::date as from_date, MAX(dp.date)::date as to_date
+FROM \"StockPriceDaily\" dp JOIN \"Stock\" s ON s.id = dp.\"stockId\"
+GROUP BY s.ticker ORDER BY s.ticker;
+"
+# Forventet: ~18 handelsdage pr. ticker (4. juni → 30. juni)
+
+docker exec postgresql psql -U wishbuy_db -d wishbuy_db -c "
+SELECT COUNT(*) as fx_count, MIN(date)::date, MAX(date)::date FROM \"ExchangeRateDaily\";
+"
+# Forventet: ~18–19 rækker (en pr. ECB-handelsdag)
+```
+
+**Acceptkriterier:**
+
+- [ ] `backfillDailyCloses()` henter alle daglige slutkurser fra 4. juni 2026 til i dag for alle aktive aktier + benchmarks
+- [ ] `backfillExchangeRates()` henter alle USD/DKK-kurser fra 4. juni til i dag via Frankfurter API
+- [ ] Sync-endpointet understøtter `?mode=backfill` (kræver Bearer-token, 401 uden)
+- [ ] `StockPriceDaily` har ≥15 rækker pr. ticker efter kørsel (afhænger af antal handelsdage)
+- [ ] `ExchangeRateDaily` har ≥15 rækker efter kørsel
+- [ ] Historisk graf i UI viser en sammenhængende kurve fra 4. juni til i dag
+- [ ] Eksisterende `mode=all` og `mode=daily` er uændrede
+- [ ] `npm run lint && npm run build` passerer
+- **Prioritet:** 🔴 Høj · **Kompleksitet:** Medium
+
+---
+
+### STOCK-11.2: `updateDailyCloses()` — gem alle dage, ikke kun seneste 🟡
+
+**Problem:** `updateDailyCloses()` (kaldt af nat-cron kl. 23:05 via `mode=all`) henter chart-data 5 dage tilbage men gemmer **kun den seneste** lukkekurs (`rows.at(-1)`). Hvis en nat-sync fejler, mister man permanent den dags data.
+
+**Fil:** `src/lib/server/stocks/fetchPrices.ts`, linje 98–135
+
+**Nuværende kode (problematisk):**
+
+```typescript
+const last = rows.at(-1);
+if (!last || typeof last.close !== 'number') {
+	throw new Error('Ingen slutkurs i svar');
+}
+const date = startOfDayUtc(new Date(last.date));
+await prisma.stockPriceDaily.upsert({
+	where: { stockId_date: { stockId: stock.id, date } },
+	update: { closePrice: last.close },
+	create: { stockId: stock.id, date, closePrice: last.close }
+});
+```
+
+**Fix — iterér over ALLE rows og upsert hver:**
+
+```typescript
+if (rows.length === 0) {
+	throw new Error('Ingen slutkurs i svar');
+}
+let saved = 0;
+for (const row of rows) {
+	if (typeof row.close !== 'number') continue;
+	const date = startOfDayUtc(new Date(row.date));
+	await prisma.stockPriceDaily.upsert({
+		where: { stockId_date: { stockId: stock.id, date } },
+		update: { closePrice: row.close },
+		create: { stockId: stock.id, date, closePrice: row.close }
+	});
+	saved++;
+}
+```
+
+Det 5-dages vindue (`period1 = now - 5`) er fint til nat-jobbet — det skaber en 5-dages overlapping buffer der fanger eventuelle manglende dage. Med denne fix gemmes **alle** dage i vinduet, ikke kun den seneste.
+
+**Acceptkriterier:**
+
+- [ ] `updateDailyCloses()` upsert'er alle returnerede lukkekurser i vinduet, ikke kun den seneste
+- [ ] Upsert bruger `stockId_date` unique-nøgle (allerede defineret i schema) — ingen duplikater
+- [ ] Nat-sync (`mode=all`) gemmer typisk 1–3 rækker pr. ticker (afh. af weekendposition)
+- [ ] Eksisterende tests forbliver grønne; tilføj ikke nye tests (logikken er simpel upsert)
+- [ ] `npm run lint && npm run build` passerer
+- **Prioritet:** 🟡 Medium · **Kompleksitet:** Lav
+
+---
+
+### STOCK-11.3: Cron-logformat — tilføj newlines 🟡
+
+**Problem:** Cron-loggen (`/hostrup/docker/projects/wishbuy/cron-sync.log`) samler alle JSON-responses på **én linje** uden separator, hvilket gør den ulæselig:
+
+```
+{"ok":true,...}{"ok":true,...}{"ok":true,...}
+```
+
+**Årsag:** Crontab-linjerne bruger `>> cron-sync.log` men curl's output ender ikke på newline.
+
+**Nuværende crontab (fra `crontab -e`):**
+
+```cron
+0 16-22 * * 1-5 curl -fsS --max-time 90 -X POST -H "Authorization: Bearer ca07...5dd9" "http://10.0.0.2:3005/api/stocks/sync?mode=quotes" >> /hostrup/docker/projects/wishbuy/cron-sync.log 2>&1
+5 23 * * 1-5 curl -fsS --max-time 120 -X POST -H "Authorization: Bearer ca07...5dd9" "http://10.0.0.2:3005/api/stocks/sync?mode=all" >> /hostrup/docker/projects/wishbuy/cron-sync.log 2>&1
+```
+
+**Fix — tilføj `; echo` efter curl så hver response får sin egen linje:**
+
+```cron
+0 16-22 * * 1-5 curl -fsS --max-time 90 -X POST -H "Authorization: Bearer ca07...5dd9" "http://10.0.0.2:3005/api/stocks/sync?mode=quotes" >> /hostrup/docker/projects/wishbuy/cron-sync.log 2>&1; echo >> /hostrup/docker/projects/wishbuy/cron-sync.log
+5 23 * * 1-5 curl -fsS --max-time 120 -X POST -H "Authorization: Bearer ca07...5dd9" "http://10.0.0.2:3005/api/stocks/sync?mode=all" >> /hostrup/docker/projects/wishbuy/cron-sync.log 2>&1; echo >> /hostrup/docker/projects/wishbuy/cron-sync.log
+```
+
+**Alternativt** (renere): brug en wrapping subshell:
+
+```cron
+0 16-22 * * 1-5 (curl -fsS --max-time 90 -X POST -H "Authorization: Bearer ca07...5dd9" "http://10.0.0.2:3005/api/stocks/sync?mode=quotes"; echo) >> /hostrup/docker/projects/wishbuy/cron-sync.log 2>&1
+```
+
+**Udførelse:** Kør `crontab -e` på hosten (Fedora) og opdatér de 2 linjer. Kræver **ingen kodeændring eller deploy** — kun host-crontab.
+
+**Verifikation:** Vent til næste cron-kørsel (kl. 16:00 CEST på en hverdag), derefter:
+
+```bash
+tail -3 /hostrup/docker/projects/wishbuy/cron-sync.log
+# Forventet: hver linje er ét selvstændigt JSON-objekt
+cat /hostrup/docker/projects/wishbuy/cron-sync.log | python3 -c "import sys,json; [json.loads(l) for l in sys.stdin if l.strip()]; print('OK')"
+```
+
+**Acceptkriterier:**
+
+- [ ] Hver cron-kørsel producerer præcis én JSON-linje i logfilen
+- [ ] Logfilen kan parses linje-for-linje som JSONL (ét objekt pr. linje)
+- [ ] Eksisterende logindhold behøver ikke migreres (nye linjer starter bare korrekt)
+- **Prioritet:** 🟡 Medium · **Kompleksitet:** Triviel (kun crontab-ændring)
+
+---
+
+### STOCK-11.4: Stale-badge UX — vis "Markedet lukket" uden for handelstid 🟢
+
+**Problem:** Stale-grænsen er 26 timer (`STALE_AFTER_MS` i `+page.server.ts` linje 14). Det betyder:
+
+- **Hver morgen** (08:00–16:00 CEST) viser UI'et "stale"-badge på alle aktier — selvom kursen er den seneste tilgængelige.
+- **Hele weekenden** viser stale fra lørdag formiddag og frem.
+
+Det er teknisk korrekt, men forvirrer brugeren ("er noget galt med sync?").
+
+**Fil:** `src/routes/dashboard/stocks/+page.server.ts`, linje 14 + linje 67–68
+
+**Nuværende kode:**
+
+```typescript
+const STALE_AFTER_MS = 26 * 60 * 60 * 1000;
+// ...
+const isStale =
+	!stock.lastPriceSyncedAt || now - stock.lastPriceSyncedAt.getTime() > STALE_AFTER_MS;
+```
+
+**Fix:** Tilføj markedstids-awareness. Returnér et nyt felt `marketOpen` (boolean) fra load:
+
+```typescript
+function isUsMarketLikelyOpen(): boolean {
+	const now = new Date();
+	const day = now.getUTCDay(); // 0=søndag, 6=lørdag
+	if (day === 0 || day === 6) return false;
+	const utcHour = now.getUTCHours();
+	const utcMin = now.getUTCMinutes();
+	const minutesSinceMidnight = utcHour * 60 + utcMin;
+	// NYSE åben ca. 13:30–20:00 UTC (9:30–16:00 ET). Lidt slæk: 13:00–20:30.
+	return minutesSinceMidnight >= 780 && minutesSinceMidnight <= 1230;
+}
+```
+
+Returnér `marketOpen: isUsMarketLikelyOpen()` fra load-funktionen (tilføj til return-objektet linje 164–178).
+
+**Fil:** `src/routes/dashboard/stocks/+page.svelte`
+
+I UI'et: vis stale-badge **kun** hvis `data.marketOpen === true` OG kursen er stale. Hvis markedet er lukket, vis i stedet en diskret "Markedet lukket"-indikator nær "Sidst opdateret"-teksten.
+
+Eksempel (pseudokode i Svelte):
+
+```svelte
+{#if position.isStale && data.marketOpen}
+	<span class="text-amber-500">⚠️ Forældet kurs</span>
+{/if}
+
+<!-- I header/footer-sektionen: -->
+{#if !data.marketOpen}
+	<span class="text-xs text-slate-400">🔒 US-marked lukket</span>
+{/if}
+```
+
+> **Bemærk:** `amber-*` er omkortet til pink i temaet (se AGENTS.md). Brug `text-yellow-500` eller `text-orange-500` fra standard Tailwind i stedet, eller en CSS custom property.
+
+**Acceptkriterier:**
+
+- [ ] Stale-badge vises **kun** under markedstid (man–fre ca. 15:30–22:00 CEST)
+- [ ] Uden for markedstid vises en diskret "Marked lukket"-tekst i stedet
+- [ ] Stale-logikken i `+page.server.ts` forbliver uændret (den bruges stadig til at bestemme hvornår en kurs er gammel)
+- [ ] `marketOpen`-boolean returneres fra load-funktionen
+- [ ] Ingen hardkodede hex-farver — brug temaklasser
+- [ ] `npm run lint && npm run build` passerer
+- **Prioritet:** 🟢 Lav · **Kompleksitet:** Lav
+
+---
+
+### STOCK-11.5: ALAB benchmark — verificer og ryd op 🟢
+
+**Problem:** Seed-filen (`prisma/seed-stocks.ts`) opretter 3 benchmarks/referencer: `^GSPC`, `QQQ` og `ALAB`. Men kun `^GSPC` og `QQQ` er aktive i produktion. ALAB er enten deaktiveret (`isActive = false`) eller fejlet ved seed.
+
+**Undersøgelse:**
+
+```bash
+docker exec postgresql psql -U wishbuy_db -d wishbuy_db -c "
+SELECT ticker, name, \"isActive\", \"isBenchmark\", \"currentPrice\", \"lastPriceSyncedAt\"
+FROM \"Stock\" WHERE ticker = 'ALAB';
+"
+```
+
+**Beslutning:**
+
+- Hvis ALAB er `isActive = false` og ikke bruges som benchmark → slet den fra databasen og seed-filen (dræber forfængeligt data).
+- Hvis ALAB er `isBenchmark = true` men `isActive = false` → sæt den aktiv og kør sync, eller fjern den helt.
+- Opdatér `prisma/seed-stocks.ts` så den matcher produktionstilstanden.
+
+**Acceptkriterier:**
+
+- [ ] ALAB's tilstand er afklaret og dokumenteret (aktiv/slettet/omsat)
+- [ ] Seed-filen (`prisma/seed-stocks.ts`) matcher produktionens `Stock`-tabel
+- [ ] Ingen "ghost" aktier i databasen der ikke er aktive og ikke bruges
+- [ ] `npm run lint && npm run build` passerer
+- **Prioritet:** 🟢 Lav · **Kompleksitet:** Triviel
 
 ---
 

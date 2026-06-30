@@ -111,18 +111,21 @@ export async function updateDailyCloses(): Promise<SyncResult> {
 				interval: '1d'
 			})) as unknown as YahooChart;
 			const rows = chart.quotes.filter((q) => typeof q.close === 'number');
-			const last = rows.at(-1);
-			if (!last || typeof last.close !== 'number') {
+			if (rows.length === 0) {
 				throw new Error('Ingen slutkurs i svar');
 			}
-			const date = startOfDayUtc(new Date(last.date));
-
-			await prisma.stockPriceDaily.upsert({
-				where: { stockId_date: { stockId: stock.id, date } },
-				update: { closePrice: last.close },
-				create: { stockId: stock.id, date, closePrice: last.close }
-			});
-			result.updated.push(stock.ticker);
+			let saved = 0;
+			for (const row of rows) {
+				if (typeof row.close !== 'number') continue;
+				const date = startOfDayUtc(new Date(row.date));
+				await prisma.stockPriceDaily.upsert({
+					where: { stockId_date: { stockId: stock.id, date } },
+					update: { closePrice: row.close },
+					create: { stockId: stock.id, date, closePrice: row.close }
+				});
+				saved++;
+			}
+			result.updated.push(`${stock.ticker} (${saved} dage)`);
 		} catch (error) {
 			result.failed.push({
 				ticker: stock.ticker,
@@ -132,6 +135,85 @@ export async function updateDailyCloses(): Promise<SyncResult> {
 	}
 
 	return result;
+}
+
+/**
+ * Backfill af historiske daglige slutkurser fra porteføljens tidligste transaktion
+ * til i dag. Kører kun én gang (idempotent via upsert). Henter chart-data med
+ * interval '1d' fra Yahoo Finance for hele perioden.
+ */
+export async function backfillDailyCloses(): Promise<SyncResult> {
+	const stocks = await prisma.stock.findMany({
+		where: { OR: [{ isActive: true }, { isBenchmark: true }] },
+		include: { transactions: { orderBy: { date: 'asc' }, take: 1 } }
+	});
+	const result: SyncResult = { updated: [], failed: [] };
+
+	// Tidligste transaktion bestemmer startdatoen for hele porteføljen
+	const allFirstDates = stocks.flatMap((s) => s.transactions).map((t) => t.date.getTime());
+	if (allFirstDates.length === 0) return result;
+	const period1 = new Date(Math.min(...allFirstDates));
+
+	for (const stock of stocks) {
+		try {
+			const chart = (await yahooFinance.chart(stock.ticker, {
+				period1,
+				interval: '1d'
+			})) as unknown as YahooChart;
+			const rows = chart.quotes.filter((q) => typeof q.close === 'number');
+			let upserted = 0;
+			for (const row of rows) {
+				if (typeof row.close !== 'number') continue;
+				const date = startOfDayUtc(new Date(row.date));
+				await prisma.stockPriceDaily.upsert({
+					where: { stockId_date: { stockId: stock.id, date } },
+					update: { closePrice: row.close },
+					create: { stockId: stock.id, date, closePrice: row.close }
+				});
+				upserted++;
+			}
+			result.updated.push(`${stock.ticker} (${upserted} dage)`);
+		} catch (error) {
+			result.failed.push({
+				ticker: stock.ticker,
+				error: error instanceof Error ? error.message : 'Ukendt fejl'
+			});
+		}
+	}
+
+	return result;
+}
+
+/**
+ * Backfill af USD/DKK valutakurser fra porteføljens tidligste transaktion til i dag.
+ */
+export async function backfillExchangeRates(): Promise<{
+	rates: number;
+	from: string;
+	to: string;
+}> {
+	const firstTx = await prisma.stockTransaction.findFirst({ orderBy: { date: 'asc' } });
+	if (!firstTx) return { rates: 0, from: '', to: '' };
+
+	const from = firstTx.date.toISOString().slice(0, 10);
+	const to = new Date().toISOString().slice(0, 10);
+
+	const res = await fetch(`https://api.frankfurter.app/${from}..${to}?from=USD&to=DKK`);
+	if (!res.ok) throw new Error(`Frankfurter svarede ${res.status}`);
+	const data = (await res.json()) as { rates: Record<string, { DKK: number }> };
+
+	let count = 0;
+	for (const [dateStr, rateObj] of Object.entries(data.rates)) {
+		const date = startOfDayUtc(new Date(dateStr));
+		await prisma.exchangeRateDaily.upsert({
+			where: { base_target_date: { base: 'USD', target: 'DKK', date } },
+			update: { rate: rateObj.DKK },
+			create: { base: 'USD', target: 'DKK', date, rate: rateObj.DKK }
+		});
+		count++;
+	}
+
+	return { rates: count, from, to };
 }
 
 /**

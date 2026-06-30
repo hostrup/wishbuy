@@ -3,7 +3,9 @@ import { env } from '$env/dynamic/private';
 import {
 	updateStockQuotes,
 	updateDailyCloses,
-	updateExchangeRate
+	updateExchangeRate,
+	backfillDailyCloses,
+	backfillExchangeRates
 } from '$lib/server/stocks/fetchPrices';
 import type { RequestHandler } from './$types';
 
@@ -36,6 +38,10 @@ export const POST: RequestHandler = async ({ request, url }) => {
 		}
 		if (mode === 'fx' || mode === 'all') {
 			out.fx = await updateExchangeRate();
+		}
+		if (mode === 'backfill' || mode === 'all-backfill') {
+			out.backfill = await backfillDailyCloses();
+			out.fxBackfill = await backfillExchangeRates();
 		}
 		return json({ ok: true, syncedAt: new Date().toISOString(), ...out });
 	} catch (e) {

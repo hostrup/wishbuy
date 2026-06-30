@@ -238,7 +238,15 @@
 							>{data.fxRate.toFixed(2)}</span
 						>
 					</div>
-					<div>Kurser opdateret: {dateFmt(data.lastSyncedAt)}</div>
+					<div>
+						Kurser opdateret: {dateFmt(data.lastSyncedAt)}
+						{#if !data.marketOpen}
+							<span
+								class="ml-1 text-slate-400 dark:text-slate-500"
+								title="USA's aktiemarked er lukket lige nu">🔒 US-marked lukket</span
+							>
+						{/if}
+					</div>
 				</div>
 			</div>
 		</header>
@@ -364,7 +372,7 @@
 									<td class="px-5 py-4">
 										<div class="flex items-center gap-2">
 											<span class="font-bold text-slate-800 dark:text-white">{p.ticker}</span>
-											{#if p.isStale}
+											{#if p.isStale && data.marketOpen}
 												<span
 													class="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400"
 													title="Kursen er ikke opdateret for nylig">stale</span

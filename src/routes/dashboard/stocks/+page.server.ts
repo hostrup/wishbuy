@@ -19,6 +19,17 @@ function startOfDayUtc(d: Date): Date {
 	return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
+function isUsMarketLikelyOpen(): boolean {
+	const now = new Date();
+	const day = now.getUTCDay(); // 0=søndag, 6=lørdag
+	if (day === 0 || day === 6) return false;
+	const utcHour = now.getUTCHours();
+	const utcMin = now.getUTCMinutes();
+	const minutesSinceMidnight = utcHour * 60 + utcMin;
+	// NYSE åben ca. 13:30–20:00 UTC (9:30–16:00 ET). Lidt slæk: 13:00–20:30.
+	return minutesSinceMidnight >= 780 && minutesSinceMidnight <= 1230;
+}
+
 export const load: PageServerLoad = async () => {
 	const stocks = await prisma.stock.findMany({
 		where: { isActive: true, isBenchmark: false },
@@ -174,7 +185,8 @@ export const load: PageServerLoad = async () => {
 		history,
 		lastSyncedAt: lastSyncedAt ?? null,
 		transactions,
-		stockOptions
+		stockOptions,
+		marketOpen: isUsMarketLikelyOpen()
 	};
 };
 

@@ -102,14 +102,6 @@ const references: Array<{
 		sector: 'Index',
 		theme: 'Benchmark',
 		isBenchmark: true
-	},
-	{
-		ticker: 'ALAB',
-		name: 'Astera Labs',
-		description: 'Connectivity-chips til AI-datacentre. Joker-duel-modstander til PLTR.',
-		sector: 'Semiconductors',
-		theme: 'AI Connectivity',
-		isBenchmark: false
 	}
 ];
 
