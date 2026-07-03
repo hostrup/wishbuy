@@ -81,8 +81,9 @@
 				<div class="hidden items-center gap-1 md:flex">
 					<a
 						href="/dashboard/wishes"
-						class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors {$page
-							.url.pathname === '/dashboard/wishes'
+						class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors {$page.url.pathname.startsWith(
+							'/dashboard/wishes'
+						)
 							? 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
 							: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white'}"
 					>
@@ -90,8 +91,9 @@
 					</a>
 					<a
 						href="/dashboard/finance"
-						class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors {$page
-							.url.pathname === '/dashboard/finance'
+						class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors {$page.url.pathname.startsWith(
+							'/dashboard/finance'
+						)
 							? 'bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400'
 							: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white'}"
 					>
@@ -99,8 +101,9 @@
 					</a>
 					<a
 						href="/dashboard/import"
-						class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors {$page
-							.url.pathname === '/dashboard/import'
+						class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors {$page.url.pathname.startsWith(
+							'/dashboard/import'
+						)
 							? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
 							: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white'}"
 					>
@@ -115,6 +118,16 @@
 							: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white'}"
 					>
 						<span>📅</span> Ugeplan
+					</a>
+					<a
+						href="/dashboard/stocks"
+						class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors {$page.url.pathname.startsWith(
+							'/dashboard/stocks'
+						)
+							? 'bg-violet-500/10 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400'
+							: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white'}"
+					>
+						<span>📈</span> Aktier
 					</a>
 				</div>
 
@@ -159,8 +172,9 @@
 			</a>
 			<a
 				href="/dashboard/wishes"
-				class="flex flex-col items-center gap-0.5 p-2 transition-colors {$page.url.pathname ===
-				'/dashboard/wishes'
+				class="flex flex-col items-center gap-0.5 p-2 transition-colors {$page.url.pathname.startsWith(
+					'/dashboard/wishes'
+				)
 					? 'text-rose-500 dark:text-rose-400'
 					: 'text-slate-500 dark:text-slate-400'}"
 			>
@@ -169,13 +183,25 @@
 			</a>
 			<a
 				href="/dashboard/finance"
-				class="flex flex-col items-center gap-0.5 p-2 transition-colors {$page.url.pathname ===
-				'/dashboard/finance'
+				class="flex flex-col items-center gap-0.5 p-2 transition-colors {$page.url.pathname.startsWith(
+					'/dashboard/finance'
+				)
 					? 'text-indigo-500 dark:text-indigo-400'
 					: 'text-slate-500 dark:text-slate-400'}"
 			>
 				<span class="text-xl">📊</span>
 				<span class="text-[9px] font-bold">Økonomi</span>
+			</a>
+			<a
+				href="/dashboard/import"
+				class="flex flex-col items-center gap-0.5 p-2 transition-colors {$page.url.pathname.startsWith(
+					'/dashboard/import'
+				)
+					? 'text-emerald-500 dark:text-emerald-400'
+					: 'text-slate-500 dark:text-slate-400'}"
+			>
+				<span class="text-xl">🏦</span>
+				<span class="text-[9px] font-bold">Import</span>
 			</a>
 			<a
 				href="/dashboard/weekly"
@@ -189,14 +215,15 @@
 				<span class="text-[9px] font-bold">Ugeplan</span>
 			</a>
 			<a
-				href="/dashboard/import"
-				class="flex flex-col items-center gap-0.5 p-2 transition-colors {$page.url.pathname ===
-				'/dashboard/import'
-					? 'text-emerald-500 dark:text-emerald-400'
+				href="/dashboard/stocks"
+				class="flex flex-col items-center gap-0.5 p-2 transition-colors {$page.url.pathname.startsWith(
+					'/dashboard/stocks'
+				)
+					? 'text-violet-500 dark:text-violet-400'
 					: 'text-slate-500 dark:text-slate-400'}"
 			>
-				<span class="text-xl">🏦</span>
-				<span class="text-[9px] font-bold">Import</span>
+				<span class="text-xl">📈</span>
+				<span class="text-[9px] font-bold">Aktier</span>
 			</a>
 			<button
 				onclick={toggleTheme}
