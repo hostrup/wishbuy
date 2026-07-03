@@ -86,6 +86,14 @@
 	const dateFmt = (d: string | Date | null) =>
 		d ? new Intl.DateTimeFormat('da-DK', { dateStyle: 'medium' }).format(new Date(d)) : '–';
 
+	const dateTimeFmt = (d: string | Date | null) =>
+		d
+			? new Intl.DateTimeFormat('da-DK', {
+					dateStyle: 'medium',
+					timeStyle: 'short'
+				}).format(new Date(d))
+			: '–';
+
 	const gainClass = (v: number) =>
 		v > 0
 			? 'text-emerald-600 dark:text-emerald-400'
@@ -284,7 +292,7 @@
 						</span>
 					</div>
 					<div>
-						Kurser opdateret: {dateFmt(data.lastSyncedAt)}
+						Kurser opdateret: {dateTimeFmt(data.lastSyncedAt)}
 					</div>
 				</div>
 			</div>
