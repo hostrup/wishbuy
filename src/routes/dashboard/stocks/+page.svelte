@@ -10,6 +10,7 @@
 	let showAddTx = $state(false);
 	let showAddStock = $state(false);
 	let showHistory = $state(false);
+	let isSyncing = $state(false);
 
 	const today = new Date().toISOString().slice(0, 10);
 	let txStockId = $state('');
@@ -218,7 +219,29 @@
 				</p>
 			</div>
 			<div class="mt-4 flex flex-col items-end gap-3 md:mt-0">
-				<div class="flex gap-2">
+				<div class="flex flex-wrap items-center justify-end gap-2">
+					<form
+						method="POST"
+						action="?/syncPrices"
+						use:enhance={() => {
+							isSyncing = true;
+							return async ({ update }) => {
+								await update();
+								isSyncing = false;
+							};
+						}}
+						class="inline"
+					>
+						<button
+							type="submit"
+							disabled={isSyncing}
+							class="rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-sm font-bold text-slate-600 shadow-sm backdrop-blur-xl transition-all hover:scale-[1.02] hover:bg-slate-50 active:scale-[0.98] disabled:opacity-50 dark:border-white/10 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-800"
+							title="Hent de nyeste live-kurser fra Yahoo Finance"
+						>
+							<span class="inline-block {isSyncing ? 'animate-spin' : ''}">🔄</span>
+							{isSyncing ? 'Opdaterer...' : 'Opdater priser'}
+						</button>
+					</form>
 					<button
 						onclick={openAddTx}
 						class="rounded-xl bg-indigo-500 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-indigo-600"
@@ -232,20 +255,36 @@
 						Ny aktie
 					</button>
 				</div>
-				<div class="text-right text-xs text-slate-400 dark:text-slate-500">
-					<div>
-						USD/DKK: <span class="font-bold text-slate-600 dark:text-slate-300"
-							>{data.fxRate.toFixed(2)}</span
-						>
+				<div
+					class="flex flex-col items-end gap-1 text-right text-xs text-slate-400 dark:text-slate-500"
+				>
+					<div class="flex flex-wrap items-center justify-end gap-2">
+						{#if data.marketOpen}
+							<span
+								class="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+								title="USA's aktiemarked er åbent lige nu"
+							>
+								<span class="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></span>
+								🟢 US-marked åbent
+							</span>
+						{:else}
+							<span
+								class="inline-flex items-center gap-1 rounded-full bg-slate-500/10 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-500/20 dark:text-slate-400"
+								title="USA's aktiemarked er lukket lige nu"
+							>
+								<span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>
+								🔒 US-marked lukket
+							</span>
+						{/if}
+						<span class="text-slate-300 dark:text-slate-700">|</span>
+						<span>
+							USD/DKK: <span class="font-bold text-slate-600 dark:text-slate-300"
+								>{data.fxRate.toFixed(2)}</span
+							>
+						</span>
 					</div>
 					<div>
 						Kurser opdateret: {dateFmt(data.lastSyncedAt)}
-						{#if !data.marketOpen}
-							<span
-								class="ml-1 text-slate-400 dark:text-slate-500"
-								title="USA's aktiemarked er lukket lige nu">🔒 US-marked lukket</span
-							>
-						{/if}
 					</div>
 				</div>
 			</div>

@@ -8,6 +8,7 @@ import {
 	scenarioBands,
 	type TransactionInput
 } from '$lib/server/stocks/calc';
+import { updateStockQuotes } from '$lib/server/stocks/fetchPrices';
 import type { Actions, PageServerLoad } from './$types';
 
 // Kurser ældre end dette markeres som "stale" i UI'et.
@@ -19,15 +20,28 @@ function startOfDayUtc(d: Date): Date {
 	return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
-function isUsMarketLikelyOpen(): boolean {
-	const now = new Date();
-	const day = now.getUTCDay(); // 0=søndag, 6=lørdag
-	if (day === 0 || day === 6) return false;
-	const utcHour = now.getUTCHours();
-	const utcMin = now.getUTCMinutes();
-	const minutesSinceMidnight = utcHour * 60 + utcMin;
-	// NYSE åben ca. 13:30–20:00 UTC (9:30–16:00 ET). Lidt slæk: 13:00–20:30.
-	return minutesSinceMidnight >= 780 && minutesSinceMidnight <= 1230;
+function isUsMarketOpen(): boolean {
+	try {
+		const now = new Date();
+		const nyString = now.toLocaleString('en-US', { timeZone: 'America/New_York' });
+		const nyDate = new Date(nyString);
+		const day = nyDate.getDay(); // 0 = søndag, 6 = lørdag
+		if (day === 0 || day === 6) return false;
+		const hour = nyDate.getHours();
+		const min = nyDate.getMinutes();
+		const timeInMinutes = hour * 60 + min;
+		// NYSE: 9:30 AM (570 min) - 4:00 PM (960 min)
+		return timeInMinutes >= 570 && timeInMinutes <= 960;
+	} catch {
+		// Fallback til simpelt estimat hvis tidszonen ikke understøttes
+		const now = new Date();
+		const day = now.getUTCDay();
+		if (day === 0 || day === 6) return false;
+		const utcHour = now.getUTCHours();
+		const utcMin = now.getUTCMinutes();
+		const minutesSinceMidnight = utcHour * 60 + utcMin;
+		return minutesSinceMidnight >= 780 && minutesSinceMidnight <= 1230;
+	}
 }
 
 export const load: PageServerLoad = async () => {
@@ -186,7 +200,7 @@ export const load: PageServerLoad = async () => {
 		lastSyncedAt: lastSyncedAt ?? null,
 		transactions,
 		stockOptions,
-		marketOpen: isUsMarketLikelyOpen()
+		marketOpen: isUsMarketOpen()
 	};
 };
 
@@ -276,6 +290,17 @@ function num(v: FormDataEntryValue | null): number {
 }
 
 export const actions: Actions = {
+	syncPrices: async () => {
+		try {
+			await updateStockQuotes();
+			return { success: true };
+		} catch (err) {
+			return fail(500, {
+				error: err instanceof Error ? err.message : 'Kunne ikke opdatere kurser'
+			});
+		}
+	},
+
 	addTransaction: async ({ request }) => {
 		const data = await request.formData();
 		const stockId = data.get('stockId')?.toString();
