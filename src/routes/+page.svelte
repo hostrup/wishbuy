@@ -137,7 +137,7 @@
 
 			<a
 				href="/dashboard/weekly"
-				class="group relative flex flex-col items-center gap-3 overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-8 shadow-sm backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] hover:border-amber-500/50 dark:border-white/10 dark:bg-slate-800/80"
+				class="group relative flex flex-col items-center gap-3 overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-8 shadow-sm backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] hover:border-rose-500/50 dark:border-white/10 dark:bg-slate-800/80"
 			>
 				<span class="relative text-5xl">📅</span>
 				<h2 class="relative text-xl font-bold text-slate-800 dark:text-white">Ugeplan</h2>
@@ -195,7 +195,7 @@
 			<button
 				onclick={() => (showProfileModal = false)}
 				class="absolute top-4 right-4 text-xl font-bold text-slate-400 hover:text-slate-600 dark:text-slate-300"
-				>✕</button
+				aria-label="Luk profilredigering">✕</button
 			>
 			<h3 class="mb-6 text-xl font-bold text-slate-800 dark:text-white">Rediger Din Profil</h3>
 
@@ -213,9 +213,9 @@
 				<input type="hidden" name="emoji" value={profileEmoji} />
 
 				<div>
-					<label
+					<span
 						class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
-						>Din Personlige Emoji</label
+						>Din Personlige Emoji</span
 					>
 					<div
 						class="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-slate-900/50"

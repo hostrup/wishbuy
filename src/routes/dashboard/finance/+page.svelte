@@ -38,7 +38,9 @@
 		},
 		series: data.charts.donut.series,
 		labels: data.charts.donut.labels,
-		colors: data.charts.donut.colors,
+		colors: data.charts.donut.colors.map((c: string) =>
+			c.startsWith('var(') ? getThemeColor(c.slice(4, -1), '#94a3b8') : c
+		),
 		plotOptions: {
 			pie: {
 				donut: {
@@ -240,8 +242,13 @@
 		return result;
 	});
 
-	let fromDate = $state(data.currentFilter.from);
-	let toDate = $state(data.currentFilter.to);
+	let fromDate = $state('');
+	let toDate = $state('');
+
+	$effect(() => {
+		fromDate = data.currentFilter.from;
+		toDate = data.currentFilter.to;
+	});
 
 	let selectedTransactions = $state<string[]>([]);
 	let groupName = $state('');
@@ -565,15 +572,15 @@
 			</div>
 
 			<div
-				class="group relative flex flex-col justify-center overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-6 shadow-sm backdrop-blur-xl transition-colors hover:border-amber-500/50 dark:border-white/10 dark:bg-slate-800/80"
+				class="group relative flex flex-col justify-center overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-6 shadow-sm backdrop-blur-xl transition-colors hover:border-indigo-500/50 dark:border-white/10 dark:bg-slate-800/80"
 			>
 				<div
-					class="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-amber-500/10 blur-2xl transition-colors group-hover:bg-amber-500/20"
+					class="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-indigo-500/10 blur-2xl transition-colors group-hover:bg-indigo-500/20"
 				></div>
 				<p
-					class="mb-2 flex items-center gap-2 text-[10px] font-bold tracking-widest text-amber-500 uppercase dark:text-amber-400"
+					class="mb-2 flex items-center gap-2 text-[10px] font-bold tracking-widest text-indigo-500 uppercase dark:text-indigo-400"
 				>
-					<span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Top Kategori
+					<span class="h-1.5 w-1.5 rounded-full bg-indigo-500"></span> Top Kategori
 				</p>
 				<p class="truncate text-xl font-black text-slate-800 md:text-2xl dark:text-white">
 					{data.kpis.topCategoryName}
@@ -781,8 +788,9 @@
 						</h3>
 						<div class="space-y-4">
 							{#each data.top3Categories as cat}
-								<div
-									class="group flex cursor-pointer items-center justify-between"
+								<button
+									type="button"
+									class="group flex w-full cursor-pointer items-center justify-between border-0 bg-transparent p-0 text-left outline-none"
 									onclick={() =>
 										(selectedCategory = selectedCategory === cat.name ? null : cat.name)}
 								>
@@ -807,7 +815,7 @@
 											{formatCur(cat.amount)}
 										</p>
 									</div>
-								</div>
+								</button>
 							{/each}
 						</div>
 					</div>
@@ -1005,29 +1013,41 @@
 									class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
 								/>
 							</th>
-							<th
-								class="cursor-pointer px-4 py-4 transition-colors hover:text-indigo-500"
-								onclick={() => toggleSort('date')}
-							>
-								Dato {sortColumn === 'date' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+							<th class="px-4 py-4">
+								<button
+									type="button"
+									class="flex w-full cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left text-xs font-black tracking-widest text-slate-400 uppercase outline-none hover:text-indigo-500 dark:text-slate-500"
+									onclick={() => toggleSort('date')}
+								>
+									Dato {sortColumn === 'date' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+								</button>
 							</th>
-							<th
-								class="cursor-pointer px-4 py-4 transition-colors hover:text-indigo-500"
-								onclick={() => toggleSort('text')}
-							>
-								Tekst {sortColumn === 'text' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+							<th class="px-4 py-4">
+								<button
+									type="button"
+									class="flex w-full cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left text-xs font-black tracking-widest text-slate-400 uppercase outline-none hover:text-indigo-500 dark:text-slate-500"
+									onclick={() => toggleSort('text')}
+								>
+									Tekst {sortColumn === 'text' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+								</button>
 							</th>
-							<th
-								class="cursor-pointer px-4 py-4 transition-colors hover:text-indigo-500"
-								onclick={() => toggleSort('category')}
-							>
-								Kategori {sortColumn === 'category' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+							<th class="px-4 py-4">
+								<button
+									type="button"
+									class="flex w-full cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-left text-xs font-black tracking-widest text-slate-400 uppercase outline-none hover:text-indigo-500 dark:text-slate-500"
+									onclick={() => toggleSort('category')}
+								>
+									Kategori {sortColumn === 'category' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+								</button>
 							</th>
-							<th
-								class="cursor-pointer px-4 py-4 text-right transition-colors hover:text-indigo-500"
-								onclick={() => toggleSort('amount')}
-							>
-								Beløb {sortColumn === 'amount' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+							<th class="px-4 py-4">
+								<button
+									type="button"
+									class="flex w-full cursor-pointer items-center justify-end gap-1 border-0 bg-transparent p-0 text-right text-xs font-black tracking-widest text-slate-400 uppercase outline-none hover:text-indigo-500 dark:text-slate-500"
+									onclick={() => toggleSort('amount')}
+								>
+									Beløb {sortColumn === 'amount' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+								</button>
 							</th>
 							<th class="px-4 py-4 text-right">Handlinger</th>
 						</tr>
@@ -1055,13 +1075,14 @@
 								<td class="max-w-[250px] px-4 py-3 font-bold text-slate-800 dark:text-slate-200">
 									<div class="flex flex-col items-start gap-1">
 										<div class="flex w-full items-center gap-2">
-											<span
-												class="flex-1 cursor-pointer truncate transition-colors hover:text-indigo-500"
+											<button
+												type="button"
+												class="flex-1 cursor-pointer truncate border-0 bg-transparent p-0 text-left font-bold text-slate-800 transition-colors outline-none hover:text-indigo-500 dark:text-slate-200"
 												onclick={() => toggleTxText(tx.id)}
 												title="Klik for detaljer"
 											>
 												{tx.text}
-											</span>
+											</button>
 											{#if tx.paidBy}
 												<span
 													class="shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-black tracking-wider uppercase {tx.paidBy ===
@@ -1441,18 +1462,24 @@
 							<input type="hidden" name="id" value={editingCategory.id} />
 						{/if}
 						<div class="w-20">
-							<label class="mb-1 block text-xs font-bold text-slate-500">Emoji</label>
+							<label for="category-icon" class="mb-1 block text-xs font-bold text-slate-500"
+								>Emoji</label
+							>
 							<input
 								type="text"
+								id="category-icon"
 								name="icon"
 								value={editingCategory?.icon || '📦'}
 								class="w-full rounded-xl border border-slate-200 bg-white px-2 py-2 text-center text-xl outline-none focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-900"
 							/>
 						</div>
 						<div class="min-w-[200px] flex-1">
-							<label class="mb-1 block text-xs font-bold text-slate-500">Kategori Navn</label>
+							<label for="category-name" class="mb-1 block text-xs font-bold text-slate-500"
+								>Kategori Navn</label
+							>
 							<input
 								type="text"
+								id="category-name"
 								name="name"
 								value={editingCategory?.name || ''}
 								required

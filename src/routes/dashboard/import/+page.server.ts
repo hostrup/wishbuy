@@ -332,62 +332,69 @@ Returnér et JSON-array med præcis følgende format for hver transaktion:
 		let inserted = 0;
 		let updated = 0;
 
-		// Insert new rows
-		if (newRows.length > 0) {
-			await prisma.transaction.createMany({
-				data: newRows.map((r) => ({
-					hash: r.hash,
-					date: new Date(r.date),
-					text: r.text,
-					amount: r.amount,
-					status: r.status as 'UNPROCESSED' | 'AUTO_MAPPED' | 'MANUAL_REVIEW' | 'PROCESSED',
-					accountId,
-					categoryId: r.categoryId,
-					senderAccount: r.senderAccount,
-					receiverAccount: r.receiverAccount,
-					receiverName: r.receiverName,
-					transferType: r.transferType,
-					supplementalText: r.supplementalText,
-					balance: r.balance ? parseFloat(r.balance) : null,
-					paidBy: r.paidBy
-				})),
-				skipDuplicates: true
-			});
-			inserted = newRows.length;
-
-			// Auto-oprettelse af MappingRules ved godkendelse
-			for (const r of newRows) {
-				if (r.aiKeyword && r.categoryId) {
-					await prisma.mappingRule.upsert({
-						where: { keyword: r.aiKeyword.toLowerCase() },
-						update: { categoryId: r.categoryId },
-						create: { keyword: r.aiKeyword.toLowerCase(), categoryId: r.categoryId }
-					});
-				}
-			}
-		}
-
-		// Update existing rows with enriched data
-		if (existingRows.length > 0) {
-			for (const r of existingRows) {
-				if (r.receiverName || r.supplementalText || r.paidBy) {
-					await prisma.transaction.updateMany({
-						where: { hash: r.hash },
-						data: {
-							receiverName: r.receiverName,
-							supplementalText: r.supplementalText,
-							paidBy: r.paidBy,
+		try {
+			await prisma.$transaction(async (tx) => {
+				// Insert new rows
+				if (newRows.length > 0) {
+					await tx.transaction.createMany({
+						data: newRows.map((r) => ({
+							hash: r.hash,
+							date: new Date(r.date),
+							text: r.text,
+							amount: r.amount,
+							status: r.status as 'UNPROCESSED' | 'AUTO_MAPPED' | 'MANUAL_REVIEW' | 'PROCESSED',
+							accountId,
+							categoryId: r.categoryId,
 							senderAccount: r.senderAccount,
 							receiverAccount: r.receiverAccount,
+							receiverName: r.receiverName,
 							transferType: r.transferType,
-							balance: r.balance ? parseFloat(r.balance) : null
-						}
+							supplementalText: r.supplementalText,
+							balance: r.balance ? parseFloat(r.balance) : null,
+							paidBy: r.paidBy
+						})),
+						skipDuplicates: true
 					});
-					updated++;
-				}
-			}
-		}
+					inserted = newRows.length;
 
-		return { success: true, inserted, updated };
+					// Auto-oprettelse af MappingRules ved godkendelse
+					for (const r of newRows) {
+						if (r.aiKeyword && r.categoryId) {
+							await tx.mappingRule.upsert({
+								where: { keyword: r.aiKeyword.toLowerCase() },
+								update: { categoryId: r.categoryId },
+								create: { keyword: r.aiKeyword.toLowerCase(), categoryId: r.categoryId }
+							});
+						}
+					}
+				}
+
+				// Update existing rows with enriched data
+				if (existingRows.length > 0) {
+					for (const r of existingRows) {
+						if (r.receiverName || r.supplementalText || r.paidBy) {
+							await tx.transaction.updateMany({
+								where: { hash: r.hash },
+								data: {
+									receiverName: r.receiverName,
+									supplementalText: r.supplementalText,
+									paidBy: r.paidBy,
+									senderAccount: r.senderAccount,
+									receiverAccount: r.receiverAccount,
+									transferType: r.transferType,
+									balance: r.balance ? parseFloat(r.balance) : null
+								}
+							});
+							updated++;
+						}
+					}
+				}
+			});
+
+			return { success: true, inserted, updated };
+		} catch (err) {
+			console.error('Fejl under gemning af CSV-data:', err);
+			return fail(500, { error: 'Der opstod en databasefejl under gemning af transaktioner.' });
+		}
 	}
 };

@@ -26,7 +26,17 @@ function getDinnerTimeUTC(planDate: Date): Date {
 	return hour17 === 18 ? candidate17 : candidate16;
 }
 
-export const GET: RequestHandler = async () => {
+import { env } from '$env/dynamic/private';
+
+export const GET: RequestHandler = async (event) => {
+	const expectedToken = env.CALENDAR_TOKEN;
+	if (expectedToken) {
+		const token = event.url.searchParams.get('token');
+		if (token !== expectedToken) {
+			return new Response('Unauthorized', { status: 401 });
+		}
+	}
+
 	const today = new Date();
 	today.setUTCHours(0, 0, 0, 0);
 

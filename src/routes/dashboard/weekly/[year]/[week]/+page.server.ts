@@ -1,6 +1,6 @@
 import { prisma } from '$lib/server/prisma';
 import type { PageServerLoad, Actions } from './$types';
-import { error } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const year = parseInt(params.year, 10);
@@ -121,7 +121,8 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-	updateRecipe: async ({ request }) => {
+	updateRecipe: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Ikke autoriseret' });
 		const data = await request.formData();
 		const dayPlanId = data.get('dayPlanId') as string;
 		const recipeName = data.get('recipeName') as string;
@@ -160,7 +161,8 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	togglePerson: async ({ request }) => {
+	togglePerson: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Ikke autoriseret' });
 		const data = await request.formData();
 		const dayPlanId = data.get('dayPlanId') as string;
 		const personId = data.get('personId') as string;
@@ -185,7 +187,8 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	updateNote: async ({ request }) => {
+	updateNote: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Ikke autoriseret' });
 		const data = await request.formData();
 		const dayPlanId = data.get('dayPlanId') as string;
 		const note = data.get('note') as string;
@@ -198,7 +201,8 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	updateWeekNote: async ({ request }) => {
+	updateWeekNote: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Ikke autoriseret' });
 		const data = await request.formData();
 		const weekPlanId = data.get('weekPlanId') as string;
 		const note = data.get('note') as string;
@@ -213,7 +217,8 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	updateGuests: async ({ request }) => {
+	updateGuests: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Ikke autoriseret' });
 		const data = await request.formData();
 		const dayPlanId = data.get('dayPlanId') as string;
 		const guests_note = data.get('guests_note') as string;

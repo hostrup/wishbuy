@@ -174,9 +174,9 @@
 					<input type="hidden" name="icon" value={editCatIcon} />
 
 					<div>
-						<label
+						<span
 							class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
-							>Vælg Kategori Ikon</label
+							>Vælg Kategori Ikon</span
 						>
 						<div
 							class="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-slate-900/50"
@@ -243,9 +243,9 @@
 					<input type="hidden" name="icon" value={editCatIcon} />
 
 					<div>
-						<label
+						<span
 							class="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
-							>Vælg Kategori Ikon</label
+							>Vælg Kategori Ikon</span
 						>
 						<div
 							class="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-slate-900/50"
@@ -623,9 +623,9 @@
 							class="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-slate-900/50"
 						>
 							<input type="hidden" name="desireLevel" value={newDesireLevel} />
-							<label
+							<span
 								class="mb-2 block text-center text-[11px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
-								>Behovsgrad</label
+								>Behovsgrad</span
 							>
 							<div class="flex justify-center gap-2">
 								{#each [1, 2, 3, 4, 5] as level}

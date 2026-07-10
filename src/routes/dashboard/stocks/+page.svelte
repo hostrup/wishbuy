@@ -184,7 +184,7 @@
 		PRESSURE: {
 			icon: '⚠️',
 			label: 'Under pres',
-			cls: 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+			cls: 'bg-orange-500/10 text-orange-700 dark:text-orange-400'
 		},
 		UNKNOWN: {
 			icon: '⏳',
@@ -368,7 +368,7 @@
 					Hvor står vi mod scenarierne (dec. 2026)?
 				</h3>
 				<div
-					class="relative mt-10 mb-8 h-3 rounded-full bg-gradient-to-r from-rose-400 via-amber-400 to-emerald-500"
+					class="relative mt-10 mb-8 h-3 rounded-full bg-gradient-to-r from-rose-400 via-yellow-400 to-emerald-500"
 				>
 					{#each data.scenarioBands as band}
 						<div class="absolute top-0 -translate-x-1/2" style="left: {posPct(band.valueDkk)}%">
@@ -421,7 +421,7 @@
 											<span class="font-bold text-slate-800 dark:text-white">{p.ticker}</span>
 											{#if p.isStale && data.marketOpen}
 												<span
-													class="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400"
+													class="rounded bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-bold text-orange-600 dark:text-orange-400"
 													title="Kursen er ikke opdateret for nylig">stale</span
 												>
 											{/if}
@@ -480,7 +480,7 @@
 							data.concentration.largestWeight
 						)}) · koncentration (HHI): {data.concentration.hhi.toFixed(2)}
 						{#if data.concentration.hhi > 0.4 || data.concentration.largestWeight > 0.35}
-							<span class="font-bold text-amber-600 dark:text-amber-400">
+							<span class="font-bold text-orange-600 dark:text-orange-400">
 								⚠️ høj koncentration</span
 							>
 						{/if}

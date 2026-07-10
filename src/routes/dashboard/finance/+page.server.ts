@@ -202,18 +202,18 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 	const timeSeries: Record<string, number> = {};
 
 	const fallbackColors = [
-		'#6366f1',
-		'#ec4899',
-		'#14b8a6',
-		'#f59e0b',
-		'#8b5cf6',
-		'#ef4444',
-		'#10b981',
-		'#3b82f6',
-		'#f43f5e',
-		'#84cc16',
-		'#06b6d4',
-		'#d946ef'
+		'var(--color-indigo-500)',
+		'var(--color-rose-500)',
+		'var(--color-emerald-500)',
+		'var(--color-violet-500)',
+		'var(--color-slate-400)',
+		'var(--color-slate-600)',
+		'var(--color-indigo-400)',
+		'var(--color-rose-400)',
+		'var(--color-emerald-400)',
+		'var(--color-violet-400)',
+		'var(--color-slate-500)',
+		'var(--color-indigo-300)'
 	];
 	let colorIndex = 0;
 
@@ -724,7 +724,8 @@ ${promptData}`;
 	},
 
 	bulkGroupToWish: async ({ request, locals }) => {
-		if (!locals.user) return fail(401, { error: 'Unauthorized' });
+		const user = locals.user;
+		if (!user) return fail(401, { error: 'Unauthorized' });
 		const data = await request.formData();
 		const transactionIdsStr = data.get('transactionIds')?.toString();
 		const groupName = data.get('groupName')?.toString();
@@ -756,24 +757,26 @@ ${promptData}`;
 				if (anyCategory) itemCategoryId = anyCategory.id;
 			}
 
-			const newItem = await prisma.item.create({
-				data: {
-					userId: locals.user.id,
-					title: groupName,
-					price: sum,
-					categoryId: itemCategoryId,
-					expenseType: 'PERSONAL',
-					status: 'PURCHASED',
-					purchasedAt: new Date()
-				}
-			});
+			await prisma.$transaction(async (tx) => {
+				const newItem = await tx.item.create({
+					data: {
+						userId: user.id,
+						title: groupName,
+						price: sum,
+						categoryId: itemCategoryId,
+						expenseType: 'PERSONAL',
+						status: 'PURCHASED',
+						purchasedAt: new Date()
+					}
+				});
 
-			await prisma.transaction.updateMany({
-				where: { id: { in: transactionIds } },
-				data: {
-					itemId: newItem.id,
-					status: 'PROCESSED'
-				}
+				await tx.transaction.updateMany({
+					where: { id: { in: transactionIds } },
+					data: {
+						itemId: newItem.id,
+						status: 'PROCESSED'
+					}
+				});
 			});
 
 			return { success: true };
@@ -864,19 +867,19 @@ ${promptData}`;
 		if (!id) return fail(400, { error: 'Manglende data' });
 
 		try {
-			// Først sæt relaterede transaktioner til UNPROCESSED (Prisma kan ikke cascade set null her uden konfiguration)
-			await prisma.transaction.updateMany({
-				where: { categoryId: id },
-				data: { categoryId: null, status: 'UNPROCESSED' }
-			});
-
-			await prisma.mappingRule.deleteMany({
-				where: { categoryId: id }
-			});
-
-			await prisma.transactionCategory.delete({
-				where: { id }
-			});
+			// Kør atomar transaktion for at forhindre delvise sletninger ved fejl
+			await prisma.$transaction([
+				prisma.transaction.updateMany({
+					where: { categoryId: id },
+					data: { categoryId: null, status: 'UNPROCESSED' }
+				}),
+				prisma.mappingRule.deleteMany({
+					where: { categoryId: id }
+				}),
+				prisma.transactionCategory.delete({
+					where: { id }
+				})
+			]);
 			return { success: true };
 		} catch {
 			return fail(500, { error: 'Kunne ikke slette kategori' });

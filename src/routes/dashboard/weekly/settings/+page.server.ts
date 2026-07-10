@@ -32,7 +32,8 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	addPerson: async ({ request }) => {
+	addPerson: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Not authenticated' });
 		const data = await request.formData();
 		const name = data.get('name') as string;
 		const emoji = data.get('emoji') as string;
@@ -51,7 +52,8 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	updatePerson: async ({ request }) => {
+	updatePerson: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Not authenticated' });
 		const data = await request.formData();
 		const id = data.get('id') as string;
 		const name = data.get('name') as string;
@@ -72,7 +74,8 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	deletePerson: async ({ request }) => {
+	deletePerson: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Not authenticated' });
 		const data = await request.formData();
 		const id = data.get('id') as string;
 

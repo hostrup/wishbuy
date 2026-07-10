@@ -10,7 +10,13 @@
 	let isSaving = $state(false);
 
 	// Form state
-	let selectedAccountId = $state(data.accounts?.[0]?.id || '');
+	let selectedAccountId = $state('');
+
+	$effect(() => {
+		if (data.accounts?.length) {
+			selectedAccountId = data.accounts[0].id;
+		}
+	});
 
 	// Preview data (from analyze action)
 	let previewRows = $state<
@@ -45,7 +51,12 @@
 	let aiSuggestionCount = $state(0);
 
 	// Category name → ID map from server
-	let categoryMap = $state<Record<string, string>>(data.categoryMap || {});
+	// eslint-disable-next-line svelte/prefer-writable-derived
+	let categoryMap = $state<Record<string, string>>({});
+
+	$effect(() => {
+		categoryMap = data.categoryMap || {};
+	});
 
 	// Editable categories (map of hash -> { categoryName, categoryId })
 	let editedCategories = $state<Record<string, { name: string; id: string | null }>>({});
@@ -143,10 +154,13 @@
 				>
 					<!-- Account selector -->
 					<div>
-						<label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200"
+						<label
+							for="account-select"
+							class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200"
 							>Vælg konto</label
 						>
 						<select
+							id="account-select"
 							name="accountId"
 							bind:value={selectedAccountId}
 							class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
@@ -161,7 +175,9 @@
 
 					<!-- File upload -->
 					<div>
-						<label class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200"
+						<label
+							for="csv-file-input"
+							class="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200"
 							>Vælg CSV fil</label
 						>
 						<div
@@ -169,6 +185,7 @@
 						>
 							<input
 								type="file"
+								id="csv-file-input"
 								name="csv"
 								accept=".csv"
 								required
@@ -438,6 +455,7 @@
 												>
 											{/if}
 											<select
+												aria-label="Vælg kategori"
 												value={editedCategories[row.hash]?.name || 'Ukendt'}
 												onchange={(e) =>
 													onCategoryChange(row.hash, (e.target as HTMLSelectElement).value)}

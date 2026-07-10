@@ -114,7 +114,7 @@
 						class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors {$page.url.pathname.startsWith(
 							'/dashboard/weekly'
 						)
-							? 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400'
+							? 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
 							: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white'}"
 					>
 						<span>📅</span> Ugeplan

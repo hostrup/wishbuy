@@ -72,7 +72,7 @@
 			? 'text-slate-400 dark:text-slate-600'
 			: presentCount === allPersons.length
 				? 'text-emerald-500 dark:text-emerald-400'
-				: 'text-amber-500'
+				: 'text-indigo-500'
 	);
 	let hasRecipe = $derived(!!dayPlan.recipe?.name);
 </script>
@@ -191,6 +191,7 @@
 				<input
 					type="text"
 					id="recipe-input-{dayPlan.id}"
+					aria-label="Aftensmad opskrift"
 					name="recipeName"
 					value={dayPlan.recipe?.name || ''}
 					placeholder="Hvar spiser vi?"
@@ -198,7 +199,7 @@
 					{showRecipeSuccess
 						? 'border border-emerald-500/40 bg-emerald-500/[0.03] shadow-[0_0_20px_rgba(16,185,129,0.12)]'
 						: isSavingRecipe
-							? 'border border-amber-500/30 bg-amber-500/[0.02]'
+							? 'border border-indigo-500/30 bg-indigo-500/[0.02]'
 							: isFocusedRecipe
 								? 'border border-indigo-500/35 bg-white/10 shadow-[0_0_20px_rgba(108,92,231,0.08)] dark:bg-slate-700/30'
 								: 'border border-slate-200/50 bg-slate-50/50 hover:border-slate-300 dark:border-white/5 dark:bg-white/[0.02] dark:hover:border-white/10 dark:hover:bg-white/[0.04]'}"
@@ -217,7 +218,7 @@
 				/>
 				<div class="pointer-events-none absolute right-4">
 					{#if isSavingRecipe}
-						<Loader2 size={14} class="animate-spin text-amber-500" />
+						<Loader2 size={14} class="animate-spin text-indigo-500" />
 					{:else if showRecipeSuccess}
 						<CheckCircle2 size={14} class="text-emerald-500" />
 					{/if}
@@ -310,6 +311,7 @@
 				<input
 					type="text"
 					name="note"
+					aria-label="Dagens note"
 					value={dayPlan.note || ''}
 					placeholder="Dagens note..."
 					class="w-full rounded-xl py-2.5 pr-10 pl-10 text-[12px] font-medium transition-all duration-300 outline-none placeholder:text-slate-400/40
@@ -332,7 +334,7 @@
 				/>
 				<div class="pointer-events-none absolute right-3">
 					{#if isSavingNote}
-						<Loader2 size={12} class="animate-spin text-amber-500" />
+						<Loader2 size={12} class="animate-spin text-indigo-500" />
 					{:else if showNoteSuccess}
 						<CheckCircle2 size={12} class="text-emerald-500" />
 					{/if}
@@ -362,6 +364,9 @@
 					<input type="hidden" name="isPresent" value={isPresent.toString()} />
 					<button
 						type="submit"
+						aria-label="Skift tilstedeværelse for {person.name} (nuværende status: {isPresent
+							? 'til stede'
+							: 'ikke til stede'})"
 						class="relative flex h-11 w-11 items-center justify-center rounded-full text-[20px] transition-all duration-300 active:scale-90"
 					>
 						<!-- Animated ring for present state -->
@@ -436,6 +441,7 @@
 							<input
 								type="text"
 								name="guests_note"
+								aria-label="Gæster note"
 								value={dayPlan.guests_note || ''}
 								placeholder="Hvem spiser med? (fx 'Bedstefar')"
 								class="flex-1 rounded-2xl border border-indigo-500/20 bg-slate-50 px-4 py-2.5 text-xs text-slate-800 transition-all outline-none placeholder:text-slate-400/30 hover:border-indigo-500/35 focus:border-indigo-500/35 focus:ring-2 focus:ring-indigo-500/20 dark:bg-white/[0.01] dark:text-slate-100"

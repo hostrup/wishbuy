@@ -290,7 +290,8 @@ function num(v: FormDataEntryValue | null): number {
 }
 
 export const actions: Actions = {
-	syncPrices: async () => {
+	syncPrices: async ({ locals }) => {
+		if (!locals.user) return fail(401, { error: 'Not authenticated' });
 		try {
 			await updateStockQuotes();
 			return { success: true };
@@ -301,7 +302,8 @@ export const actions: Actions = {
 		}
 	},
 
-	addTransaction: async ({ request }) => {
+	addTransaction: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Not authenticated' });
 		const data = await request.formData();
 		const stockId = data.get('stockId')?.toString();
 		const type = data.get('type')?.toString();
@@ -378,7 +380,8 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
-	addStock: async ({ request }) => {
+	addStock: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Not authenticated' });
 		const data = await request.formData();
 		const ticker = data.get('ticker')?.toString().trim().toUpperCase();
 		const name = data.get('name')?.toString().trim();
@@ -409,7 +412,8 @@ export const actions: Actions = {
 		return { success: true, createdTicker: ticker };
 	},
 
-	deleteTransaction: async ({ request }) => {
+	deleteTransaction: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Not authenticated' });
 		const data = await request.formData();
 		const id = data.get('id')?.toString();
 		if (!id) return fail(400, { error: 'Mangler transaktions-id.' });

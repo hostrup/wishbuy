@@ -29,12 +29,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 		});
 		event.locals.user = user;
 	} else {
-		const fallbackUser = await prisma.user.upsert({
-			where: { username: 'ronni_dev' },
-			update: {},
-			create: { username: 'ronni_dev' }
-		});
-		event.locals.user = fallbackUser;
+		if (process.env.NODE_ENV === 'development' || env.DEV_MODE === 'true') {
+			const fallbackUser = await prisma.user.upsert({
+				where: { username: 'ronni_dev' },
+				update: {},
+				create: { username: 'ronni_dev' }
+			});
+			event.locals.user = fallbackUser;
+		} else {
+			return new Response('Unauthorized - Missing Auth Header', { status: 401 });
+		}
 	}
 
 	return resolve(event);

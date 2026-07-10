@@ -254,7 +254,7 @@ export const actions: Actions = {
 		const itemId = data.get('itemId')?.toString();
 		const value = parseInt(data.get('value')?.toString() || '0');
 
-		if (!itemId || !value) return fail(400);
+		if (!itemId || (value !== 1 && value !== -1)) return fail(400);
 
 		try {
 			await prisma.rating.upsert({
