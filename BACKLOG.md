@@ -1,5 +1,40 @@
-# 📋 Backlog — Hostrup Hub
+# 📋 Backlog — Hostrup Hub (review 2026-07-10)
+Baseline: lint 0 fejl · svelte-check 0 fejl (16 advarsler) · tests 12/12 grønne
 
+## Åben
+- [ ] **B1** [Blocker] `src/hooks.server.ts:31-38` — Omgåelse af autentificering i prod (Remote-User fallback). Bevis: `const fallbackUser = await prisma.user.upsert({ where: { username: 'ronni_dev' } ... })`. Fix: tjek `process.env.NODE_ENV === 'development'` før fallback.
+- [ ] **B2** [Blocker] `src/routes/dashboard/weekly/[year]/[week]/+page.server.ts:123-129` — Broken Access Control i ugeplans-actions (updateRecipe, togglePerson osv.). Bevis: actions kører uden at tjekke `locals.user`. Fix: tilføj check på `locals.user` i alle actions.
+- [ ] **B3** [Blocker] `src/routes/dashboard/weekly/settings/+page.server.ts:35-41` — Broken Access Control på addPerson, updatePerson og deletePerson. Bevis: actions kører uden at tjekke `locals.user`. Fix: tilføj check på `locals.user` i alle actions.
+- [ ] **B4** [Blocker] `src/routes/dashboard/stocks/+page.server.ts:292-304` — Broken Access Control på alle aktieportefølje-handlinger. Bevis: actions kører uden at tjekke `locals.user`. Fix: tilføj check på `locals.user` i alle actions.
+- [ ] **C1** [Concern] `src/routes/dashboard/finance/+page.svelte:243` — Svelte 5 state reference bug (fromDate/toDate fryser initial data). Bevis: `let fromDate = $state(data.currentFilter.from);`. Fix: synkroniser via `$effect` reagerende på `data`.
+- [ ] **C2** [Concern] `src/routes/dashboard/import/+page.svelte:13` — Svelte 5 state reference bug (selectedAccountId fryser initial data). Bevis: `let selectedAccountId = $state(data.accounts?.[0]?.id || '');`. Fix: synkroniser via `$effect` reagerende på `data.accounts`.
+- [ ] **C3** [Concern] `src/routes/dashboard/import/+page.svelte:48` — Svelte 5 state reference bug (categoryMap fryser initial data). Bevis: `let categoryMap = $state<Record<string, string>>(data.categoryMap || {});`. Fix: synkroniser via `$effect` reagerende på `data.categoryMap`.
+- [ ] **C4** [Concern] `src/routes/dashboard/finance/+page.server.ts:859-880` — Manglende transaktionssikkerhed ved sletning af kategori. Bevis: tre DB-kald kører sekventielt uden transaktion. Fix: wrap i `prisma.$transaction`.
+- [ ] **C5** [Concern] `src/routes/dashboard/finance/+page.server.ts:759-777` — Manglende transaktionssikkerhed i bulkGroupToWish. Bevis: item.create og updateMany kører separat. Fix: wrap i `prisma.$transaction`.
+- [ ] **C6** [Concern] `src/routes/dashboard/import/+page.server.ts:337-367` — Manglende transaktionssikkerhed ved CSV-gemning. Bevis: transaction.createMany og mappingRule loop kører separat. Fix: wrap i `prisma.$transaction`.
+- [ ] **C7** [Concern] `src/routes/dashboard/import/+page.server.ts:292-337` — Manglende try/catch omkring database-skrivninger i save-action. Bevis: createMany kan crashe med 500 uden catch. Fix: wrap i try/catch og returner `fail(500, ...)`.
+- [ ] **C8** [Concern] `src/routes/dashboard/finance/+page.server.ts:205` — Serveren returnerer rå hex-farver (omgår `@theme`). Bevis: `const fallbackColors = [ '#6366f1', ... ]`. Fix: brug CSS-variabler (fx `--color-indigo-500`).
+- [ ] **C9** [Concern] `src/routes/+layout.svelte:117` — Amber-klasser brugt til ugeplan (bryder @theme-regler). Bevis: `text-amber-600` til ugeplan. Fix: skift til `rose` eller custom CSS property.
+- [ ] **C10** [Concern] `src/routes/+page.svelte:140` — Amber-klasser på landing-page (hover ugeplan). Bevis: `hover:border-amber-500/50`. Fix: erstat med `hover:border-rose-500/50`.
+- [ ] **C11** [Concern] `src/routes/dashboard/weekly/[year]/[week]/+page.svelte:67` — Amber-gradient på ugeplanoverskrift. Bevis: `from-amber-600 to-amber-400`. Fix: erstat med `from-rose-600 to-rose-400`.
+- [ ] **C12** [Concern] `src/routes/dashboard/stocks/+page.svelte:424` — Amber-klasser på stale-badge i aktier. Bevis: `text-amber-600`. Fix: skift til systemfarve eller standard gul/orange.
+- [ ] **C13** [Concern] `src/routes/dashboard/finance/+page.svelte:568` — Amber-klasser på top-kategori KPI. Bevis: `bg-amber-500/10`. Fix: skift til indigo eller rose.
+- [ ] **S1** [Suggestion] `src/routes/api/calendar/feed.ics/+server.ts:29-35` — Kalender-feed mangler query token validering. Bevis: resolver tjekker ikke token. Fix: kræv en query token (`?token=ICS_SECRET`).
+- [ ] **S2** [Suggestion] `src/routes/dashboard/wishes/+page.server.ts:251-260` — Manglende værditjek i rateItem action. Bevis: value parses uden at tjekke om det er -1 eller 1. Fix: tillad kun -1 og 1.
+- [ ] **S3** [Suggestion] `src/routes/dashboard/finance/+page.svelte:786` — Click handler på statisk div mangler a11y. Bevis: `onclick` på div uden role/tabindex. Fix: brug `<button type="button">` eller tilføj `role="button"`.
+- [ ] **S4** [Suggestion] `src/routes/dashboard/finance/+page.svelte:1060` — Click handler på statisk span mangler a11y. Bevis: `onclick` på span. Fix: konverter to button.
+- [ ] **S5** [Suggestion] `src/routes/dashboard/finance/+page.svelte:1010` — Tabel-overskrifter som sorterings-knapper mangler a11y. Bevis: `onclick` på `th`. Fix: tilføj interaktive egenskaber.
+- [ ] **S6** [Suggestion] `src/routes/dashboard/finance/+page.svelte:1445` — Form labels til emoji og kategori mangler `for` attributter. Bevis: labels uden `for` og inputs uden `id`. Fix: forbind via id/for.
+- [ ] **S7** [Suggestion] `src/routes/dashboard/import/+page.svelte:146` — Form labels til import-kontovælger mangler `for` attributter. Bevis: label uden `for`. Fix: forbind med `id`.
+- [ ] **S8** [Suggestion] `src/routes/dashboard/import/+page.svelte:440` — Kategori-valg dropdowns i tabel mangler `aria-label`. Bevis: select uden label. Fix: tilføj `aria-label`.
+- [ ] **S9** [Suggestion] `src/lib/components/DayCard.svelte:191`, `310`, `436` — Inputs i DayCard mangler tilgængelige labels. Bevis: inputs uden label/aria-label. Fix: tilføj `aria-label`.
+- [ ] **S10** [Suggestion] `src/routes/+page.svelte:195` — Luk profilredigering knap mangler `aria-label`. Bevis: button med kun `✕`. Fix: tilføj `aria-label="Luk profilredigering"`.
+- [ ] **S11** [Suggestion] `src/lib/components/DayCard.svelte:363` — Tilstedeværelses-knapper mangler tilgængelige navne. Bevis: buttons med kun emojis. Fix: tilføj `aria-label` med navn.
+
+## Kræver brugerbeslutning
+- [ ] **U1** [Design] Mængden af `amber`-klasser: Bør vi tilføje en custom `--color-amber` til `@theme` i `layout.css` (og lade den pege på pink/rose), eller skal vi manuelt rydde op i alle filer og omdøbe klasserne til `rose` / `yellow`? I ugeplanen bruges de til en varm orange, men i wishes/stocks bruges de til advarsler/status.
+
+## Historisk Backlog & Sprints
 Konsolidering af `wishbuy`, `wishbuy_analytics` og `ugeplan` til ét samlet husholdningssystem.
 
 Sprint 1-3 (hardening, Python-oprydning, bankimport) er gennemført — commit `aaec1ef`, 25. juni 2026.
