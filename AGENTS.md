@@ -246,3 +246,4 @@ Scriptet kører i rækkefølge og stopper ved første fejl:
 - **Engelske kodeidentifiers**: Variabelnavne, funktioner og Prisma-modeller er på engelsk
 - **Ingen kommentarer der beskriver koden** — kun usynlige invarianter og workarounds
 - **Ryd op efter dig selv**: Ingen debug-logs i koden, ingen midlertidige filer
+- **Backlog-berigelse**: Når brugeren skriver "berig" backloggen, betyder det at backloggen skal gøres klar / raffineres (refine) med færdige løsningsforslag, IKKE at opgaverne skal udføres med det samme.
