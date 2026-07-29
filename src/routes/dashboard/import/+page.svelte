@@ -603,7 +603,7 @@
 						href="/dashboard/finance"
 						class="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-lg hover:bg-emerald-500"
 					>
-						Gå til Cockpit →
+						Gå til Økonomi →
 					</a>
 				</div>
 			</section>

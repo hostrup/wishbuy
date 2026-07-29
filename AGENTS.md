@@ -8,14 +8,14 @@ Dette er den autoritative guide til AI-agenter der arbejder på dette projekt. L
 
 **Hostrup Hub** er et samlet husholdningssystem for familien Hostrup. Det kombinerer:
 
-- 🎁 **Ønskebrønden** — delt ønskeseddel med cooldown, ratings og reality-check
-- 📊 **Cockpit** — forbrugsanalyse med AI-rådgivning (Gemini 2.5 Flash)
+- 📊 **Økonomi** — forbrugsanalyse, grafer og AI-rådgivning (Gemini 2.5 Flash)
 - 🏦 **Bankimport** — CSV-import med MD5-deduplication, mapping-regler og kategori-forslag
-- 📅 **Ugeplan** — (kommer i Sprint 7) madplan, fremmøde og gæster
+- 📅 **Ugeplan** — madplan, fremmøde og gæster
+- 📈 **Aktier** — porteføljemonitorering og AI-aktieanalyser
 
 Kører som Docker-container bag Nginx + Authelia på `wishbuy.hostrup.org`. Navn og URL skifter til `hub.hostrup.org` i Sprint 8.
 
-Se `BACKLOG.md` for prioriterede opgaver. Sprint 0 (tema-fejl) har højeste prioritet og skal løses inden nyt UI-arbejde.
+Se `BACKLOG.md` for prioriterede opgaver.
 
 ---
 
@@ -38,9 +38,10 @@ Se `BACKLOG.md` for prioriterede opgaver. Sprint 0 (tema-fejl) har højeste prio
 Browser
   │
   ├── /                          → Landing page (tile-menu)
-  ├── /dashboard/wishes          → Ønskebrønden
-  ├── /dashboard/finance         → Cockpit / finansoverblik
-  └── /dashboard/import          → Bankimport (CSV)
+  ├── /dashboard/finance         → Økonomi / forbrugsoverblik
+  ├── /dashboard/import          → Bankimport (CSV)
+  ├── /dashboard/weekly          → Ugeplan
+  └── /dashboard/stocks          → Aktier
                                         │
                                         ▼
                                  PostgreSQL (Prisma)
@@ -48,7 +49,7 @@ Browser
                          ┌─────────────┴─────────────┐
                          ▼                           ▼
                   SvelteKit SSR              Gemini 2.5 Flash
-                  (+page.server.ts)          (AI-rådgivning i finance)
+                  (+page.server.ts)          (AI-rådgivning i Økonomi)
 ```
 
 ### Authentication
@@ -215,10 +216,8 @@ Scriptet kører i rækkefølge og stopper ved første fejl:
 | `src/routes/layout.css`                        | Centralt tema (Tailwind @theme, 2026-palette) |
 | `src/routes/+layout.svelte`                    | Root layout, dark mode toggle                 |
 | `src/routes/+page.svelte`                      | Landing page (tile-menu)                      |
-| `src/routes/dashboard/wishes/+page.svelte`     | Ønskebrønden UI                               |
-| `src/routes/dashboard/wishes/+page.server.ts`  | Brønd load + actions                          |
-| `src/routes/dashboard/finance/+page.svelte`    | Cockpit UI (ApexCharts)                       |
-| `src/routes/dashboard/finance/+page.server.ts` | Finance load + AI actions                     |
+| `src/routes/dashboard/finance/+page.svelte`    | Økonomi UI (ApexCharts)                       |
+| `src/routes/dashboard/finance/+page.server.ts` | Økonomi load + AI actions                     |
 | `src/routes/dashboard/import/+page.svelte`     | Import UI                                     |
 | `src/routes/dashboard/import/+page.server.ts`  | CSV parse + DB actions                        |
 | `src/lib/server/`                              | Server-only hjælpefunktioner                  |

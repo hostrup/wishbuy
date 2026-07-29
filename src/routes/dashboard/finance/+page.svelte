@@ -386,7 +386,7 @@
 				<h1
 					class="bg-gradient-to-r from-indigo-600 to-sky-500 bg-clip-text text-3xl font-black tracking-tight text-transparent drop-shadow-sm md:text-5xl dark:from-indigo-400 dark:to-sky-300"
 				>
-					Cockpit
+					Økonomi
 				</h1>
 				<p class="mt-2 font-medium text-slate-500 dark:text-slate-400">
 					Dit fulde overblik over forbrug, vaner og økonomi.
