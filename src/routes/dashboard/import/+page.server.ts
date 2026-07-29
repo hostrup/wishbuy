@@ -189,7 +189,12 @@ export const actions: Actions = {
 
 		if (!transactionTexts) return fail(400, { error: 'Manglende transaktioner.' });
 
-		let txsToAnalyze: Array<{ text: string; amount: number }>;
+		let txsToAnalyze: Array<{
+			text: string;
+			amount: number;
+			receiverName?: string | null;
+			supplementalText?: string | null;
+		}>;
 		try {
 			txsToAnalyze = JSON.parse(transactionTexts);
 		} catch {
@@ -200,11 +205,19 @@ export const actions: Actions = {
 			return { success: true, suggestions: [] };
 		}
 
-		// Hent alle eksisterende kategorier til Gemini reference
-		const allCategories = await prisma.transactionCategory.findMany({
-			orderBy: { name: 'asc' }
-		});
+		// Hent alle eksisterende kategorier og et udvalg af eksisterende mapping-regler til AI-referencer
+		const [allCategories, existingRules] = await Promise.all([
+			prisma.transactionCategory.findMany({ orderBy: { name: 'asc' } }),
+			prisma.mappingRule.findMany({
+				include: { category: true },
+				take: 25,
+				orderBy: { createdAt: 'desc' }
+			})
+		]);
 		const categoryNames = allCategories.map((c) => c.name);
+		const ruleExamplesText = existingRules
+			.map((r) => `- Keyword: "${r.keyword.toUpperCase()}" -> Kategori: "${r.category.name}"`)
+			.join('\n');
 
 		let apiKey = env.GEMINI_API_KEY;
 		if (apiKey) apiKey = apiKey.replace(/^["']|["']$/g, '').trim();
@@ -214,12 +227,18 @@ export const actions: Actions = {
 		}
 
 		const systemPrompt = `Du er en intelligent og præcis kategoriserings-AI for det danske husholdningssystem Hostrup Hub.
-Din opgave er at analysere en liste af banktransaktioner (tekst og beløb) og foreslå den mest passende udgiftskategori.
+Din opgave er at analysere en liste af banktransaktioner og foreslå den mest passende udgiftskategori.
 
-Du SKAL vælge en kategori fra følgende liste over eksisterende kategorier hvis overhovedet muligt:
+Du SKAL vælge en kategori fra følgende liste over eksisterende kategorier:
 ${categoryNames.map((name) => `- ${name}`).join('\n')}
 
-Derudover skal du identificere et præcist 'keyword' (nøgleord) fra transaktionsteksten (f.eks. "NETTO" for "NETTO BROGADE", "SPOTIFY" for "SPOTIFY PREMIUM"), som efterfølgende kan bruges til at lave en automatisk mapping rule. Keywordet skal være skrevet i store bogstaver og være det mest unikke og sigende ord i transaktionsteksten der identificerer modtageren.
+Eksempler på eksisterende regler i systemet:
+${ruleExamplesText || '- Ingen eksisterende regler endnu.'}
+
+REGLER FOR KEYWORD:
+- Identificér det mest unikke modtagernavn/butiksnavn i transaktionen i STORE BOGSTAVER (f.eks. "NETTO", "SPOTIFY", "REMA", "CIRCLE K").
+- BRUG ALDRIG generiske bank- eller betalingsord som keyword! Eksempler på FORBUDTE keywords: "DANKORT", "VISA", "KVITTERING", "MOBILEPAY", "OVERFØRSEL", "BETALING", "KØB", "VISA/DANKORT", "DATO", "NOTA".
+- Hvis der er et modtagernavn eller supplerende tekst, så prioritér det unikke modtagernavn.
 
 Svar KUN i det anmodede JSON format.`;
 

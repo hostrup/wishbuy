@@ -80,16 +80,6 @@
 				<!-- Midte: Links -->
 				<div class="hidden items-center gap-1 md:flex">
 					<a
-						href="/dashboard/wishes"
-						class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors {$page.url.pathname.startsWith(
-							'/dashboard/wishes'
-						)
-							? 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
-							: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-white'}"
-					>
-						<span>🎁</span> Ønsker
-					</a>
-					<a
 						href="/dashboard/finance"
 						class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-colors {$page.url.pathname.startsWith(
 							'/dashboard/finance'
@@ -169,17 +159,6 @@
 			>
 				<span class="text-xl">🏠</span>
 				<span class="text-[9px] font-bold">Hub</span>
-			</a>
-			<a
-				href="/dashboard/wishes"
-				class="flex flex-col items-center gap-0.5 p-2 transition-colors {$page.url.pathname.startsWith(
-					'/dashboard/wishes'
-				)
-					? 'text-rose-500 dark:text-rose-400'
-					: 'text-slate-500 dark:text-slate-400'}"
-			>
-				<span class="text-xl">🎁</span>
-				<span class="text-[9px] font-bold">Ønsker</span>
 			</a>
 			<a
 				href="/dashboard/finance"

@@ -97,19 +97,6 @@
 		<!-- Tiles (using central glassmorphism and theme styling) -->
 		<div class="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
 			<a
-				href="/dashboard/wishes"
-				class="group relative flex flex-col items-center gap-3 overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-8 shadow-sm backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] hover:border-rose-500/50 dark:border-white/10 dark:bg-slate-800/80"
-			>
-				<span class="relative text-5xl">🎁</span>
-				<h2 class="relative text-xl font-bold text-slate-800 dark:text-white">Ønsker</h2>
-				<p
-					class="relative text-center text-sm text-slate-500 transition-colors group-hover:text-slate-900 dark:text-slate-400 dark:group-hover:text-white"
-				>
-					Dine og familiens ønsker, stemmer og drømmekøb
-				</p>
-			</a>
-
-			<a
 				href="/dashboard/finance"
 				class="group relative flex flex-col items-center gap-3 overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-8 shadow-sm backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] hover:border-indigo-500/50 dark:border-white/10 dark:bg-slate-800/80"
 			>

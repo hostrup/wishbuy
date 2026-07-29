@@ -62,10 +62,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		recentTransactions,
 		totalTransactionsCount,
 		expensesAgg,
-		allWishes,
 		transactionCategories,
 		aiInsight,
-		realizedWishes,
 		ignoredTransactions
 	] = await Promise.all([
 		// Hent letvægtsdata til grafer for hele perioden
@@ -94,7 +92,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				amount: { lt: 0 },
 				isIgnored: false
 			},
-			include: { category: true, item: true },
+			include: { category: true },
 			orderBy:
 				sortField === 'category' ? { category: { name: sortDir } } : { [sortField]: sortDir },
 			take: pageSize,
@@ -116,11 +114,6 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			},
 			_sum: { amount: true }
 		}),
-		prisma.item.findMany({
-			where: { status: 'WISH' },
-			include: { category: true, user: true },
-			orderBy: [{ desireLevel: 'desc' }, { price: 'desc' }]
-		}),
 		prisma.transactionCategory.findMany({ orderBy: { name: 'asc' } }),
 		locals.user
 			? prisma.aiInsight.findUnique({
@@ -132,17 +125,13 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 					}
 				})
 			: Promise.resolve(null),
-		prisma.item.findMany({
-			where: { status: 'PURCHASED' },
-			orderBy: { purchasedAt: 'desc' }
-		}),
 		prisma.transaction.findMany({
 			where: {
 				date: { gte: fromDate, lte: toDate },
 				amount: { lt: 0 },
 				isIgnored: true
 			},
-			include: { category: true, item: true },
+			include: { category: true },
 			orderBy: { date: 'desc' }
 		})
 	]);
@@ -336,7 +325,6 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		}
 	}
 
-	const topWish = allWishes[0] || null;
 	const guiltyPleasureSpending = topCategory.amount;
 	const guiltyPleasureName = topCategory.name !== 'Ingen' ? topCategory.name : 'Diverse';
 
@@ -378,11 +366,9 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 				labels: ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn']
 			}
 		},
-		topWish,
 		top3Categories,
 		recentTransactions: processedRecentTransactions,
 		ignoredTransactions,
-		realizedWishes,
 		transactionCategories,
 		aiInsight,
 		periodKey,
@@ -454,7 +440,6 @@ export const actions: Actions = {
 		const [
 			expensesAgg,
 			expenses,
-			wishes,
 			historicalTotalAgg,
 			historicalCategoriesAgg,
 			oldestTx,
@@ -467,11 +452,6 @@ export const actions: Actions = {
 			prisma.transaction.findMany({
 				where: { date: { gte: fromDate, lte: toDate }, amount: { lt: 0 }, isIgnored: false },
 				include: { category: true }
-			}),
-			prisma.item.findMany({
-				where: { status: 'WISH', userId: locals.user.id },
-				orderBy: [{ desireLevel: 'desc' }, { price: 'desc' }],
-				take: 5
 			}),
 			prisma.transaction.aggregate({
 				where: { date: { lt: fromDate }, amount: { lt: 0 }, isIgnored: false },
@@ -545,10 +525,6 @@ export const actions: Actions = {
 			.join('\n');
 
 		// 2. Format Data for Prompt
-		const wishesText = wishes
-			.map((w) => `- {Name: ${w.title}, Price: ${w.price} DKK, Desire Level: ${w.desireLevel}/5}`)
-			.join('\n');
-
 		const categoriesText = topCategories
 			.map((c) => {
 				const histTotal = catHistoricalMap[c[0]] || 0;
@@ -570,7 +546,6 @@ export const actions: Actions = {
 
 		promptData += `Top udgiftskategorier (Ekskl. ukendte poster):\n${categoriesText}\n\n`;
 		promptData += `Fordeling af betalere (Hvem har trukket kortet):\n${payerText}\n\n`;
-		promptData += `Brugerens Ønsker:\n${wishesText || '- Ingen ønsker registreret endnu.'}\n\n`;
 		promptData += `VIGTIGE REGLER FOR DIN ANALYSE:
 1. Dette er et udtræk der UDELUKKENDE indeholder udgifter. Du må IKKE kommentere på, at indtægten mangler, eller at økonomien er i fare på grund af dette. Fokusér udelukkende på at analysere forbruget.
 2. Vær direkte og brug konkrete tal i din argumentation.`;
@@ -584,9 +559,6 @@ Svar KUN med dette Markdown-format:
 
 ### 🕵️ Lommetyvene
 [Fokusér på en af top-kategorierne, der er mest 'fleksibel' (f.eks. Fastfood, Fritid, Tøj). Sammenlign ALTID periodens (eller det forventede) forbrug med det **historiske gennemsnit** for at vurdere, om der bruges for meget. Nævn konkrete beløb og nævn gerne hvem af personerne, der trækker forbruget, hvis relevant].
-
-### 🎯 Forbrug vs. Ønsker
-[Lav et direkte, matematisk eksempel. F.eks.: 'Forbruget på X (beløb) svarer til Y% af [Ønske]. Hvis I skar X ned med 30%, ville I kunne købe [Ønske] om Z måneder'].
 
 ### 💡 Skarpe Råd
 * **[Action 1]:** [Kort, direkte råd${isOngoing ? ' til hvad de konkret bør ændre i de resterende dage' : ''}. Tiltal personerne (Mathilde/Ronni) direkte hvis relevant.]
@@ -653,135 +625,6 @@ ${promptData}`;
 			return { success: true };
 		} catch {
 			return fail(500, { error: 'Kunne ikke opdatere kategori' });
-		}
-	},
-
-	linkWish: async ({ request, locals }) => {
-		if (!locals.user) return fail(401, { error: 'Unauthorized' });
-		const data = await request.formData();
-		const transactionId = data.get('transactionId')?.toString();
-		const itemId = data.get('itemId')?.toString();
-
-		if (!transactionId || !itemId) return fail(400, { error: 'Missing data' });
-
-		try {
-			await prisma.transaction.update({
-				where: { id: transactionId },
-				data: {
-					itemId,
-					status: 'PROCESSED'
-				}
-			});
-			return { success: true };
-		} catch {
-			return fail(500, { error: 'Kunne ikke tilknytte ønske' });
-		}
-	},
-
-	createRealizedWish: async ({ request, locals }) => {
-		if (!locals.user) return fail(401, { error: 'Unauthorized' });
-		const data = await request.formData();
-		const transactionId = data.get('transactionId')?.toString();
-
-		if (!transactionId) return fail(400, { error: 'Missing data' });
-
-		try {
-			const tx = await prisma.transaction.findUnique({ where: { id: transactionId } });
-			if (!tx) return fail(404, { error: 'Transaktion ikke fundet' });
-
-			let itemCategoryId = 8;
-			const category = await prisma.category.findFirst({ where: { name: 'Diverse' } });
-			if (category) itemCategoryId = category.id;
-			else {
-				const anyCategory = await prisma.category.findFirst();
-				if (anyCategory) itemCategoryId = anyCategory.id;
-			}
-
-			const newItem = await prisma.item.create({
-				data: {
-					userId: locals.user.id,
-					title: tx.text,
-					price: Math.abs(tx.amount),
-					categoryId: itemCategoryId,
-					expenseType: 'PERSONAL',
-					status: 'PURCHASED',
-					purchasedAt: new Date()
-				}
-			});
-
-			await prisma.transaction.update({
-				where: { id: transactionId },
-				data: {
-					itemId: newItem.id,
-					status: 'PROCESSED'
-				}
-			});
-
-			return { success: true };
-		} catch {
-			return fail(500, { error: 'Kunne ikke oprette ønske' });
-		}
-	},
-
-	bulkGroupToWish: async ({ request, locals }) => {
-		const user = locals.user;
-		if (!user) return fail(401, { error: 'Unauthorized' });
-		const data = await request.formData();
-		const transactionIdsStr = data.get('transactionIds')?.toString();
-		const groupName = data.get('groupName')?.toString();
-
-		if (!transactionIdsStr || !groupName) return fail(400, { error: 'Manglende data' });
-
-		// TS-1.3: Wrap JSON.parse i try-catch for at forhindre server-crash på ugyldigt input
-		let transactionIds: string[];
-		try {
-			transactionIds = JSON.parse(transactionIdsStr) as string[];
-		} catch {
-			return fail(400, { error: 'Ugyldigt JSON-format for transaktions-IDer.' });
-		}
-		if (!Array.isArray(transactionIds) || transactionIds.length === 0)
-			return fail(400, { error: 'Ingen transaktioner valgt' });
-
-		try {
-			const txs = await prisma.transaction.findMany({
-				where: { id: { in: transactionIds } }
-			});
-
-			const sum = txs.reduce((acc, tx) => acc + Math.abs(tx.amount), 0);
-
-			let itemCategoryId = 8;
-			const category = await prisma.category.findFirst({ where: { name: 'Diverse' } });
-			if (category) itemCategoryId = category.id;
-			else {
-				const anyCategory = await prisma.category.findFirst();
-				if (anyCategory) itemCategoryId = anyCategory.id;
-			}
-
-			await prisma.$transaction(async (tx) => {
-				const newItem = await tx.item.create({
-					data: {
-						userId: user.id,
-						title: groupName,
-						price: sum,
-						categoryId: itemCategoryId,
-						expenseType: 'PERSONAL',
-						status: 'PURCHASED',
-						purchasedAt: new Date()
-					}
-				});
-
-				await tx.transaction.updateMany({
-					where: { id: { in: transactionIds } },
-					data: {
-						itemId: newItem.id,
-						status: 'PROCESSED'
-					}
-				});
-			});
-
-			return { success: true };
-		} catch {
-			return fail(500, { error: 'Kunne ikke oprette gruppe-ønske' });
 		}
 	},
 

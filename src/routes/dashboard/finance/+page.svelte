@@ -721,61 +721,8 @@
 				</div>
 			</section>
 
-			<!-- Reality Check (Side Panel) -->
+			<!-- Side Panel (Reserveret til fremtidige KPIer/widgets) -->
 			<div class="flex flex-col gap-6">
-				{#if data.topWish && data.kpis.guiltyPleasureSpending > 0}
-					{@const wishPct = Math.min(
-						100,
-						(data.kpis.guiltyPleasureSpending / data.topWish.price) * 100
-					)}
-					<section
-						class="relative flex-1 overflow-hidden rounded-3xl border border-slate-200/50 bg-white/80 p-6 shadow-sm backdrop-blur-xl md:p-8 dark:border-white/10 dark:bg-slate-800/80"
-					>
-						<h2
-							class="mb-4 flex items-center gap-2 text-lg font-bold text-slate-800 dark:text-white"
-						>
-							🎯 Reality Check
-						</h2>
-						<p class="mb-6 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-							Du har brugt <strong>{formatCur(data.kpis.guiltyPleasureSpending)}</strong> på
-							<span
-								class="rounded bg-slate-100 px-1.5 py-0.5 font-bold text-slate-800 dark:bg-slate-700/50 dark:text-slate-200"
-								>{data.kpis.guiltyPleasureName}</span
-							>.<br /><br />
-							Det er
-							<strong class="text-xl text-indigo-600 dark:text-indigo-400"
-								>{Math.round(wishPct)}%</strong
-							>
-							af:
-							<br /><strong class="text-slate-800 dark:text-white">{data.topWish.title}</strong>!
-						</p>
-
-						<div
-							class="mb-2 h-3 w-full overflow-hidden rounded-full bg-slate-100 shadow-inner dark:bg-slate-900"
-						>
-							<div
-								class="h-3 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-600 transition-all duration-1000"
-								style="width: {wishPct}%"
-							></div>
-						</div>
-						<div
-							class="flex justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500"
-						>
-							<span>0 DKK</span>
-							<span>{formatCur(data.topWish.price)}</span>
-						</div>
-					</section>
-				{:else}
-					<div
-						class="flex flex-1 flex-col items-center justify-center rounded-3xl border border-slate-200/50 bg-white/50 p-6 text-center backdrop-blur-sm dark:border-white/5 dark:bg-slate-800/50"
-					>
-						<div class="mb-2 text-3xl opacity-30">🎯</div>
-						<p class="text-sm font-medium text-slate-500 dark:text-slate-400">
-							Intet Reality Check tilgængeligt.<br />Tilføj ønsker til din brønd!
-						</p>
-					</div>
-				{/if}
-
 				<!-- Top 3 Categories Small Panel -->
 				{#if data.top3Categories.length > 0}
 					<div
@@ -1153,88 +1100,29 @@
 									{tx.amount < 0 ? formatCur(tx.amount) : '+' + formatCur(tx.amount)}
 								</td>
 								<td class="px-4 py-3 text-right">
-									{#if tx.itemId}
-										<div
-											class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-700 shadow-sm dark:border-emerald-800/50 dark:bg-emerald-900/30 dark:text-emerald-400"
-										>
-											<span>🎁</span>
-											<span class="max-w-[120px] truncate" title={tx.item?.title}
-												>Knyttet: {tx.item?.title}</span
-											>
-										</div>
-									{:else}
-										<div class="flex items-center justify-end gap-2">
-											<div class="group/link relative">
-												<button
-													type="button"
-													class="rounded-lg border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 shadow-sm transition-colors hover:bg-slate-200 dark:border-white/5 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-												>
-													Tilknyt Ønske ▾
-												</button>
-												<div
-													class="absolute right-0 z-20 mt-2 hidden w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl group-focus-within/link:block group-hover/link:block dark:border-white/10 dark:bg-slate-800"
-												>
-													{#if data.realizedWishes.length === 0}
-														<div class="p-3 text-center text-xs text-slate-500 dark:text-slate-400">
-															Ingen realiserede ønsker
-														</div>
-													{/if}
-													{#each data.realizedWishes as wish}
-														<form method="POST" action="?/linkWish" use:enhance>
-															<input type="hidden" name="transactionId" value={tx.id} />
-															<input type="hidden" name="itemId" value={wish.id} />
-															<button
-																type="submit"
-																class="w-full truncate rounded-lg px-3 py-2 text-left text-xs font-bold text-slate-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700 dark:text-slate-300 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-300"
-																title={wish.title}
-															>
-																{wish.title} ({formatCur(wish.price)})
-															</button>
-														</form>
-													{/each}
-												</div>
-											</div>
-											<form
-												method="POST"
-												action="?/createRealizedWish"
-												use:enhance
-												onsubmit={(e) => {
-													if (!confirm(`Opret nyt realiseret ønske baseret på "${tx.text}"?`))
-														e.preventDefault();
-												}}
-											>
-												<input type="hidden" name="transactionId" value={tx.id} />
-												<button
-													type="submit"
-													class="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-600 shadow-sm transition-colors hover:bg-indigo-500 hover:text-white dark:border-indigo-500/30 dark:bg-indigo-500/20 dark:text-indigo-400"
-												>
-													Opret Ønske ✨
-												</button>
-											</form>
-											<form
-												method="POST"
-												action="?/ignoreTransaction"
-												use:enhance
-												onsubmit={(e) => {
-													if (
-														!confirm(
-															`Er du sikker på, at du vil ignorere "${tx.text}"? Den vil blive fjernet fra alle udregninger.`
-														)
+									<div class="flex items-center justify-end gap-2">
+										<form
+											method="POST"
+											action="?/ignoreTransaction"
+											use:enhance
+											onsubmit={(e) => {
+												if (
+													!confirm(
+														`Er du sikker på, at du vil ignorere "${tx.text}"? Den vil blive fjernet fra alle udregninger.`
 													)
-														e.preventDefault();
-												}}
+												)
+													e.preventDefault();
+											}}
+										>
+											<input type="hidden" name="transactionId" value={tx.id} />
+											<button
+												type="submit"
+												class="rounded-lg border border-rose-100 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-600 shadow-sm transition-colors hover:bg-rose-500 hover:text-white dark:border-rose-500/30 dark:bg-rose-500/20 dark:text-rose-400"
 											>
-												<input type="hidden" name="transactionId" value={tx.id} />
-												<button
-													type="submit"
-													class="rounded-lg border border-red-100 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 shadow-sm transition-colors hover:bg-red-500 hover:text-white dark:border-red-500/30 dark:bg-red-500/20 dark:text-red-400"
-													title="Ignorer postering"
-												>
-													🚫 Skjul
-												</button>
-											</form>
-										</div>
-									{/if}
+												Ignorer 🚫
+											</button>
+										</form>
+									</div>
 								</td>
 							</tr>
 						{/each}
@@ -1324,45 +1212,13 @@
 					</div>
 				</div>
 
-				<div class="h-px w-full bg-slate-200 md:h-8 md:w-px dark:bg-white/10"></div>
-
-				<form
-					method="POST"
-					action="?/bulkGroupToWish"
-					use:enhance={() => {
-						return async ({ update, result }) => {
-							await update();
-							if (result.type === 'success') {
-								selectedTransactions = [];
-								groupName = '';
-							}
-						};
-					}}
-					class="flex w-full flex-1 items-center gap-3 md:w-auto"
-				>
-					<input type="hidden" name="transactionIds" value={JSON.stringify(selectedTransactions)} />
-					<input
-						type="text"
-						name="groupName"
-						bind:value={groupName}
-						required
-						placeholder="Navngiv gruppen (f.eks. Ferie London)"
-						class="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-800 shadow-inner transition-all outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500"
-					/>
-					<button
-						type="submit"
-						class="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-bold whitespace-nowrap text-white shadow-lg transition-all hover:scale-105 hover:bg-indigo-500 active:scale-95"
-					>
-						✨ Gruppér og Realisér
-					</button>
-				</form>
-
 				<button
 					type="button"
 					onclick={() => (selectedTransactions = [])}
-					class="absolute top-2 right-2 p-2 font-bold text-slate-400 transition-colors hover:text-slate-600 md:static md:p-0 dark:hover:text-white"
-					>✕</button
+					class="ml-auto rounded-xl bg-slate-200 px-4 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
 				>
+					Ryd markering (✕)
+				</button>
 			</div>
 		{/if}
 	</div>

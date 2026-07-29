@@ -87,6 +87,77 @@
 		}
 	}
 
+	async function runAiCategorization() {
+		const unknowns = previewRows.filter((r) => r.categoryName === 'Ukendt' || !r.categoryId);
+		if (unknowns.length === 0) return;
+
+		isAiSuggesting = true;
+		let totalSuggested = 0;
+		const BATCH_SIZE = 12;
+
+		try {
+			for (let i = 0; i < unknowns.length; i += BATCH_SIZE) {
+				const chunk = unknowns.slice(i, i + BATCH_SIZE);
+				const payload = chunk.map((u) => ({
+					text: u.text,
+					amount: u.amount,
+					receiverName: u.receiverName,
+					supplementalText: u.supplementalText
+				}));
+
+				const formData = new FormData();
+				formData.append('transactionTexts', JSON.stringify(payload));
+
+				const res = await fetch('?/suggestCategories', {
+					method: 'POST',
+					body: formData
+				});
+				const responseData = await res.json();
+
+				// SvelteKit action JSON response format parsing
+				let actionData: any = null;
+				if (responseData?.type === 'success' && responseData.data) {
+					actionData =
+						typeof responseData.data === 'string'
+							? JSON.parse(responseData.data)
+							: responseData.data;
+				} else if (responseData?.data) {
+					actionData =
+						typeof responseData.data === 'string'
+							? JSON.parse(responseData.data)
+							: responseData.data;
+				}
+
+				if (actionData?.suggestions) {
+					const suggestions = actionData.suggestions as any[];
+					previewRows = previewRows.map((row) => {
+						const match = suggestions.find((s: any) => s.transactionText === row.text);
+						if (match && (row.categoryName === 'Ukendt' || !row.categoryId)) {
+							return {
+								...row,
+								categoryId: match.suggestedCategoryId,
+								categoryName: match.suggestedCategory,
+								aiKeyword: match.keyword,
+								status: 'AI_SUGGESTED'
+							};
+						}
+						return row;
+					});
+					previewRows.forEach((r) => {
+						editedCategories[r.hash] = { name: r.categoryName, id: r.categoryId };
+					});
+					totalSuggested += suggestions.filter((s: any) => s.suggestedCategoryId).length;
+					aiSuggestionCount = totalSuggested;
+				}
+			}
+		} catch (err) {
+			console.error('Fejl under AI kategorisering:', err);
+			alert('Der opstod en fejl under AI-kategoriseringen.');
+		} finally {
+			isAiSuggesting = false;
+		}
+	}
+
 	let filteredRows = $derived.by(() => {
 		let result = previewRows;
 		if (showOnlyNew) result = result.filter((r) => !r.isExisting);
@@ -285,63 +356,18 @@
 					</label>
 
 					{#if previewRows.some((r) => r.categoryName === 'Ukendt' || !r.categoryId)}
-						<form
-							method="POST"
-							action="?/suggestCategories"
-							use:enhance={({ formData }) => {
-								isAiSuggesting = true;
-								const unknowns = previewRows.filter(
-									(r) => r.categoryName === 'Ukendt' || !r.categoryId
-								);
-								formData.append(
-									'transactionTexts',
-									JSON.stringify(unknowns.map((u) => ({ text: u.text, amount: u.amount })))
-								);
-								return async ({ result }) => {
-									isAiSuggesting = false;
-									if (result.type === 'success' && (result.data as any)?.success) {
-										const suggestions = ((result.data as any).suggestions as any[]) || [];
-										previewRows = previewRows.map((row) => {
-											const match = suggestions.find((s: any) => s.transactionText === row.text);
-											if (match && (row.categoryName === 'Ukendt' || !row.categoryId)) {
-												return {
-													...row,
-													categoryId: match.suggestedCategoryId,
-													categoryName: match.suggestedCategory,
-													aiKeyword: match.keyword,
-													status: 'AI_SUGGESTED'
-												};
-											}
-											return row;
-										});
-										// Opdater editedCategories
-										previewRows.forEach((r) => {
-											editedCategories[r.hash] = { name: r.categoryName, id: r.categoryId };
-										});
-										aiSuggestionCount = suggestions.filter(
-											(s: any) => s.suggestedCategoryId
-										).length;
-									} else {
-										alert(
-											(result as any).data?.error || 'Der opstod en fejl under AI-kategoriseringen.'
-										);
-									}
-								};
-							}}
-							class="inline-block md:ml-4"
+						<button
+							type="button"
+							onclick={runAiCategorization}
+							disabled={isAiSuggesting}
+							class="flex cursor-pointer items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-md transition-all hover:bg-emerald-500 disabled:opacity-50 md:ml-4"
 						>
-							<button
-								type="submit"
-								disabled={isAiSuggesting}
-								class="flex cursor-pointer items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-md transition-all hover:bg-emerald-500 disabled:opacity-50"
-							>
-								{#if isAiSuggesting}
-									<span>⏳ Analyserer...</span>
-								{:else}
-									<span>🤖 Kategorisér med AI</span>
-								{/if}
-							</button>
-						</form>
+							{#if isAiSuggesting}
+								<span>⏳ Analyserer transaktioner...</span>
+							{:else}
+								<span>✨ Auto-map via AI</span>
+							{/if}
+						</button>
 					{/if}
 
 					<span class="ml-auto text-xs text-slate-400"
