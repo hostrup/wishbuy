@@ -232,7 +232,7 @@ model StockAnalysis {
   scope            String // 'PORTFOLIO' | 'STOCK'
   stockId          String?
   stock            Stock?   @relation(fields: [stockId], references: [id], onDelete: Cascade)
-  model            String   @default("gemini-2.5-flash")
+  model            String   @default("gemini-3.6-flash")
   verdict          String? // 'HOLD' | 'REDUCE' | 'ADD' | 'SELL' | 'MIXED'
   content          String   @db.Text
   data             Json?

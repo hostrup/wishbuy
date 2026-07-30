@@ -577,7 +577,8 @@ ${promptData}`;
 
 		try {
 			const genAI = new GoogleGenerativeAI(apiKey);
-			const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+			const modelName = env.GEMINI_MODEL || 'gemini-3.6-flash';
+			const model = genAI.getGenerativeModel({ model: modelName });
 
 			const result = await model.generateContent(systemPrompt);
 			const responseContent = result.response.text();

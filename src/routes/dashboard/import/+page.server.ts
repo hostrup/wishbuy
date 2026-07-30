@@ -252,8 +252,9 @@ Returnér et JSON-array med præcis følgende format for hver transaktion:
 
 		try {
 			const genAI = new GoogleGenerativeAI(apiKey);
+			const modelName = env.GEMINI_MODEL || 'gemini-3.6-flash';
 			const model = genAI.getGenerativeModel({
-				model: 'gemini-2.5-flash',
+				model: modelName,
 				generationConfig: {
 					responseMimeType: 'application/json',
 					responseSchema: {
