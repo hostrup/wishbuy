@@ -228,6 +228,16 @@
 			</div>
 			<div class="mt-4 flex flex-col items-end gap-3 md:mt-0">
 				<div class="flex flex-wrap items-center justify-end gap-2">
+					<form method="POST" action="?/checkCostAlerts" use:enhance class="inline">
+						<input type="hidden" name="force" value="true" />
+						<button
+							type="submit"
+							class="rounded-xl border border-indigo-200/80 bg-white/80 px-4 py-2 text-sm font-bold text-indigo-600 shadow-sm backdrop-blur-xl transition-all hover:scale-[1.02] hover:bg-indigo-50 active:scale-[0.98] dark:border-indigo-500/30 dark:bg-slate-800/80 dark:text-indigo-400 dark:hover:bg-slate-800"
+							title="Send en notifikation til Telegram med aktier nær deres kostpris (inden for 200 kr.)"
+						>
+							📱 Telegram tjek
+						</button>
+					</form>
 					<form
 						method="POST"
 						action="?/syncPrices"
@@ -303,6 +313,25 @@
 				class="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-medium text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
 			>
 				{form.error}
+			</div>
+		{/if}
+
+		{#if form?.alertResult}
+			<div
+				class="rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-medium text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300"
+			>
+				{#if form.alertResult.nearCostPriceCount > 0}
+					🎯 <strong>{form.alertResult.nearCostPriceCount} aktie(r) nær kostpris</strong> (inden for 200 kr.).
+					{#if form.alertResult.telegramResult?.success}
+						Notifikation sendt til Telegram for: <strong>{form.alertResult.alertsSent.join(', ')}</strong>.
+					{:else if form.alertResult.telegramResult?.error}
+						Fejl ved afsendelse til Telegram: {form.alertResult.telegramResult.error}
+					{:else}
+						Telegram-notifikation allerede sendt (cooldown aktiv).
+					{/if}
+				{:else}
+					ℹ️ Ingen aktier er inden for 200 kr. af deres kostpris lige nu.
+				{/if}
 			</div>
 		{/if}
 
@@ -419,6 +448,12 @@
 									<td class="px-5 py-4">
 										<div class="flex items-center gap-2">
 											<span class="font-bold text-slate-800 dark:text-white">{p.ticker}</span>
+											{#if p.isNearCostPrice}
+												<span
+													class="rounded bg-indigo-500/10 px-1.5 py-0.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400"
+													title="Aktuel værdi er inden for 200 kr. af kostpris!">🎯 Nær kostpris</span
+												>
+											{/if}
 											{#if p.isStale && data.marketOpen}
 												<span
 													class="rounded bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-bold text-orange-600 dark:text-orange-400"

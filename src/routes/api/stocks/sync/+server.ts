@@ -7,6 +7,7 @@ import {
 	backfillDailyCloses,
 	backfillExchangeRates
 } from '$lib/server/stocks/fetchPrices';
+import { checkCostPriceAlerts } from '$lib/server/stocks/costPriceAlerts';
 import type { RequestHandler } from './$types';
 
 // SIKKERHEDSNOTAT: Denne rute er undtaget Authelia-header-tjekket i hooks.server.ts,
@@ -42,6 +43,9 @@ export const POST: RequestHandler = async ({ request, url }) => {
 		if (mode === 'backfill' || mode === 'all-backfill') {
 			out.backfill = await backfillDailyCloses();
 			out.fxBackfill = await backfillExchangeRates();
+		}
+		if (mode === 'quotes' || mode === 'alerts' || mode === 'all') {
+			out.costAlerts = await checkCostPriceAlerts(200);
 		}
 		return json({ ok: true, syncedAt: new Date().toISOString(), ...out });
 	} catch (e) {

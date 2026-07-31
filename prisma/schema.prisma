@@ -172,6 +172,7 @@ model Stock {
   targetPriceUsd    Float?
   marketCap         Float?
   lastPriceSyncedAt DateTime?
+  lastCostAlertAt   DateTime?
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

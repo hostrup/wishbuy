@@ -9,6 +9,7 @@ import {
 	type TransactionInput
 } from '$lib/server/stocks/calc';
 import { updateStockQuotes } from '$lib/server/stocks/fetchPrices';
+import { checkCostPriceAlerts } from '$lib/server/stocks/costPriceAlerts';
 import type { Actions, PageServerLoad } from './$types';
 
 // Kurser ældre end dette markeres som "stale" i UI'et.
@@ -92,6 +93,9 @@ export const load: PageServerLoad = async () => {
 			const isStale =
 				!stock.lastPriceSyncedAt || now - stock.lastPriceSyncedAt.getTime() > STALE_AFTER_MS;
 
+			const absGainDkk = Math.abs(u.gainDkk);
+			const isNearCostPrice = absGainDkk <= 200;
+
 			return {
 				id: stock.id,
 				ticker: stock.ticker,
@@ -107,6 +111,8 @@ export const load: PageServerLoad = async () => {
 				valueUsd: u.valueUsd,
 				gainDkk: u.gainDkk,
 				gainPct: u.gainPct,
+				absGainDkk,
+				isNearCostPrice,
 				peTrailing: stock.peTrailing,
 				peForward: stock.peForward,
 				targetPriceUsd: stock.targetPriceUsd,
@@ -294,10 +300,26 @@ export const actions: Actions = {
 		if (!locals.user) return fail(401, { error: 'Not authenticated' });
 		try {
 			await updateStockQuotes();
-			return { success: true };
+			const alertResult = await checkCostPriceAlerts(200);
+			return { success: true, alertResult };
 		} catch (err) {
 			return fail(500, {
 				error: err instanceof Error ? err.message : 'Kunne ikke opdatere kurser'
+			});
+		}
+	},
+
+	checkCostAlerts: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Not authenticated' });
+		const formData = await request.formData();
+		const force = formData.get('force') === 'true';
+
+		try {
+			const alertResult = await checkCostPriceAlerts(200, force);
+			return { success: true, alertResult };
+		} catch (err) {
+			return fail(500, {
+				error: err instanceof Error ? err.message : 'Kunne ikke tjekke kostpris-notifikationer'
 			});
 		}
 	},
