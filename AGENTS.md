@@ -246,3 +246,8 @@ Scriptet kører i rækkefølge og stopper ved første fejl:
 - **Ingen kommentarer der beskriver koden** — kun usynlige invarianter og workarounds
 - **Ryd op efter dig selv**: Ingen debug-logs i koden, ingen midlertidige filer
 - **Backlog-berigelse**: Når brugeren skriver "berig" backloggen, betyder det at backloggen skal gøres klar / raffineres (refine) med færdige løsningsforslag, IKKE at opgaverne skal udføres med det samme.
+- **Obligatorisk Runtime-Verifikation & Log-tjek**:
+  1. **Tjek Docker logs FØR**: Inspicer altid `docker logs <container>` inden du starter på en rettelse eller feature for at kende udgangspunktet.
+  2. **DB Schema Push**: Hvis `prisma/schema.prisma` ændres, SKAL databasen opdateres i PostgreSQL (f.eks. via `docker exec <container> npx prisma db push` eller SQL migration), så nye kolonner eksisterer runtime.
+  3. **End-to-end Runtime-test**: Du må ALDRIG erklære en feature for færdig eller "testet" uden at køre en faktisk autentificeret runtime-test (f.eks. HTTP GET/POST mod den kørende container) og verificere at siden svarer med HTTP 200 OK.
+  4. **Tjek Docker logs EFTER**: Tjek altid `docker logs <container>` umiddelbart efter udrulning for at bekræfte nul fejl eller uventede exceptions.
