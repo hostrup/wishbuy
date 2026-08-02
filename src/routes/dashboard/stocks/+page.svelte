@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { chart } from '$lib/actions/apexcharts';
 	import { enhance } from '$app/forms';
+	import { verdictMeta, thesisStatusMeta, scopeLabel } from '$lib/stocks/glossary';
+	import { marked } from 'marked';
+	import DOMPurify from 'isomorphic-dompurify';
 
 	let { data, form } = $props();
 
@@ -11,6 +14,9 @@
 	let showAddStock = $state(false);
 	let showHistory = $state(false);
 	let isSyncing = $state(false);
+	let analysisBusy = $state<string | null>(null);
+	let showAnalysisHistory = $state(false);
+	let openAnalysisId = $state<string | null>(null);
 
 	const today = new Date().toISOString().slice(0, 10);
 	let txStockId = $state('');
@@ -107,6 +113,8 @@
 	const posPct = (v: number) =>
 		bandMax > bandMin ? Math.min(100, Math.max(0, ((v - bandMin) / (bandMax - bandMin)) * 100)) : 0;
 	let currentPos = $derived(posPct(data.totals.valueDkk));
+
+	const latestAnalysis = $derived(data.analyses[0] ?? null);
 
 	// Donut-farver fra temaet (cykler). Genberegnes når isDarkMode skifter,
 	// fordi donutOptions selv afhænger af isDarkMode (stroke + theme nedenfor).
@@ -321,9 +329,12 @@
 				class="rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-medium text-indigo-800 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300"
 			>
 				{#if form.alertResult.nearCostPriceCount > 0}
-					🎯 <strong>{form.alertResult.nearCostPriceCount} aktie(r) nær kostpris</strong> (inden for 200 kr.).
+					🎯 <strong>{form.alertResult.nearCostPriceCount} aktie(r) nær kostpris</strong> (inden for
+					200 kr.).
 					{#if form.alertResult.telegramResult?.success}
-						Notifikation sendt til Telegram for: <strong>{form.alertResult.alertsSent.join(', ')}</strong>.
+						Notifikation sendt til Telegram for: <strong
+							>{form.alertResult.alertsSent.join(', ')}</strong
+						>.
 					{:else if form.alertResult.telegramResult?.error}
 						Fejl ved afsendelse til Telegram: {form.alertResult.telegramResult.error}
 					{:else}
@@ -440,6 +451,7 @@
 								<th class="px-5 py-4 text-right">Afkast</th>
 								<th class="px-5 py-4 text-right">P/E</th>
 								<th class="px-5 py-4">Tese</th>
+								<th class="px-5 py-4"></th>
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-slate-100 dark:divide-white/5">
@@ -451,7 +463,8 @@
 											{#if p.isNearCostPrice}
 												<span
 													class="rounded bg-indigo-500/10 px-1.5 py-0.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400"
-													title="Aktuel værdi er inden for 200 kr. af kostpris!">🎯 Nær kostpris</span
+													title="Aktuel værdi er inden for 200 kr. af kostpris!"
+													>🎯 Nær kostpris</span
 												>
 											{/if}
 											{#if p.isStale && data.marketOpen}
@@ -496,6 +509,31 @@
 											{thesisBadge[p.thesisStatus].icon}
 											{thesisBadge[p.thesisStatus].label}
 										</span>
+									</td>
+									<td class="px-5 py-4">
+										<form
+											method="POST"
+											action="?/requestStockAnalysis"
+											use:enhance={() => {
+												analysisBusy = p.id;
+												return async ({ update }) => {
+													await update();
+													analysisBusy = null;
+												};
+											}}
+										>
+											<input type="hidden" name="stockId" value={p.id} />
+											<button
+												type="submit"
+												disabled={analysisBusy !== null}
+												title="Anmod om AI-analyse for {p.ticker}"
+												class="rounded-lg border border-slate-200 bg-white/80 px-2.5 py-1.5 text-sm font-bold text-slate-500 shadow-sm transition-all hover:scale-[1.02] hover:border-indigo-300 hover:text-indigo-500 active:scale-[0.98] disabled:opacity-50 dark:border-white/10 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:border-indigo-500/40 dark:hover:text-indigo-400"
+											>
+												<span class="inline-block {analysisBusy === p.id ? 'animate-spin' : ''}"
+													>🤖</span
+												>
+											</button>
+										</form>
 									</td>
 								</tr>
 							{/each}
@@ -544,6 +582,199 @@
 					{/if}
 				</section>
 			</div>
+
+			<!-- AI-ANALYSE (Sprint 9.8) -->
+			<section
+				class="rounded-3xl border border-slate-200/50 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-800/80"
+			>
+				<div class="flex flex-wrap items-center justify-between gap-3">
+					<div>
+						<h3 class="text-sm font-bold text-slate-800 dark:text-white">AI-analyse</h3>
+						<p class="text-xs text-slate-400">
+							Gemini vurderer porteføljen og jeres teser. Analysen gemmes i historikken.
+						</p>
+					</div>
+					<form
+						method="POST"
+						action="?/requestPortfolioAnalysis"
+						use:enhance={() => {
+							analysisBusy = 'PORTFOLIO';
+							return async ({ update }) => {
+								await update();
+								analysisBusy = null;
+							};
+						}}
+					>
+						<button
+							type="submit"
+							disabled={analysisBusy !== null}
+							class="rounded-xl bg-indigo-500 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-indigo-600 disabled:opacity-50"
+							title="Gemini analyserer hele porteføljen og giver en samlet vurdering"
+						>
+							<span class="inline-block {analysisBusy === 'PORTFOLIO' ? 'animate-spin' : ''}"
+								>🤖</span
+							>
+							{analysisBusy === 'PORTFOLIO' ? 'Analyserer...' : 'Anmod om analyse'}
+						</button>
+					</form>
+				</div>
+
+				{#if latestAnalysis}
+					{@const latestPositions = latestAnalysis.data?.positions ?? []}
+					<div class="mt-5 space-y-5 border-t border-slate-200/50 pt-5 dark:border-white/10">
+						<div class="flex flex-wrap items-center gap-2 text-xs">
+							<span
+								class="rounded-full bg-indigo-500/10 px-2.5 py-1 font-bold text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400"
+							>
+								{scopeLabel(latestAnalysis.scope, latestAnalysis.ticker)}
+							</span>
+							{#if latestAnalysis.verdict}
+								<span
+									class="rounded-full px-2.5 py-1 font-bold {verdictMeta[latestAnalysis.verdict]
+										.badgeCls}"
+								>
+									{verdictMeta[latestAnalysis.verdict].icon}
+									{verdictMeta[latestAnalysis.verdict].label}
+								</span>
+							{/if}
+							<span class="text-slate-400">{dateTimeFmt(latestAnalysis.createdAt)}</span>
+							{#if latestAnalysis.snapshotValueDkk !== null}
+								<span class="text-slate-400">Værdi: {dkk(latestAnalysis.snapshotValueDkk)}</span>
+							{/if}
+							<span class="text-slate-400">{latestAnalysis.model}</span>
+						</div>
+
+						<div
+							class="prose dark:prose-invert prose-slate prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-strong:text-indigo-600 dark:prose-strong:text-indigo-400 max-w-none text-sm"
+						>
+							{@html DOMPurify.sanitize(marked(latestAnalysis.content) as string)}
+						</div>
+
+						{#if latestPositions.length}
+							<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+								{#each latestPositions as pos}
+									<div
+										class="rounded-2xl border border-slate-200/50 bg-slate-50/50 p-4 dark:border-white/10 dark:bg-slate-900/40"
+									>
+										<div class="flex flex-wrap items-center justify-between gap-2">
+											<span class="font-bold text-slate-800 dark:text-white">{pos.ticker}</span>
+											<span
+												class="inline-flex items-center gap-1.5"
+												title="Tese: {thesisStatusMeta[pos.thesisStatus].label}"
+											>
+												<span
+													class="h-2 w-2 rounded-full {thesisStatusMeta[pos.thesisStatus].dotCls}"
+												></span>
+												<span
+													class="rounded-full px-2 py-0.5 text-[10px] font-bold {verdictMeta[
+														pos.verdict
+													].badgeCls}"
+												>
+													{verdictMeta[pos.verdict].label}
+												</span>
+											</span>
+										</div>
+										<p class="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+											{pos.rationale}
+										</p>
+										<p class="mt-1.5 text-xs text-rose-600 dark:text-rose-400">
+											Risiko: {pos.keyRisk}
+										</p>
+									</div>
+								{/each}
+							</div>
+						{/if}
+
+						{#if latestAnalysis.data?.portfolioRisks?.length || latestAnalysis.data?.suggestions?.length}
+							<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+								{#if latestAnalysis.data?.portfolioRisks?.length}
+									<div>
+										<p class="mb-2 text-xs font-bold tracking-widest text-slate-400 uppercase">
+											Porteføljerisici
+										</p>
+										<ul
+											class="list-inside list-disc space-y-1 text-sm text-slate-600 dark:text-slate-300"
+										>
+											{#each latestAnalysis.data.portfolioRisks as risk}
+												<li>{risk}</li>
+											{/each}
+										</ul>
+									</div>
+								{/if}
+								{#if latestAnalysis.data?.suggestions?.length}
+									<div>
+										<p class="mb-2 text-xs font-bold tracking-widest text-slate-400 uppercase">
+											Forslag
+										</p>
+										<ul
+											class="list-inside list-disc space-y-1 text-sm text-slate-600 dark:text-slate-300"
+										>
+											{#each latestAnalysis.data.suggestions as suggestion}
+												<li>{suggestion}</li>
+											{/each}
+										</ul>
+									</div>
+								{/if}
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<p
+						class="mt-5 border-t border-slate-200/50 pt-5 text-sm text-slate-400 dark:border-white/10"
+					>
+						Endnu ingen analyser. Klik på "Anmod om analyse" for at få AI'ens vurdering af
+						porteføljen.
+					</p>
+				{/if}
+
+				{#if data.analyses.length > 1}
+					<button
+						onclick={() => (showAnalysisHistory = !showAnalysisHistory)}
+						class="mt-5 flex w-full items-center justify-between border-t border-slate-200/50 pt-4 text-sm font-bold text-slate-800 dark:border-white/10 dark:text-white"
+					>
+						<span>Tidligere analyser ({data.analyses.length - 1})</span>
+						<span class="text-slate-400">{showAnalysisHistory ? '▲' : '▼'}</span>
+					</button>
+					{#if showAnalysisHistory}
+						<div class="mt-3 space-y-2">
+							{#each data.analyses.slice(1) as a}
+								<div
+									class="rounded-2xl border border-slate-200/50 bg-slate-50/50 dark:border-white/10 dark:bg-slate-900/40"
+								>
+									<button
+										onclick={() => (openAnalysisId = openAnalysisId === a.id ? null : a.id)}
+										class="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
+									>
+										<span class="flex flex-wrap items-center gap-2 text-xs">
+											<span class="font-bold text-slate-700 dark:text-slate-200">
+												{scopeLabel(a.scope, a.ticker)}
+											</span>
+											{#if a.verdict}
+												<span
+													class="rounded-full px-2 py-0.5 text-[10px] font-bold {verdictMeta[
+														a.verdict
+													].badgeCls}"
+												>
+													{verdictMeta[a.verdict].label}
+												</span>
+											{/if}
+											<span class="text-slate-400">{dateTimeFmt(a.createdAt)}</span>
+										</span>
+										<span class="text-slate-400">{openAnalysisId === a.id ? '▲' : '▼'}</span>
+									</button>
+									{#if openAnalysisId === a.id}
+										<div
+											class="prose dark:prose-invert prose-slate prose-p:text-slate-600 dark:prose-p:text-slate-300 max-w-none border-t border-slate-200/50 px-4 py-3 text-sm dark:border-white/10"
+										>
+											{@html DOMPurify.sanitize(marked(a.content) as string)}
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
+				{/if}
+			</section>
 
 			<!-- HANDELSHISTORIK -->
 			<section

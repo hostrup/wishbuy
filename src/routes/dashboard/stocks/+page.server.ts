@@ -1,3 +1,5 @@
+import { GoogleGenerativeAI, SchemaType, type Schema } from '@google/generative-ai';
+import { env } from '$env/dynamic/private';
 import { fail } from '@sveltejs/kit';
 import { prisma } from '$lib/server/prisma';
 import {
@@ -6,16 +8,55 @@ import {
 	portfolioTotals,
 	concentrationHHI,
 	scenarioBands,
-	type TransactionInput
+	type TransactionInput,
+	type PortfolioTotals,
+	type ScenarioBand
 } from '$lib/server/stocks/calc';
 import { updateStockQuotes } from '$lib/server/stocks/fetchPrices';
 import { checkCostPriceAlerts } from '$lib/server/stocks/costPriceAlerts';
+import {
+	parseAnalysisData,
+	type AnalysisScope,
+	type AnalysisSummary,
+	type PortfolioVerdict
+} from '$lib/stocks/glossary';
+import type { Prisma } from '@prisma/client';
 import type { Actions, PageServerLoad } from './$types';
 
 // Kurser ældre end dette markeres som "stale" i UI'et.
 const STALE_AFTER_MS = 26 * 60 * 60 * 1000; // ~26 timer (dækker en weekend-pause + lidt slæk)
 
 type ThesisStatus = 'OK' | 'PRESSURE' | 'UNKNOWN';
+
+interface PositionSummary {
+	id: string;
+	ticker: string;
+	name: string;
+	sector: string | null;
+	theme: string | null;
+	shares: number;
+	avgCostUsd: number;
+	totalCostDkk: number;
+	currentPriceUsd: number | null;
+	dayChangePct: number | null;
+	valueDkk: number;
+	valueUsd: number;
+	gainDkk: number;
+	gainPct: number;
+	absGainDkk: number;
+	isNearCostPrice: boolean;
+	peTrailing: number | null;
+	peForward: number | null;
+	targetPriceUsd: number | null;
+	targetUpsidePct: number | null;
+	investmentThesis: string | null;
+	breakThesisSignal: string | null;
+	thesisStatus: ThesisStatus;
+	isStale: boolean;
+}
+
+const GEMINI_STOCK_MODEL = 'gemini-2.5-flash';
+const AI_TIMEOUT_MS = 45000;
 
 function startOfDayUtc(d: Date): Date {
 	return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -45,22 +86,12 @@ function isUsMarketOpen(): boolean {
 	}
 }
 
-export const load: PageServerLoad = async () => {
-	const stocks = await prisma.stock.findMany({
-		where: { isActive: true, isBenchmark: false },
-		include: { transactions: true },
-		orderBy: { ticker: 'asc' }
-	});
-
-	const latestFx = await prisma.exchangeRateDaily.findFirst({
-		where: { base: 'USD', target: 'DKK' },
-		orderBy: { date: 'desc' }
-	});
-	const fxRate = latestFx?.rate ?? 6.44; // fallback til seed-kursen indtil første fx-sync
-
-	const now = Date.now();
-
-	const positions = stocks
+function computePositions(
+	stocks: Prisma.StockGetPayload<{ include: { transactions: true } }>[],
+	fxRate: number,
+	now: number
+): PositionSummary[] {
+	return stocks
 		.map((stock) => {
 			const txs: TransactionInput[] = stock.transactions.map((t) => ({
 				type: t.type,
@@ -124,6 +155,24 @@ export const load: PageServerLoad = async () => {
 			};
 		})
 		.filter((p) => p.shares > 0);
+}
+
+export const load: PageServerLoad = async ({ locals }) => {
+	const stocks = await prisma.stock.findMany({
+		where: { isActive: true, isBenchmark: false },
+		include: { transactions: true },
+		orderBy: { ticker: 'asc' }
+	});
+
+	const latestFx = await prisma.exchangeRateDaily.findFirst({
+		where: { base: 'USD', target: 'DKK' },
+		orderBy: { date: 'desc' }
+	});
+	const fxRate = latestFx?.rate ?? 6.44; // fallback til seed-kursen indtil første fx-sync
+
+	const now = Date.now();
+
+	const positions = computePositions(stocks, fxRate, now);
 
 	const totals = portfolioTotals(
 		positions.map((p) => ({ ticker: p.ticker, valueDkk: p.valueDkk, costDkk: p.totalCostDkk }))
@@ -192,6 +241,16 @@ export const load: PageServerLoad = async () => {
 	// Aktievalg til "tilføj handel"-dropdown (kun aktive, ikke-benchmark)
 	const stockOptions = stocks.map((s) => ({ id: s.id, ticker: s.ticker, name: s.name }));
 
+	// Seneste AI-analyser (seneste først) til historik-sektionen
+	const analyses = locals.user
+		? await prisma.stockAnalysis.findMany({
+				where: { userId: locals.user.id },
+				include: { stock: { select: { ticker: true } } },
+				orderBy: { createdAt: 'desc' },
+				take: 15
+			})
+		: [];
+
 	return {
 		fxRate,
 		fxDate: latestFx?.date ?? null,
@@ -206,7 +265,8 @@ export const load: PageServerLoad = async () => {
 		lastSyncedAt: lastSyncedAt ?? null,
 		transactions,
 		stockOptions,
-		marketOpen: isUsMarketOpen()
+		marketOpen: isUsMarketOpen(),
+		analyses: analyses.map(serializeAnalysis)
 	};
 };
 
@@ -441,5 +501,319 @@ export const actions: Actions = {
 		if (!id) return fail(400, { error: 'Mangler transaktions-id.' });
 		await prisma.stockTransaction.delete({ where: { id } });
 		return { success: true };
+	},
+
+	requestPortfolioAnalysis: async ({ locals }) => {
+		if (!locals.user) return fail(401, { error: 'Not authenticated' });
+		const result = await runStockAnalysis(locals.user.id, 'PORTFOLIO', null);
+		if (!result.success) return fail(result.status, { error: result.error });
+		return { success: true, analysis: result.analysis };
+	},
+
+	requestStockAnalysis: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Not authenticated' });
+		const data = await request.formData();
+		const stockId = data.get('stockId')?.toString();
+		if (!stockId) return fail(400, { error: 'Manglende aktie-id.' });
+		const stock = await prisma.stock.findUnique({
+			where: { id: stockId },
+			select: { id: true, ticker: true }
+		});
+		if (!stock) return fail(404, { error: 'Aktien findes ikke.' });
+		const result = await runStockAnalysis(locals.user.id, 'STOCK', stockId);
+		if (!result.success) return fail(result.status, { error: result.error });
+		return { success: true, analysis: result.analysis };
 	}
 };
+
+// ---------- AI-porteføljeanalyse (9.8) ----------
+
+interface AnalysisContext {
+	fxRate: number;
+	fxDate: string | null;
+	positions: PositionSummary[];
+	totals: PortfolioTotals;
+	dayChange: { dkk: number; pct: number };
+	bands: ScenarioBand[];
+	hhi: number;
+	largestTicker: string;
+	largestWeight: number;
+	marketOpen: boolean;
+	benchmarks: Array<{ ticker: string; dayChangePct: number | null }>;
+}
+
+async function buildAnalysisContext(userId: string): Promise<AnalysisContext> {
+	const stocks = await prisma.stock.findMany({
+		where: { isActive: true },
+		include: { transactions: true },
+		orderBy: { ticker: 'asc' }
+	});
+
+	const latestFx = await prisma.exchangeRateDaily.findFirst({
+		where: { base: 'USD', target: 'DKK' },
+		orderBy: { date: 'desc' }
+	});
+	const fxRate = latestFx?.rate ?? 6.44;
+
+	const actives = stocks.filter((s) => !s.isBenchmark);
+	const positions = computePositions(actives, fxRate, Date.now());
+	const totals = portfolioTotals(
+		positions.map((p) => ({ ticker: p.ticker, valueDkk: p.valueDkk, costDkk: p.totalCostDkk }))
+	);
+
+	let dayChangeDkk = 0;
+	for (const p of positions) {
+		if (p.dayChangePct !== null && p.currentPriceUsd !== null) {
+			const prevValueDkk = p.valueDkk / (1 + p.dayChangePct);
+			dayChangeDkk += p.valueDkk - prevValueDkk;
+		}
+	}
+	const baseForPct = totals.valueDkk - dayChangeDkk;
+	const dayChange = { dkk: dayChangeDkk, pct: baseForPct > 0 ? dayChangeDkk / baseForPct : 0 };
+
+	const bands = scenarioBands(totals.costDkk);
+	const hhi = concentrationHHI(totals.allocation.map((a) => a.weight));
+	const largest = totals.allocation.reduce((max, a) => (a.weight > max.weight ? a : max), {
+		ticker: '',
+		weight: 0,
+		valueDkk: 0
+	});
+
+	const benchmarks = stocks
+		.filter((s) => s.isBenchmark)
+		.map((s) => ({
+			ticker: s.ticker,
+			dayChangePct:
+				typeof s.currentPrice === 'number' && s.previousClose && s.previousClose > 0
+					? s.currentPrice / s.previousClose - 1
+					: null
+		}));
+
+	return {
+		fxRate,
+		fxDate: latestFx?.date?.toISOString().slice(0, 10) ?? null,
+		positions,
+		totals,
+		dayChange,
+		bands,
+		hhi,
+		largestTicker: largest.ticker,
+		largestWeight: largest.weight,
+		marketOpen: isUsMarketOpen(),
+		benchmarks
+	};
+}
+
+function buildAnalysisPrompt(
+	ctx: AnalysisContext,
+	scope: AnalysisScope,
+	stockId: string | null
+): string {
+	const fmt = (n: number) => Math.round(n).toLocaleString('da-DK');
+	const lines: string[] = [
+		'Du er porteføljerådgiver for familien Hostrup (private investorer i Danmark).',
+		'Svar ALTID på dansk, vær konkret og direkte, og brug KUN de tal du får herunder.',
+		''
+	];
+
+	if (scope === 'PORTFOLIO') {
+		lines.push(`Porteføljeværdi: ${fmt(ctx.totals.valueDkk)} DKK`);
+		lines.push(
+			`Urealiseret afkast: ${fmt(ctx.totals.gainDkk)} DKK (${(ctx.totals.gainPct * 100).toFixed(1)} %)`
+		);
+		lines.push(
+			`Dagsændring: ${fmt(ctx.dayChange.dkk)} DKK (${(ctx.dayChange.pct * 100).toFixed(2)} %)`
+		);
+		lines.push(`Kostpris (basis for scenarier): ${fmt(ctx.totals.costDkk)} DKK`);
+		lines.push(`Valutakurs: 1 USD = ${ctx.fxRate.toFixed(2)} DKK (pr. ${ctx.fxDate ?? 'ukendt'})`);
+		lines.push(
+			`Koncentration (HHI): ${ctx.hhi.toFixed(2)} (0 = helt spredt, 1 = én aktie). Største position: ${ctx.largestTicker} (${(ctx.largestWeight * 100).toFixed(0)} %)`
+		);
+		lines.push(`US-markedet er ${ctx.marketOpen ? 'åbent' : 'lukket'} lige nu.`);
+		const bench = ctx.benchmarks
+			.map(
+				(b) =>
+					`${b.ticker} ${b.dayChangePct !== null ? `${(b.dayChangePct * 100).toFixed(2)} %` : 'ingen kurs'}`
+			)
+			.join(', ');
+		if (bench) lines.push(`Benchmark i dag: ${bench}.`);
+		lines.push(
+			`Scenarier (dec. 2026, DKK): ${ctx.bands.map((b) => `${b.label} ${fmt(b.valueDkk)}`).join(', ')}.`
+		);
+		lines.push('');
+		lines.push('POSITIONER:');
+		for (const p of ctx.positions) {
+			lines.push(
+				`- ${p.ticker} (${p.sector ?? 'ukendt sektor'}${p.theme ? ` / ${p.theme}` : ''}): ${p.shares} stk., gns. kostpris ${p.avgCostUsd.toFixed(2)} USD, kurs ${p.currentPriceUsd?.toFixed(2) ?? 'n/a'} USD (${p.dayChangePct !== null ? `${(p.dayChangePct * 100).toFixed(2)} % i dag` : 'ingen kurs'}), værdi ${fmt(p.valueDkk)} DKK, afkast ${(p.gainPct * 100).toFixed(1)} %, P/E trailing ${p.peTrailing?.toFixed(1) ?? 'n/a'}, P/E forward ${p.peForward?.toFixed(1) ?? 'n/a'}, target-afstand ${p.targetUpsidePct !== null ? `${(p.targetUpsidePct * 100).toFixed(1)} %` : 'n/a'}, tesestatus: ${p.thesisStatus}`
+			);
+			if (p.investmentThesis) lines.push(`  Tese: ${p.investmentThesis}`);
+			if (p.breakThesisSignal) lines.push(`  Brud-signal: ${p.breakThesisSignal}`);
+		}
+	} else {
+		const p = ctx.positions.find((x) => x.id === stockId);
+		if (p) {
+			lines.push(
+				`ANALYSE AF ENKELT-AKTIE: ${p.ticker} (${p.sector ?? 'ukendt sektor'}${p.theme ? ` / ${p.theme}` : ''})`
+			);
+			lines.push(
+				`Position: ${p.shares} stk., gns. kostpris ${p.avgCostUsd.toFixed(2)} USD, kurs ${p.currentPriceUsd?.toFixed(2) ?? 'n/a'} USD (${p.dayChangePct !== null ? `${(p.dayChangePct * 100).toFixed(2)} % i dag` : 'ingen kurs'}), værdi ${fmt(p.valueDkk)} DKK, afkast ${(p.gainPct * 100).toFixed(1)} %`
+			);
+			lines.push(
+				`P/E trailing ${p.peTrailing?.toFixed(1) ?? 'n/a'}, P/E forward ${p.peForward?.toFixed(1) ?? 'n/a'}, target-afstand ${p.targetUpsidePct !== null ? `${(p.targetUpsidePct * 100).toFixed(1)} %` : 'n/a'}, tesestatus: ${p.thesisStatus}`
+			);
+			if (p.investmentThesis) lines.push(`Tese: ${p.investmentThesis}`);
+			if (p.breakThesisSignal) lines.push(`Brud-signal: ${p.breakThesisSignal}`);
+			lines.push('');
+			lines.push(
+				`Kontekst: porteføljeværdi ${fmt(ctx.totals.valueDkk)} DKK, USD/DKK ${ctx.fxRate.toFixed(2)}, HHI ${ctx.hhi.toFixed(2)}, marked ${ctx.marketOpen ? 'åbent' : 'lukket'}.`
+			);
+		}
+	}
+
+	lines.push('');
+	lines.push(
+		'Bedøm hver position med: ADD (køb mere), HOLD (behold), REDUCE (skær ned), SELL (sælg). ThesisStatus: OK (tese intakt), PRESSURE (under pres), BROKEN (brudt).'
+	);
+	lines.push(
+		'Returnér JSON i det specificerede skema. summaryMarkdown skal være korte danske afsnit med fed markup (**...**) til nøgletal, max 2-3 afsnit.'
+	);
+	return lines.join('\n');
+}
+
+const positionSchema: Schema = {
+	type: SchemaType.OBJECT,
+	description: 'Dom for én position',
+	properties: {
+		ticker: { type: SchemaType.STRING, description: 'Ticker (f.eks. NVDA)' },
+		verdict: { type: SchemaType.STRING, format: 'enum', enum: ['ADD', 'HOLD', 'REDUCE', 'SELL'] },
+		thesisStatus: { type: SchemaType.STRING, format: 'enum', enum: ['OK', 'PRESSURE', 'BROKEN'] },
+		rationale: { type: SchemaType.STRING, description: 'Kort begrundelse på dansk' },
+		keyRisk: { type: SchemaType.STRING, description: 'Vigtigste risiko på dansk' }
+	},
+	required: ['ticker', 'verdict', 'thesisStatus', 'rationale', 'keyRisk']
+};
+
+const analysisSchema: Schema = {
+	type: SchemaType.OBJECT,
+	description: 'AI-porteføljeanalyse',
+	properties: {
+		overallVerdict: {
+			type: SchemaType.STRING,
+			format: 'enum',
+			enum: ['HOLD', 'REDUCE', 'ADD', 'SELL', 'MIXED'],
+			description: 'Overordnet dom for hele porteføljen'
+		},
+		summaryMarkdown: { type: SchemaType.STRING, description: 'Resumé på dansk i markdown' },
+		positions: { type: SchemaType.ARRAY, items: positionSchema },
+		portfolioRisks: {
+			type: SchemaType.ARRAY,
+			items: { type: SchemaType.STRING },
+			description: 'Porteføljerisici på dansk'
+		},
+		suggestions: {
+			type: SchemaType.ARRAY,
+			items: { type: SchemaType.STRING },
+			description: 'Konkrete forslag på dansk'
+		}
+	},
+	required: ['overallVerdict', 'summaryMarkdown', 'positions', 'portfolioRisks', 'suggestions']
+};
+
+function serializeAnalysis(a: {
+	id: string;
+	scope: string;
+	stockId: string | null;
+	model: string;
+	verdict: string | null;
+	content: string;
+	data: unknown;
+	snapshotValueDkk: number | null;
+	createdAt: Date;
+	stock?: { ticker: string } | null;
+}): AnalysisSummary {
+	return {
+		id: a.id,
+		scope: a.scope as AnalysisScope,
+		stockId: a.stockId,
+		ticker: a.stock?.ticker ?? null,
+		model: a.model,
+		verdict: a.verdict as PortfolioVerdict | null,
+		content: a.content,
+		data: parseAnalysisData(a.data),
+		snapshotValueDkk: a.snapshotValueDkk,
+		createdAt: a.createdAt.toISOString()
+	};
+}
+
+async function runStockAnalysis(
+	userId: string,
+	scope: AnalysisScope,
+	stockId: string | null
+): Promise<
+	{ success: true; analysis: AnalysisSummary } | { success: false; status: number; error: string }
+> {
+	const apiKey = (env.GEMINI_API_KEY ?? '').replace(/^["']|["']$/g, '');
+	if (!apiKey)
+		return { success: false, status: 500, error: 'GEMINI_API_KEY mangler i miljøvariablerne.' };
+
+	const ctx = await buildAnalysisContext(userId);
+	const prompt = buildAnalysisPrompt(ctx, scope, stockId);
+
+	const genAI = new GoogleGenerativeAI(apiKey);
+	const model = genAI.getGenerativeModel({
+		model: GEMINI_STOCK_MODEL,
+		generationConfig: { responseMimeType: 'application/json', responseSchema: analysisSchema }
+	});
+
+	try {
+		const result = await model.generateContent(prompt, {
+			signal: AbortSignal.timeout(AI_TIMEOUT_MS)
+		});
+		const text = result.response.text();
+		let parsed = parseAnalysisData(text);
+		if (!parsed) {
+			// responseSchema er sat, men gem så på en ren JSON-parse for en sikkerheds skyld
+			try {
+				parsed = parseAnalysisData(JSON.parse(text));
+			} catch {
+				parsed = null;
+			}
+		}
+		if (!parsed) {
+			return {
+				success: false,
+				status: 500,
+				error: 'AI-analysen kunne ikke fortolkes. Prøv igen om lidt.'
+			};
+		}
+
+		const saved = await prisma.stockAnalysis.create({
+			data: {
+				userId,
+				scope,
+				stockId,
+				model: GEMINI_STOCK_MODEL,
+				verdict: parsed.overallVerdict,
+				content: parsed.summaryMarkdown,
+				data: parsed as unknown as Prisma.InputJsonValue,
+				snapshotValueDkk: Math.round(ctx.totals.valueDkk)
+			}
+		});
+
+		return { success: true, analysis: serializeAnalysis(saved) };
+	} catch (err) {
+		if (err instanceof Error && err.name === 'TimeoutError') {
+			return {
+				success: false,
+				status: 504,
+				error: 'AI-analyse tog for lang tid. Prøv igen om lidt.'
+			};
+		}
+		console.error('AI-porteføljeanalyse fejlede:', err);
+		return {
+			success: false,
+			status: 500,
+			error: 'Der opstod en fejl under generering af analysen.'
+		};
+	}
+}

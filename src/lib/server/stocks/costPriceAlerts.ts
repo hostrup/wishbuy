@@ -1,5 +1,9 @@
 import { prisma } from '$lib/server/prisma';
-import { positionFromTransactions, formatDkk, type TransactionInput } from '$lib/server/stocks/calc';
+import {
+	positionFromTransactions,
+	formatDkk,
+	type TransactionInput
+} from '$lib/server/stocks/calc';
 import { sendTelegramMessage, type TelegramResult } from '$lib/server/telegram';
 
 export interface CostPriceCheckInput {
@@ -107,24 +111,27 @@ export function formatCostPriceTelegramMessage(
 ): string {
 	if (evaluations.length === 0) return '';
 
-	const header = evaluations.length === 1
-		? `🎯 <b>Aktie-notifikation: Nær kostpris!</b>\n`
-		: `🎯 <b>Aktie-notifikation: ${evaluations.length} aktier nær kostpris!</b>\n`;
+	const header =
+		evaluations.length === 1
+			? `🎯 <b>Aktie-notifikation: Nær kostpris!</b>\n`
+			: `🎯 <b>Aktie-notifikation: ${evaluations.length} aktier nær kostpris!</b>\n`;
 
-	const itemsText = evaluations.map((e) => {
-		const diffSign = e.diffDkk >= 0 ? '+' : '';
-		const diffFormatted = `${diffSign}${formatDkk(e.diffDkk)}`;
-		const pctFormatted = (e.diffPct * 100).toFixed(2).replace('.', ',');
-		const directionText = e.diffDkk >= 0 ? 'over kostpris' : 'under kostpris';
+	const itemsText = evaluations
+		.map((e) => {
+			const diffSign = e.diffDkk >= 0 ? '+' : '';
+			const diffFormatted = `${diffSign}${formatDkk(e.diffDkk)}`;
+			const pctFormatted = (e.diffPct * 100).toFixed(2).replace('.', ',');
+			const directionText = e.diffDkk >= 0 ? 'over kostpris' : 'under kostpris';
 
-		return (
-			`📈 <b>${e.ticker}</b> (${e.name})\n` +
-			`• <b>Afstand til kostpris:</b> ${formatDkk(e.absDiffDkk)} (${diffFormatted} / ${diffSign}${pctFormatted}%, ${directionText})\n` +
-			`• <b>Aktuel værdi:</b> ${formatDkk(e.currentValueDkk)}\n` +
-			`• <b>Samlet kostpris:</b> ${formatDkk(e.totalCostDkk)}\n` +
-			`• <b>Aktier:</b> ${e.shares} stk. (Kurs: $${e.currentPriceUsd.toFixed(2)} / Gns. kost: $${e.avgCostUsd.toFixed(2)})`
-		);
-	}).join('\n\n');
+			return (
+				`📈 <b>${e.ticker}</b> (${e.name})\n` +
+				`• <b>Afstand til kostpris:</b> ${formatDkk(e.absDiffDkk)} (${diffFormatted} / ${diffSign}${pctFormatted}%, ${directionText})\n` +
+				`• <b>Aktuel værdi:</b> ${formatDkk(e.currentValueDkk)}\n` +
+				`• <b>Samlet kostpris:</b> ${formatDkk(e.totalCostDkk)}\n` +
+				`• <b>Aktier:</b> ${e.shares} stk. (Kurs: $${e.currentPriceUsd.toFixed(2)} / Gns. kost: $${e.avgCostUsd.toFixed(2)})`
+			);
+		})
+		.join('\n\n');
 
 	const footer = `\n\n<i>Grænseværdi: inden for ${formatDkk(thresholdDkk)} af kostpris • Wishbuy Hub</i>`;
 
@@ -168,7 +175,8 @@ export async function checkCostPriceAlerts(
 			nearCostPriceCount++;
 
 			const lastAlertTime = stock.lastCostAlertAt ? stock.lastCostAlertAt.getTime() : 0;
-			const isCooldownPassed = forceAlert || !stock.lastCostAlertAt || (now - lastAlertTime > ALERT_COOLDOWN_MS);
+			const isCooldownPassed =
+				forceAlert || !stock.lastCostAlertAt || now - lastAlertTime > ALERT_COOLDOWN_MS;
 
 			if (isCooldownPassed) {
 				toNotify.push(evalResult);
