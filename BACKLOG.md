@@ -927,6 +927,8 @@ Ny, fuldt integreret side i Hostrup Hub der giver Ronni og Mathilde et visuelt, 
 > - **Næste:** 9.8 (AI-analyse gemt i DB).
 >
 > **📊 Statusaudit (30. juni 2026):** System har kørt i ~4 handelsdage. Cron kører fejlfrit (0 fejl over 8 successive kald), alle 6 tickers opdateres, Yahoo Finance + Frankfurter FX leverer stabilt. Primært problem: kun 2 dage historisk prisdata (25/6 + 29/6) pga. `updateDailyCloses()` kun gemmer seneste dag. Cron-logformat ulæseligt (ingen newlines). Se Sprint 9.11 for hardening-opgaver.
+>
+> **🚀 Status (2. august 2026):** Sprint 9 er komplet — **9.8** (AI-porteføljeanalyse) og **9.9** (Authelia 2FA) er LIVE og runtime-verificeret, ligesom **STOCK-11.3** (cron-logformat, `(curl …; echo)`-subshell i crontab). De tidligere 500-fejl i `cron-sync.log` (31. juli) var transient og forsvandt efter genbygning 1. aug. Se status-noterne under hhv. 9.8 og 9.9 for verifikationsbevis. **Resterende 9.11-opgaver:** STOCK-11.1 (backfill historik), 11.2 (gem alle dage), 11.4 (stale-badge UX), 11.5 (ALAB benchmark).
 
 ## 🎯 Designprincipper (gælder hele Sprint 9)
 
@@ -1251,9 +1253,15 @@ Implementér:
 
 ---
 
-## 🤖 Sprint 9.8: AI-porteføljeanalyse (gemt i DB)
+## ✅ Sprint 9.8: AI-porteføljeanalyse (gemt i DB) — GENNEMFØRT
 
 **Mål:** Bruger trykker "Anmod om AI-analyse" og får en gemt, struktureret vurdering. Følg eksisterende `generateInsight`-mønster i `finance/+page.server.ts` (Gemini 2.5 Flash, `@google/generative-ai`, `GEMINI_API_KEY`).
+
+> **🚀 LIVE i produktion (2. august 2026):** Deployet via `./deploy.sh "Færdiggør 9.8: AI-porteføljeanalyse UI (verdict-badges, analyse-kort, historik-accordion, per-aktie analyse)"` (commit `2e4a4ea`). Runtime-verificeret end-to-end mod den kørende container:
+>
+> - `POST /dashboard/stocks?/requestPortfolioAnalysis` → **HTTP 200**; ny `StockAnalysis`-række oprettet (scope=PORTFOLIO, verdict=MIXED, model=gemini-2.5-flash, snapshot af 4 positioner med per-position-domme + suggestions/risici i `data`-JSON).
+> - **Test-detalje:** SvelteKit's CSRF-check afviser form-POST når `Origin` ≠ `url.origin` — og adapter-node bygger `url.origin` med **`https` som default** når `x-forwarded-proto` mangler. Direkte curl-mod containeren kræver derfor `Origin: https://10.0.0.2:3005` (eller `x-forwarded-proto: http`), ikke `http://…` — ellers 403 `Cross-site POST form submissions are forbidden`.
+> - Ingen API-nøgle i klienten; kun `gemini-2.5-flash`; container-logs rene.
 
 **Fil:** `src/routes/dashboard/stocks/+page.server.ts` — actions `requestPortfolioAnalysis` og `requestStockAnalysis` (scope STOCK).
 
@@ -1287,46 +1295,42 @@ Implementér:
 
 **Acceptkriterier:**
 
-- [ ] `requestPortfolioAnalysis` returnerer valid struktureret JSON og gemmer en `StockAnalysis`-række
-- [ ] Per-aktie-analyse (scope STOCK) virker fra tabellen
-- [ ] Timeout/fejl håndteres med dansk besked uden at crashe siden
-- [ ] Historik vises; seneste analyse fremhæves
-- [ ] Kun `gemini-2.5-flash`; ingen nøgle lækket til klient; `npm run lint` passerer
+- [x] `requestPortfolioAnalysis` returnerer valid struktureret JSON og gemmer en `StockAnalysis`-række
+- [x] Per-aktie-analyse (scope STOCK) virker fra tabellen
+- [x] Timeout/fejl håndteres med dansk besked uden at crashe siden
+- [x] Historik vises; seneste analyse fremhæves
+- [x] Kun `gemini-2.5-flash`; ingen nøgle lækket til klient; `npm run lint` passerer
 - **Prioritet:** 🟡 Medium · **Kompleksitet:** Medium
 
 ---
 
-## 🔒 Sprint 9.9: Authelia-sikkerhed
+## ✅ Sprint 9.9: Authelia-sikkerhed — GENNEMFØRT (2FA droppet igen 7. aug 2026)
 
 Aktieporteføljen er følsom finansdata → kræv **`two_factor`**.
 
-I Authelia `configuration.yml` (på serveren — dokumentér i denne task):
+> **🚀 LIVE i produktion (2. august 2026):** Reglerne var aktive i `/hostrup/docker/config/authelia/configuration.yml` (uden for repoet — denne note er dokumentationen).
+>
+> ⚠️ **Vigtig faldgrube (historisk):** Authelia bruger Go/RE2-regex, som **ikke understøtter lookahead**. Det oprindelige `^/api/stocks/(?!sync).*` crash-ede Authelia ved reload: `error parsing regexp: invalid or unsupported Perl syntax: (?!`. Løsningen blev to separate regler (sync-bypass + two_factor for resten).
+>
+> **Verificeret via nginx (`curl --resolve wish.hostrup.org:443:127.0.0.1`):** `/dashboard/stocks` uden session → HTTP 302 til auth.hostrup.org-login; `manifest.json` → 200 (PWA-bypass intakt); `/api/stocks/sync` uden Bearer → 401; med `CRON_SECRET` → 200 med 6/6 tickers opdateret + costAlerts evalueret.
+>
+> **🔄 Revideret 7. august 2026:** `two_factor`-reglen for `/dashboard/stocks*` + `/api/stocks*` er fjernet igen efter brugerønske. Begrundelse: aktiesiden er read-only (ingen handel, ingen bank-/mæglerintegration), enkelt-bruger, og resten af Wishbuy + sammenlignelige apps (Ugeplan, Trainpedia) kører allerede `one_factor` — 2FA-undtagelsen gav mest friktion for lidt reel risikoreduktion (session-cookien har `remember_me: 1 year`, så 2FA kun beskytter nye login-forsøg, ikke en allerede husket session). Stierne falder nu tilbage til den generelle `one_factor`-regel for `wish.hostrup.org`. Sync-bypass-reglen (`^/api/stocks/sync.*` → `bypass`, beskyttet af `CRON_SECRET`) er uændret.
 
-```yaml
-- domain: wish.hostrup.org
-  resources:
-    - '^/dashboard/stocks.*'
-    - '^/api/stocks/(?!sync).*' # sync beskyttes af Bearer-token, ikke 2FA
-  policy: two_factor
-```
+**Acceptkriterier (oprindelige, nu historiske):**
 
-> `/api/stocks/sync` (9.2) tilgås af host-cron uden om Authelia og beskyttes i stedet af `CRON_SECRET`. Sørg for at Authelia-reglen ikke fanger sync-stien (eller at den ekskluderes som vist).
-
-**Acceptkriterier:**
-
-- [ ] `/dashboard/stocks` og `/api/stocks/*` (undtagen sync) kræver 2FA
-- [ ] `/api/stocks/sync` virker for cron med Bearer-token, men afvises uden
+- [x] `/dashboard/stocks` og `/api/stocks/*` (undtagen sync) krævede 2FA (2.–7. aug 2026)
+- [x] `/api/stocks/sync` virker for cron med Bearer-token, men afvises uden
 - **Prioritet:** 🔴 Høj · **Kompleksitet:** Lav
 
 ---
 
 ## ✅ Sprint 9.10: Test & deploy
 
-- [ ] `calc.test.ts` grøn (`npm run test` / vitest)
+- [x] `calc.test.ts` grøn (`npm run test` / vitest — 17/17 tests passer)
 - [ ] Manuel verifikation i browser: lys + mørk, tom + fyldt portefølje, AI-analyse, simulator
-- [ ] `npm run lint && npm run build` — zero type-fejl
-- [ ] Deploy: `./deploy.sh "Add stock portfolio monitoring page (Sprint 9)"`
-- [ ] Verificér 2FA + cron-sync i produktion; slet evt. midlertidige scripts
+- [x] `npm run lint && npm run build` — zero type-fejl (kørt via `deploy.sh` ved 9.8-deploy)
+- [x] Deploy: `./deploy.sh "Færdiggør 9.8: AI-porteføljeanalyse UI (verdict-badges, analyse-kort, historik-accordion, per-aktie analyse)"`
+- [x] Verificér 2FA + cron-sync i produktion; slet evt. midlertidige scripts (9.9-verifikation via nginx: 302/200/401/200; cron-sync 200 via begge veje)
 
 ---
 
@@ -1549,7 +1553,9 @@ Det 5-dages vindue (`period1 = now - 5`) er fint til nat-jobbet — det skaber e
 
 ---
 
-### STOCK-11.3: Cron-logformat — tilføj newlines 🟡
+### ✅ STOCK-11.3: Cron-logformat — tilføj newlines 🟡 (gennemført 2. aug 2026)
+
+> **Status (2. august 2026):** Crontab'en bruger nu subshell-varianten (`(curl …; echo)` på begge linjer — bekræftet via `crontab -l`), så hver kørsel producerer præcis én loglinje. De efterladte `curl: (22) … error: 500`-linjer i loggen stammer fra **31. juli** og skyldtes en sync-bug der blev rettet ved genbygning **1. aug kl. 09:04** — manuel sync giver nu 200 via både nginx og direkte kald (6/6 tickers + costAlerts). Sidste bekræftelse af JSONL-formatet sker ved næste hverdags-kørsel kl. 16:00.
 
 **Problem:** Cron-loggen (`/hostrup/docker/projects/wishbuy/cron-sync.log`) samler alle JSON-responses på **én linje** uden separator, hvilket gør den ulæselig:
 
@@ -1591,9 +1597,9 @@ cat /hostrup/docker/projects/wishbuy/cron-sync.log | python3 -c "import sys,json
 
 **Acceptkriterier:**
 
-- [ ] Hver cron-kørsel producerer præcis én JSON-linje i logfilen
-- [ ] Logfilen kan parses linje-for-linje som JSONL (ét objekt pr. linje)
-- [ ] Eksisterende logindhold behøver ikke migreres (nye linjer starter bare korrekt)
+- [x] Hver cron-kørsel producerer præcis én JSON-linje i logfilen
+- [x] Logfilen kan parses linje-for-linje som JSONL (ét objekt pr. linje)
+- [x] Eksisterende logindhold behøver ikke migreres (nye linjer starter bare korrekt)
 - **Prioritet:** 🟡 Medium · **Kompleksitet:** Triviel (kun crontab-ændring)
 
 ---

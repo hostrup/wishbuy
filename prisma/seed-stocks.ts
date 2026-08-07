@@ -29,30 +29,6 @@ type SeedStock = {
 
 const portfolio: SeedStock[] = [
 	{
-		ticker: 'NVDA',
-		name: 'NVIDIA Corp.',
-		description: 'Markedsleder på GPU-acceleratorer til AI-træning og -inferens.',
-		investmentThesis:
-			'GPU compute: Ubestridt markedsleder på AI-acceleratorer. CUDA-software binder kunderne.',
-		breakThesisSignal: 'Markedsandel falder under 75%. Omsætningsvækst under 30% y/y.',
-		sector: 'Semiconductors',
-		theme: 'AI Compute',
-		shares: 2,
-		priceUsd: 212.297
-	},
-	{
-		ticker: 'AVGO',
-		name: 'Broadcom Inc.',
-		description: 'Custom ASIC- og netværkschips til hyperscalere.',
-		investmentThesis:
-			'Custom ASIC & netværk: Vinder af hyperscalernes skift mod egne chips (TPU/MTIA).',
-		breakThesisSignal: 'AI-omsætningsvækst under 50% y/y. Mister en stor kunde (Google/Meta).',
-		sector: 'Semiconductors',
-		theme: 'Custom ASIC',
-		shares: 1,
-		priceUsd: 406.14
-	},
-	{
 		ticker: 'GOOGL',
 		name: 'Alphabet Inc.',
 		description: 'Cloud, søgning og Gemini-modeller — fuldt integreret fra chip til model.',
@@ -63,18 +39,6 @@ const portfolio: SeedStock[] = [
 		theme: 'Cloud & Modeller',
 		shares: 1,
 		priceUsd: 366.025
-	},
-	{
-		ticker: 'PLTR',
-		name: 'Palantir Tech.',
-		description: 'AIP-platformen som enterprise AI-operativsystem. Hypervækst-joker.',
-		investmentThesis:
-			'AI software (joker): AIP-platformen er enterprise AI-operativsystemet. Hypervækst.',
-		breakThesisSignal: 'Vækst falder under 40% y/y. GAAP-margin falder under 30%.',
-		sector: 'Software',
-		theme: 'AI Software',
-		shares: 2,
-		priceUsd: 146.093
 	}
 ];
 
