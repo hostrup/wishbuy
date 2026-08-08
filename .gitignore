@@ -26,3 +26,10 @@ vite.config.ts.timestamp-*
 
 # Aktie-sync cron-log (Sprint 9.2)
 cron-sync.log
+
+# Bankudtræk må ALDRIG committes — de indeholder rigtige posteringer.
+# Læg dem uden for repoet og importér via /dashboard/import.
+*.csv
+
+# Claude Code sessionsindstillinger (kan indeholde lokale stier og tokens)
+.claude/

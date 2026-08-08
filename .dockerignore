@@ -1,5 +1,23 @@
 node_modules
 .svelte-kit
 build
+
+# Hemmeligheder
 .env
 .env.*
+!.env.example
+
+# Git og editor
+.git
+.gitignore
+.vscode
+.claude
+.agents
+
+# Dokumentation — må aldrig invalidere Docker-cachen
+*.md
+docs/
+
+# Drift-artefakter
+cron-sync.log
+*.csv

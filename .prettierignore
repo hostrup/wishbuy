@@ -10,3 +10,10 @@ bun.lockb
 
 # Claude Code
 .claude/
+
+# Auto-genereret af Crash Watcher — formateres af et eksternt værktøj,
+# så prettier --check ellers fejler hver gang der logges en ny fejl.
+ERROR-LOG.md
+
+# Arkiveret sprint-historik gemmes ordret som den blev skrevet
+docs/arkiv/

@@ -4,7 +4,7 @@
   "description": "Fælles husholdnings- og kommandocentral for familien Hostrup.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
+  "background_color": "#f5f6f2",
   "theme_color": "#6c5ce7",
   "icons": [
     {
